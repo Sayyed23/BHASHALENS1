@@ -45,6 +45,8 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   google_generative_ai: ^0.3.0
   flutter_dotenv: ^6.0.0
+  speech_to_text: ^7.0.0
+  flutter_tts: ^3.8.5
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +58,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -101,3 +104,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/logo2.png"
+    background_color: "#FFF8F5"
+    theme_color: "#FF6B35"
+  windows:
+    generate: true
+    image_path: "assets/logo2.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/logo2.png"
+  image_path: "assets/logo2.png"

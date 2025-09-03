@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Orange Colors (same for dark theme) -->
+    <color name="primary_orange">#FF6B35</color>
+    <color name="primary_orange_light">#FF8A65</color>
+    <color name="primary_orange_dark">#E64A19</color>
+    
+    <!-- Secondary Blue Colors -->
+    <color name="secondary_blue">#1976D2</color>
+    <color name="secondary_blue_light">#42A5F5</color>
+    <color name="secondary_blue_dark">#0D47A1</color>
+    
+    <!-- Accent Colors -->
+    <color name="accent_green">#4CAF50</color>
+    <color name="accent_red">#E53935</color>
+    <color name="accent_yellow">#FFC107</color>
+    <color name="accent_purple">#9C27B0</color>
+    
+    <!-- Neutral Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="grey_50">#FAFAFA</color>
+    <color name="grey_100">#F5F5F5</color>
+    <color name="grey_200">#EEEEEE</color>
+    <color name="grey_300">#E0E0E0</color>
+    <color name="grey_400">#BDBDBD</color>
+    <color name="grey_500">#9E9E9E</color>
+    <color name="grey_600">#757575</color>
+    <color name="grey_700">#616161</color>
+    <color name="grey_800">#424242</color>
+    <color name="grey_900">#212121</color>
+    
+    <!-- Background Colors (Dark Theme) -->
+    <color name="background_light">#1A1A1A</color>
+    <color name="background_dark">#1A1A1A</color>
+    <color name="surface_light">#2D2D2D</color>
+    <color name="surface_dark">#2D2D2D</color>
+    
+    <!-- Text Colors (Dark Theme) -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#BDBDBD</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_dark">#FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FFC107</color>
+    <color name="error">#E53935</color>
+    <color name="info">#2196F3</color>
+</resources>

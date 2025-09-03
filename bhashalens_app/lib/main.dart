@@ -19,6 +19,8 @@ import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -44,7 +46,12 @@ void main() async {
         Provider<LocalStorageService>.value(
           value: localStorageService,
         ), // Provide LocalStorageService
-        Provider<GeminiService>(create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!)),
+        Provider<GeminiService>(
+          create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
+        ),
+        ChangeNotifierProvider<VoiceTranslationService>(
+          create: (_) => VoiceTranslationService(),
+        ),
       ],
       child: BhashaLensApp(isOnboardingCompleted: isOnboardingCompleted),
     ),
@@ -92,13 +99,16 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     // });
 
     // Handle links when app is already running
-    _appLinks.uriLinkStream.listen((link) {
-      _handleDeepLink(link);
-    });
+    // Temporarily disabled to fix Navigator context issues
+    // _appLinks.uriLinkStream.listen((link) {
+    //   if (mounted) {
+    //     _handleDeepLink(link);
+    //   }
+    // });
   }
 
   void _handleDeepLink(Uri? link) {
-    if (link != null) {
+    if (link != null && mounted) {
       final uri = link.toString();
 
       // Prioritize onboarding if not completed
@@ -110,57 +120,83 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       }
 
       if (uri.contains('/onboarding')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
+        }
       } else if (uri.contains('/login')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
       } else if (uri.contains('/signup')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/signup', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/signup', (route) => false);
+        }
       } else if (uri.contains('/forgot_password')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/forgot_password', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/forgot_password', (route) => false);
+        }
       } else if (uri.contains('/reset_password')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/reset_password', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/reset_password', (route) => false);
+        }
       } else if (uri.contains('/home')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/home', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       } else if (uri.contains('/camera_translate')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/camera_translate', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/camera_translate', (route) => false);
+        }
       } else if (uri.contains('/voice_translate')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/voice_translate', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/voice_translate', (route) => false);
+        }
       } else if (uri.contains('/offline_mode')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/offline_mode', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/offline_mode', (route) => false);
+        }
       } else if (uri.contains('/saved_translations')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/saved_translations', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/saved_translations', (route) => false);
+        }
       } else if (uri.contains('/settings')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/settings', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/settings', (route) => false);
+        }
       } else if (uri.contains('/help_support')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/help_support', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/help_support', (route) => false);
+        }
       } else if (uri.contains('/emergency')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/emergency', (route) => false);
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/emergency', (route) => false);
+        }
       }
     }
   }
@@ -181,17 +217,17 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
 
     return MaterialApp(
       title: 'BhashaLens',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: accessibilityService.highContrastMode
-            ? Brightness.dark
-            : Brightness.light,
-        textTheme:
-            (accessibilityService.highContrastMode
-                    ? ThemeData.dark().textTheme
-                    : ThemeData.light().textTheme)
-                .apply(fontSizeFactor: accessibilityService.textSizeFactor),
-      ),
+      theme: accessibilityService.highContrastMode
+          ? AppTheme.darkTheme.copyWith(
+              textTheme: AppTheme.darkTheme.textTheme.apply(
+                fontSizeFactor: accessibilityService.textSizeFactor,
+              ),
+            )
+          : AppTheme.lightTheme.copyWith(
+              textTheme: AppTheme.lightTheme.textTheme.apply(
+                fontSizeFactor: accessibilityService.textSizeFactor,
+              ),
+            ),
       debugShowCheckedModeBanner: false,
       // Use a builder to listen to auth state and decide initial route
       home: initialRoute,
