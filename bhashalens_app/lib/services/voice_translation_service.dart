@@ -28,7 +28,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String _currentSpeaker = 'A'; // 'A' or 'B'
 
   // Conversation history
-  List<ConversationMessage> _conversationHistory = [];
+  final List<ConversationMessage> _conversationHistory = [];
 
   // Getters
   bool get isListening => _isListening;

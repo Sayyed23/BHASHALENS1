@@ -16,7 +16,6 @@ class VoiceTranslatePage extends StatefulWidget {
 
 class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   late VoiceTranslationService _voiceService;
-  int _currentIndex = 2; // Voice tab is selected
 
   @override
   void initState() {
@@ -29,169 +28,250 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenHeight < 700;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      appBar: _buildAppBar(),
+      backgroundColor: const Color(0xFF111C22), // Dark background matching HTML
       body: Column(
         children: [
-          // Participant Setup Block - Compact for small screens
-          _buildParticipantSetup(isSmallScreen),
+          // Header
+          _buildHeader(),
 
-          // Conversation Area Block - Optimized proportions
+          // Main content
           Expanded(
-            flex: isSmallScreen ? 4 : 5,
-            child: _buildConversationArea(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Language Selection Section
+                  _buildLanguageSelection(),
+
+                  const SizedBox(height: 32),
+
+                  // Conversation Area
+                  _buildConversationArea(),
+
+                  const SizedBox(height: 32),
+
+                  // Conversation History
+                  _buildConversationHistory(),
+
+                  const SizedBox(height: 32),
+
+                  // Action Buttons
+                  _buildActionButtons(),
+                ],
+              ),
+            ),
           ),
 
-          // Conversation Timeline Block - Collapsible for small screens
-          if (!isSmallScreen)
-            Expanded(flex: 3, child: _buildConversationTimeline())
-          else
-            Expanded(flex: 2, child: _buildCompactTimeline()),
-
-          // Action Controls Block - Compact design
-          _buildActionControls(isSmallScreen),
+          // Bottom Navigation
+          _buildBottomNavigation(),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: AppColors.primaryOrange,
-      foregroundColor: AppColors.textOnPrimary,
-      elevation: 2,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-      title: const Text(
-        'Live Conversation',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => _showSettingsDialog(),
-        ),
-        IconButton(
-          icon: const Icon(Icons.help_outline),
-          onPressed: () => _showHelpDialog(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildParticipantSetup(bool isSmallScreen) {
+  Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey300,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFF111C22).withOpacity(0.8),
+        border: const Border(
+          bottom: BorderSide(color: Color(0xFF233C48), width: 1),
+        ),
       ),
-      child: Row(
-        children: [
-          // User A Language Selector
-          Expanded(
-            child: _buildLanguageSelector(
-              'User A',
-              _voiceService.userALanguage,
-              (language) => _voiceService.setUserALanguage(language),
-              isSmallScreen,
-            ),
-          ),
-
-          // Swap Button
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 8 : 16),
-            child: IconButton(
-              onPressed: () => _voiceService.swapLanguages(),
-              icon: Icon(
-                Icons.swap_horiz,
-                color: AppColors.primaryOrange,
-                size: isSmallScreen ? 24 : 32,
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Back button
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
               ),
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.grey100,
-                shape: const CircleBorder(),
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
               ),
             ),
-          ),
 
-          // User B Language Selector
-          Expanded(
-            child: _buildLanguageSelector(
-              'User B',
-              _voiceService.userBLanguage,
-              (language) => _voiceService.setUserBLanguage(language),
-              isSmallScreen,
+            // Title
+            const Expanded(
+              child: Text(
+                'Voice Translation',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        ],
+
+            // Help button
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.help_outline,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () => _showHelpDialog(),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLanguageSelector(
-    String label,
-    String currentLanguage,
-    Function(String) onChanged,
-    bool isSmallScreen,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildLanguageSelection() {
+    return Row(
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isSmallScreen ? 12 : 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+        // Your Language
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Your Language',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF94B7C9), // slate-400 equivalent
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF192B33), // secondary color
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: Consumer<VoiceTranslationService>(
+                  builder: (context, voiceService, child) {
+                    return DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: voiceService.userALanguage,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF192B33),
+                        style: const TextStyle(color: Colors.white),
+                        items: VoiceTranslationService
+                            .supportedLanguages
+                            .entries
+                            .map(
+                              (entry) => DropdownMenuItem(
+                                value: entry.key,
+                                child: Text(entry.value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null)
+                            voiceService.setUserALanguage(value);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: isSmallScreen ? 4 : 8),
+
+        // Swap Button
         Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 8 : 12,
-            vertical: isSmallScreen ? 6 : 8,
-          ),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.grey300),
-            borderRadius: BorderRadius.circular(8),
-            color: AppColors.grey50,
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: currentLanguage,
-              isExpanded: true,
-              isDense: isSmallScreen,
-              items: VoiceTranslationService.supportedLanguages.entries
-                  .map(
-                    (entry) => DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(
-                        entry.value,
-                        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) onChanged(value);
-              },
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          child: IconButton(
+            onPressed: () => _voiceService.swapLanguages(),
+            icon: const Icon(Icons.swap_horiz, color: Colors.white, size: 24),
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF233C48), // accent color
+              shape: const CircleBorder(),
+              padding: const EdgeInsets.all(12),
             ),
+          ),
+        ),
+
+        // Their Language
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Their Language',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF94B7C9), // slate-400 equivalent
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF192B33), // secondary color
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: Consumer<VoiceTranslationService>(
+                  builder: (context, voiceService, child) {
+                    return DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: voiceService.userBLanguage,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF192B33),
+                        style: const TextStyle(color: Colors.white),
+                        items: VoiceTranslationService
+                            .supportedLanguages
+                            .entries
+                            .map(
+                              (entry) => DropdownMenuItem(
+                                value: entry.key,
+                                child: Text(entry.value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null)
+                            voiceService.setUserBLanguage(value);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -199,61 +279,32 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   Widget _buildConversationArea() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenHeight < 700;
-
     return Container(
-      margin: EdgeInsets.all(isSmallScreen ? 12 : 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey300,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFF192B33), // secondary color
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
-          // User A Section
-          Expanded(
-            child: _buildUserSection(
-              'A',
-              AppColors.primaryOrangeLight.withOpacity(0.1),
-              isSmallScreen,
-            ),
-          ),
+          // You Section
+          _buildUserSection('You', 'A'),
 
           // Divider
           Container(
             height: 1,
-            color: AppColors.grey200,
-            margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
+            color: const Color(0xFF233C48), // accent color
           ),
 
-          // User B Section
-          Expanded(
-            child: _buildUserSection(
-              'B',
-              AppColors.secondaryBlueLight.withOpacity(0.1),
-              isSmallScreen,
-            ),
-          ),
+          // Them Section
+          _buildUserSection('Them', 'B'),
         ],
       ),
     );
   }
 
-  Widget _buildUserSection(
-    String user,
-    Color backgroundColor,
-    bool isSmallScreen,
-  ) {
+  Widget _buildUserSection(String label, String user) {
     return Container(
-      color: backgroundColor,
-      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+      padding: const EdgeInsets.all(16),
       child: Consumer<VoiceTranslationService>(
         builder: (context, voiceService, child) {
           final isCurrentUser = voiceService.currentSpeaker == user;
@@ -261,340 +312,187 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           final transcript = isCurrentUser
               ? voiceService.currentTranscript
               : '';
+          final language = user == 'A'
+              ? voiceService.userALanguage
+              : voiceService.userBLanguage;
+          final languageName =
+              VoiceTranslationService.supportedLanguages[language] ?? language;
 
-          return SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // User Label
-                Text(
-                  'User $user',
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 9 : 11,
-                    fontWeight: FontWeight.w600,
-                    color: user == 'A'
-                        ? AppColors.primaryOrange
-                        : AppColors.secondaryBlue,
-                  ),
-                ),
-                SizedBox(height: isSmallScreen ? 1 : 2),
-
-                // Microphone Button
-                GestureDetector(
-                  onTap: () => _handleMicrophoneTap(user, voiceService),
-                  child: Container(
-                    width: isSmallScreen ? 35 : 55,
-                    height: isSmallScreen ? 35 : 55,
-                    decoration: BoxDecoration(
-                      color: isListening
-                          ? AppColors.error
-                          : (user == 'A'
-                                ? AppColors.primaryOrange
-                                : AppColors.secondaryBlue),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              (isListening
-                                      ? AppColors.error
-                                      : (user == 'A'
-                                            ? AppColors.primaryOrange
-                                            : AppColors.secondaryBlue))
-                                  .withOpacity(0.3),
-                          blurRadius: isSmallScreen ? 2 : 3,
-                          offset: const Offset(0, 1),
+          return Column(
+            children: [
+              // Header with label and microphone button
+              Row(
+                children: [
+                  // User info
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      isListening ? Icons.mic : Icons.mic_none,
-                      color: AppColors.white,
-                      size: isSmallScreen ? 14 : 20,
-                    ),
-                  ),
-                ),
-                SizedBox(height: isSmallScreen ? 1 : 2),
-
-                // Transcript
-                if (transcript.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(isSmallScreen ? 3 : 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: AppColors.grey300),
-                    ),
-                    child: Text(
-                      transcript,
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 7 : 9,
-                        color: AppColors.textPrimary,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      Text(
+                        languageName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF94B7C9), // slate-400
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // Microphone button
+                  GestureDetector(
+                    onTap: () => _handleMicrophoneTap(user, voiceService),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: isListening
+                            ? Colors.red
+                            : (user == 'A'
+                                  ? const Color(0xFF1193D4) // primary color
+                                  : const Color(0xFF233C48)), // accent color
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                (isListening
+                                        ? Colors.red
+                                        : (user == 'A'
+                                              ? const Color(0xFF1193D4)
+                                              : const Color(0xFF233C48)))
+                                    .withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        isListening ? Icons.mic : Icons.mic_off,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
+                ],
+              ),
 
-                SizedBox(height: isSmallScreen ? 1 : 2),
-
-                // Status Text
-                Text(
-                  isListening ? 'Listening...' : 'Tap to speak',
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 6 : 8,
-                    color: AppColors.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
+              // Transcript area
+              if (transcript.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transcript,
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Translated text would appear here',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF94B7C9), // slate-400
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildConversationTimeline() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey300,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+  Widget _buildConversationHistory() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Conversation History',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Timeline Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.grey50,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.chat_bubble_outline,
-                  color: AppColors.primaryOrange,
-                  size: 20,
+        ),
+        const SizedBox(height: 16),
+
+        Consumer<VoiceTranslationService>(
+          builder: (context, voiceService, child) {
+            if (voiceService.conversationHistory.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF192B33),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Conversation Timeline',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                child: const Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 48,
+                        color: Color(0xFF94B7C9),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Start a conversation to see the history',
+                        style: TextStyle(
+                          color: Color(0xFF94B7C9),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const Spacer(),
-                Consumer<VoiceTranslationService>(
-                  builder: (context, voiceService, child) {
-                    return TextButton.icon(
-                      onPressed: () => voiceService.clearConversation(),
-                      icon: const Icon(Icons.clear_all, size: 16),
-                      label: const Text('Clear'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+              );
+            }
 
-          // Timeline Messages
-          Expanded(
-            child: Consumer<VoiceTranslationService>(
-              builder: (context, voiceService, child) {
-                if (voiceService.conversationHistory.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color: AppColors.grey400,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Start a conversation to see the timeline',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: voiceService.conversationHistory.length,
-                  itemBuilder: (context, index) {
-                    final message = voiceService.conversationHistory[index];
-                    return _buildTimelineMessage(message);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+            return Column(
+              children: voiceService.conversationHistory.map((message) {
+                return _buildHistoryMessage(message);
+              }).toList(),
+            );
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildCompactTimeline() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey300,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Compact Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: const BoxDecoration(
-              color: AppColors.grey50,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.chat_bubble_outline,
-                  color: AppColors.primaryOrange,
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  'Recent Messages',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                Consumer<VoiceTranslationService>(
-                  builder: (context, voiceService, child) {
-                    return IconButton(
-                      onPressed: () => voiceService.clearConversation(),
-                      icon: const Icon(Icons.clear_all, size: 16),
-                      style: IconButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        padding: const EdgeInsets.all(4),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // Compact Messages
-          Expanded(
-            child: Consumer<VoiceTranslationService>(
-              builder: (context, voiceService, child) {
-                if (voiceService.conversationHistory.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 32,
-                          color: AppColors.grey400,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Start talking to see messages',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                // Show only last 3 messages in compact mode
-                final recentMessages =
-                    voiceService.conversationHistory.length > 3
-                    ? voiceService.conversationHistory.sublist(
-                        voiceService.conversationHistory.length - 3,
-                      )
-                    : voiceService.conversationHistory;
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: recentMessages.length,
-                  itemBuilder: (context, index) {
-                    final message = recentMessages[index];
-                    return _buildCompactTimelineMessage(message);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineMessage(ConversationMessage message) {
+  Widget _buildHistoryMessage(ConversationMessage message) {
     final isUserA = message.speaker == 'A';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Avatar
           Container(
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: isUserA
-                  ? AppColors.primaryOrange
-                  : AppColors.secondaryBlue,
+                  ? const Color(0xFF1193D4)
+                  : const Color(0xFF233C48),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 message.speaker,
                 style: const TextStyle(
-                  color: AppColors.white,
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -606,66 +504,27 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Original Text
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    message.originalText,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                // Translated Text
+                // Chat bubble
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isUserA
-                        ? AppColors.primaryOrangeLight.withOpacity(0.1)
-                        : AppColors.secondaryBlueLight.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isUserA
-                          ? AppColors.primaryOrange
-                          : AppColors.secondaryBlue,
-                      width: 1,
+                        ? const Color(0xFF233C48) // accent color
+                        : const Color(0xFF1193D4), // primary color
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(8),
+                      topRight: const Radius.circular(8),
+                      bottomLeft: isUserA
+                          ? const Radius.circular(0)
+                          : const Radius.circular(8),
+                      bottomRight: isUserA
+                          ? const Radius.circular(8)
+                          : const Radius.circular(0),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          message.translatedText,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isUserA
-                                ? AppColors.primaryOrange
-                                : AppColors.secondaryBlue,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _voiceService.speakText(
-                          message.translatedText,
-                          message.targetLanguage,
-                        ),
-                        icon: const Icon(Icons.volume_up, size: 16),
-                        style: IconButton.styleFrom(
-                          foregroundColor: isUserA
-                              ? AppColors.primaryOrange
-                              : AppColors.secondaryBlue,
-                          padding: const EdgeInsets.all(4),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    message.originalText,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
 
@@ -674,8 +533,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 Text(
                   _formatTimestamp(message.timestamp),
                   style: const TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    color: Color(0xFF94B7C9), // slate-400
                   ),
                 ),
               ],
@@ -686,245 +545,171 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildCompactTimelineMessage(ConversationMessage message) {
-    final isUserA = message.speaker == 'A';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Compact Avatar
-          Container(
-            width: 24,
-            height: 24,
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        // Save Button
+        Expanded(
+          child: Container(
+            height: 48,
             decoration: BoxDecoration(
-              color: isUserA
-                  ? AppColors.primaryOrange
-                  : AppColors.secondaryBlue,
-              shape: BoxShape.circle,
+              color: const Color(0xFF233C48), // accent color
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Center(
-              child: Text(
-                message.speaker,
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
+            child: TextButton.icon(
+              onPressed: _saveConversation,
+              icon: const Icon(Icons.bookmark, color: Colors.white, size: 20),
+              label: const Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+        ),
 
-          // Compact Message Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Original Text (Compact)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    message.originalText,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(height: 2),
+        const SizedBox(width: 12),
 
-                // Translated Text (Compact)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isUserA
-                        ? AppColors.primaryOrangeLight.withOpacity(0.1)
-                        : AppColors.secondaryBlueLight.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isUserA
-                          ? AppColors.primaryOrange
-                          : AppColors.secondaryBlue,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          message.translatedText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isUserA
-                                ? AppColors.primaryOrange
-                                : AppColors.secondaryBlue,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _voiceService.speakText(
-                          message.translatedText,
-                          message.targetLanguage,
-                        ),
-                        icon: const Icon(Icons.volume_up, size: 12),
-                        style: IconButton.styleFrom(
-                          foregroundColor: isUserA
-                              ? AppColors.primaryOrange
-                              : AppColors.secondaryBlue,
-                          padding: const EdgeInsets.all(2),
-                          minimumSize: const Size(20, 20),
-                        ),
-                      ),
-                    ],
-                  ),
+        // Copy Button
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFF233C48), // accent color
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextButton.icon(
+              onPressed: _copyTranscript,
+              icon: const Icon(
+                Icons.content_copy,
+                color: Colors.white,
+                size: 20,
+              ),
+              label: const Text(
+                'Copy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Share Button
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFF233C48), // accent color
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextButton.icon(
+              onPressed: _shareConversation,
+              icon: const Icon(Icons.share, color: Colors.white, size: 20),
+              label: const Text(
+                'Share',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildActionControls(bool isSmallScreen) {
+  Widget _buildBottomNavigation() {
     return Container(
-      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey300,
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: Color(0xFF111C22),
+        border: Border(top: BorderSide(color: Color(0xFF233C48), width: 1)),
       ),
-      child: isSmallScreen
-          ? _buildCompactActionControls()
-          : _buildFullActionControls(),
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home, 'Home', 0, false),
+              _buildNavItem(Icons.camera_alt, 'Camera', 1, false),
+              _buildNavItem(Icons.mic, 'Voice', 2, true),
+              _buildNavItem(Icons.bookmark, 'Saved', 3, false),
+              _buildNavItem(Icons.settings, 'Settings', 4, false),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildFullActionControls() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _saveConversation,
-            icon: const Icon(Icons.save, size: 18),
-            label: const Text('Save'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentGreen,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    int index,
+    bool isSelected,
+  ) {
+    return GestureDetector(
+      onTap: () => _onTabTapped(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF1193D4).withOpacity(0.2)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _copyTranscript,
-            icon: const Icon(Icons.copy, size: 18),
-            label: const Text('Copy'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryOrange,
-              side: const BorderSide(color: AppColors.primaryOrange),
-              padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? const Color(0xFF1193D4)
+                  : const Color(0xFF94B7C9),
+              size: 24,
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _shareConversation,
-            icon: const Icon(Icons.share, size: 18),
-            label: const Text('Share'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.secondaryBlue,
-              side: const BorderSide(color: AppColors.secondaryBlue),
-              padding: const EdgeInsets.symmetric(vertical: 12),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected
+                    ? const Color(0xFF1193D4)
+                    : const Color(0xFF94B7C9),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildCompactActionControls() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _saveConversation,
-            icon: const Icon(Icons.save, size: 16),
-            label: const Text('Save'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentGreen,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _copyTranscript,
-            icon: const Icon(Icons.copy, size: 16),
-            label: const Text('Copy'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryOrange,
-              side: const BorderSide(color: AppColors.primaryOrange),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _shareConversation,
-            icon: const Icon(Icons.share, size: 16),
-            label: const Text('Share'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.secondaryBlue,
-              side: const BorderSide(color: AppColors.secondaryBlue),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: _currentIndex,
-      onTap: (index) => _onTabTapped(index),
-      selectedItemColor: AppColors.primaryOrange,
-      unselectedItemColor: AppColors.grey500,
-      backgroundColor: AppColors.white,
-      elevation: 8,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'Camera'),
-        BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
-        BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Saved'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-      ],
+      ),
     );
   }
 
@@ -937,53 +722,6 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     } else {
       voiceService.startListening(user);
     }
-  }
-
-  void _showSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Voice Settings'),
-        content: Consumer<VoiceTranslationService>(
-          builder: (context, voiceService, child) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SwitchListTile(
-                  title: const Text('Use OpenAI API'),
-                  subtitle: Text(
-                    voiceService.useOpenAI ? 'OpenAI GPT' : 'Google Gemini',
-                  ),
-                  value: voiceService.useOpenAI,
-                  onChanged: (value) => voiceService.setApiProvider(value),
-                ),
-                const Divider(),
-                ListTile(
-                  title: const Text('Speech Recognition'),
-                  subtitle: Text(
-                    voiceService.speechEnabled ? 'Enabled' : 'Disabled',
-                  ),
-                  trailing: Icon(
-                    voiceService.speechEnabled
-                        ? Icons.check_circle
-                        : Icons.error,
-                    color: voiceService.speechEnabled
-                        ? AppColors.success
-                        : AppColors.error,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showHelpDialog() {
@@ -1022,10 +760,6 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
     switch (index) {
       case 0:
         Navigator.of(context).pushReplacement(
