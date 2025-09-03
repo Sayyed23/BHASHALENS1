@@ -211,8 +211,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     } else if (_user == null) {
       initialRoute = const LoginPage();
     } else {
-      initialRoute =
-          const OnboardingPage(); // Changed from HomePage to OnboardingPage
+      initialRoute = const HomePage();
     }
 
     return MaterialApp(

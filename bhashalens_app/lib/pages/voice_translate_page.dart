@@ -194,8 +194,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                             )
                             .toList(),
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             voiceService.setUserALanguage(value);
+                          }
                         },
                       ),
                     );
@@ -263,8 +264,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                             )
                             .toList(),
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             voiceService.setUserBLanguage(value);
+                          }
                         },
                       ),
                     );
@@ -312,6 +314,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           final transcript = isCurrentUser
               ? voiceService.currentTranscript
               : '';
+          final translatedText = isCurrentUser
+              ? voiceService.currentTranslatedText
+              : '';
           final language = user == 'A'
               ? voiceService.userALanguage
               : voiceService.userBLanguage;
@@ -342,6 +347,31 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           color: Color(0xFF94B7C9), // slate-400
                         ),
                       ),
+                      if (language == 'auto' && transcript.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1193D4).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: const Color(0xFF1193D4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            'Detecting...',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: const Color(0xFF1193D4),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
 
@@ -390,18 +420,129 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      transcript,
-                      style: const TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Translated text would appear here',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF94B7C9), // slate-400
+                    // Original text
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF233C48).withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFF233C48),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        transcript,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
+
+                    const SizedBox(height: 12),
+
+                    // Translated text
+                    if (translatedText.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1193D4).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF1193D4),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.translate,
+                                  size: 16,
+                                  color: const Color(0xFF1193D4),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Translated',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: const Color(0xFF1193D4),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (translatedText != 'Translating...') ...[
+                                  GestureDetector(
+                                    onTap: () => _playTranslatedText(
+                                      translatedText,
+                                      user == 'A'
+                                          ? voiceService.userBLanguage
+                                          : voiceService.userALanguage,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1193D4),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              translatedText == 'Translating...'
+                                  ? 'Translating...'
+                                  : translatedText,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: translatedText == 'Translating...'
+                                    ? const Color(0xFF94B7C9)
+                                    : Colors.white,
+                                fontWeight: FontWeight.w500,
+                                fontStyle: translatedText == 'Translating...'
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF192B33).withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF94B7C9).withOpacity(0.3),
+                            width: 1,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Text(
+                          'Translated text will appear here',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: const Color(0xFF94B7C9).withOpacity(0.7),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -504,7 +645,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Chat bubble
+                // Original text bubble
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -522,9 +663,98 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           : const Radius.circular(0),
                     ),
                   ),
-                  child: Text(
-                    message.originalText,
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.originalText,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (message.translatedText.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.translate,
+                                    size: 14,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      message.translatedText,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () => _playTranslatedText(
+                                      message.translatedText,
+                                      message.targetLanguage,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                      child: Icon(
+                                        Icons.play_arrow,
+                                        size: 12,
+                                        color: Colors.white.withOpacity(0.8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (message.detectedLanguage != null) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF1193D4,
+                                    ).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(
+                                      color: const Color(0xFF1193D4),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Detected: ${message.detectedLanguage}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: const Color(0xFF1193D4),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
 
@@ -546,101 +776,151 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   Widget _buildActionButtons() {
-    return Row(
+    return Column(
       children: [
-        // Save Button
-        Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF233C48), // accent color
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextButton.icon(
-              onPressed: _saveConversation,
-              icon: const Icon(Icons.bookmark, color: Colors.white, size: 20),
-              label: const Text(
-                'Save',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
+        Row(
+          children: [
+            // Save Button
+            Expanded(
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF233C48), // accent color
                   borderRadius: BorderRadius.circular(8),
                 ),
+                child: TextButton.icon(
+                  onPressed: _saveConversation,
+                  icon: const Icon(
+                    Icons.bookmark,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+
+            const SizedBox(width: 12),
+
+            // Copy Button
+            Expanded(
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF233C48), // accent color
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  onPressed: _copyTranscript,
+                  icon: const Icon(
+                    Icons.content_copy,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'Copy',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Share Button
+            Expanded(
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF233C48), // accent color
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  onPressed: _shareConversation,
+                  icon: const Icon(Icons.share, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Share',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(height: 12),
 
-        // Copy Button
-        Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF233C48), // accent color
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextButton.icon(
-              onPressed: _copyTranscript,
-              icon: const Icon(
-                Icons.content_copy,
-                color: Colors.white,
-                size: 20,
+        // Clear Conversation Button
+        Consumer<VoiceTranslationService>(
+          builder: (context, voiceService, child) {
+            if (voiceService.conversationHistory.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626).withOpacity(0.8), // red color
+                borderRadius: BorderRadius.circular(8),
               ),
-              label: const Text(
-                'Copy',
-                style: TextStyle(
+              child: TextButton.icon(
+                onPressed: _clearConversation,
+                icon: const Icon(
+                  Icons.clear_all,
                   color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  size: 20,
+                ),
+                label: const Text(
+                  'Clear Conversation',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        // Share Button
-        Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF233C48), // accent color
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextButton.icon(
-              onPressed: _shareConversation,
-              icon: const Icon(Icons.share, color: Colors.white, size: 20),
-              label: const Text(
-                'Share',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -722,6 +1002,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     } else {
       voiceService.startListening(user);
     }
+  }
+
+  void _playTranslatedText(String text, String languageCode) {
+    final voiceService = Provider.of<VoiceTranslationService>(
+      context,
+      listen: false,
+    );
+    voiceService.speakText(text, languageCode);
   }
 
   void _showHelpDialog() {
@@ -817,6 +1105,20 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
       const SnackBar(
         content: Text('Share functionality coming soon!'),
         backgroundColor: AppColors.warning,
+      ),
+    );
+  }
+
+  void _clearConversation() {
+    final voiceService = Provider.of<VoiceTranslationService>(
+      context,
+      listen: false,
+    );
+    voiceService.clearConversation();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Conversation history cleared!'),
+        backgroundColor: AppColors.error,
       ),
     );
   }

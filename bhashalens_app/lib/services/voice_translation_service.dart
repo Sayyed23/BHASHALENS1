@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -21,9 +22,10 @@ class VoiceTranslationService extends ChangeNotifier {
   bool _speechEnabled = false;
   String _lastWords = '';
   String _currentTranscript = '';
+  String _currentTranslatedText = '';
 
   // Translation state
-  String _userALanguage = 'en';
+  String _userALanguage = 'auto';
   String _userBLanguage = 'es';
   String _currentSpeaker = 'A'; // 'A' or 'B'
 
@@ -35,6 +37,7 @@ class VoiceTranslationService extends ChangeNotifier {
   bool get speechEnabled => _speechEnabled;
   String get lastWords => _lastWords;
   String get currentTranscript => _currentTranscript;
+  String get currentTranslatedText => _currentTranslatedText;
   String get userALanguage => _userALanguage;
   String get userBLanguage => _userBLanguage;
   String get currentSpeaker => _currentSpeaker;
@@ -43,6 +46,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // Language options
   static const Map<String, String> supportedLanguages = {
+    'auto': 'Auto Detect',
     'en': 'English',
     'es': 'Spanish',
     'fr': 'French',
@@ -132,6 +136,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
     _currentSpeaker = speaker;
     _currentTranscript = '';
+    _currentTranslatedText = '';
 
     await _speechToText.listen(
       onResult: (result) {
@@ -166,62 +171,44 @@ class VoiceTranslationService extends ChangeNotifier {
     try {
       if (_useOpenAI && _openaiApiKey != null) {
         return await _translateWithOpenAI(text, fromLanguage, toLanguage);
-      } else if (_geminiApiKey != null) {
-        return await _translateWithGemini(text, fromLanguage, toLanguage);
       } else {
-        throw Exception('No API key available');
+        // Use GeminiService for translation
+        if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
+          throw Exception('Gemini API key not found');
+        }
+
+        final geminiService = GeminiService(apiKey: _geminiApiKey);
+        final initialized = await geminiService.initialize();
+
+        if (!initialized) {
+          throw Exception('Failed to initialize Gemini service');
+        }
+
+        // If source language is 'auto', detect it first
+        String actualSourceLanguage = fromLanguage;
+        if (fromLanguage == 'auto') {
+          try {
+            final detectedLanguage = await geminiService.detectLanguage(text);
+            // Convert detected language name to language code
+            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
+            debugPrint(
+              'Detected language: $detectedLanguage -> $actualSourceLanguage',
+            );
+          } catch (e) {
+            debugPrint('Language detection failed, using default: $e');
+            actualSourceLanguage = 'en'; // fallback to English
+          }
+        }
+
+        return await geminiService.translateText(
+          text,
+          toLanguage,
+          sourceLanguage: actualSourceLanguage,
+        );
       }
     } catch (e) {
       debugPrint('Translation error: $e');
       return 'Translation failed: $e';
-    }
-  }
-
-  Future<String> _translateWithGemini(
-    String text,
-    String fromLanguage,
-    String toLanguage,
-  ) async {
-    final fromLangName = supportedLanguages[fromLanguage] ?? fromLanguage;
-    final toLangName = supportedLanguages[toLanguage] ?? toLanguage;
-
-    final prompt =
-        '''
-Translate the following text from $fromLangName to $toLangName. 
-Only return the translated text, nothing else.
-
-Text to translate: "$text"
-''';
-
-    final response = await http.post(
-      Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$_geminiApiKey',
-      ),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'contents': [
-          {
-            'parts': [
-              {'text': prompt},
-            ],
-          },
-        ],
-        'generationConfig': {
-          'temperature': 0.1,
-          'topK': 1,
-          'topP': 1,
-          'maxOutputTokens': 1000,
-        },
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final translatedText =
-          data['candidates'][0]['content']['parts'][0]['text'];
-      return translatedText.trim();
-    } else {
-      throw Exception('Gemini API error: ${response.statusCode}');
     }
   }
 
@@ -240,7 +227,7 @@ Text to translate: "$text"
         'Authorization': 'Bearer $_openaiApiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-3.5-turbo',
+        'model': 'gpt-3.5-tbo',
         'messages': [
           {
             'role': 'system',
@@ -271,37 +258,68 @@ Text to translate: "$text"
     final speakerLanguage = speaker == 'A' ? _userALanguage : _userBLanguage;
     final targetLanguage = speaker == 'A' ? _userBLanguage : _userALanguage;
 
-    // Translate the text
-    final translatedText = await translateText(
-      _currentTranscript,
-      speakerLanguage,
-      targetLanguage,
-    );
-
-    // Add to conversation history
-    final message = ConversationMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      speaker: speaker,
-      originalText: _currentTranscript,
-      translatedText: translatedText,
-      timestamp: DateTime.now(),
-      speakerLanguage: speakerLanguage,
-      targetLanguage: targetLanguage,
-    );
-
-    _conversationHistory.add(message);
-
-    // Clear current transcript
-    _currentTranscript = '';
-    _lastWords = '';
-
+    // Show loading state
+    _currentTranslatedText = 'Translating...';
     notifyListeners();
+
+    try {
+      // Translate the text
+      final translatedText = await translateText(
+        _currentTranscript,
+        speakerLanguage,
+        targetLanguage,
+      );
+
+      // Update current translated text
+      _currentTranslatedText = translatedText;
+
+      // Track detected language if using auto-detection
+      String? detectedLanguage;
+      if (speakerLanguage == 'auto') {
+        try {
+          final geminiService = GeminiService(apiKey: _geminiApiKey);
+          await geminiService.initialize();
+          detectedLanguage = await geminiService.detectLanguage(
+            _currentTranscript,
+          );
+        } catch (e) {
+          debugPrint('Failed to detect language: $e');
+        }
+      }
+
+      // Add to conversation history
+      final message = ConversationMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        speaker: speaker,
+        originalText: _currentTranscript,
+        translatedText: translatedText,
+        timestamp: DateTime.now(),
+        speakerLanguage: speakerLanguage,
+        targetLanguage: targetLanguage,
+        detectedLanguage: detectedLanguage,
+      );
+
+      _conversationHistory.add(message);
+
+      // Speak the translated text
+      await speakText(translatedText, targetLanguage);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error processing conversation turn: $e');
+      _currentTranslatedText = 'Translation failed. Please try again.';
+      notifyListeners();
+    }
   }
 
   // Text-to-speech
   Future<void> speakText(String text, String languageCode) async {
-    await _flutterTts.setLanguage(_getLanguageCode(languageCode));
-    await _flutterTts.speak(text);
+    try {
+      await _flutterTts.setLanguage(_getLanguageCode(languageCode));
+      await _flutterTts.speak(text);
+    } catch (e) {
+      debugPrint('TTS error: $e');
+    }
   }
 
   // Helper methods
@@ -332,6 +350,22 @@ Text to translate: "$text"
         return 'ar_SA';
       case 'hi':
         return 'hi_IN';
+      case 'bn':
+        return 'bn_IN';
+      case 'ta':
+        return 'ta_IN';
+      case 'te':
+        return 'te_IN';
+      case 'ml':
+        return 'ml_IN';
+      case 'kn':
+        return 'kn_IN';
+      case 'gu':
+        return 'gu_IN';
+      case 'mr':
+        return 'mr_IN';
+      case 'pa':
+        return 'pa_IN';
       default:
         return 'en_US';
     }
@@ -340,6 +374,8 @@ Text to translate: "$text"
   // Conversation management
   void clearConversation() {
     _conversationHistory.clear();
+    _currentTranscript = '';
+    _currentTranslatedText = '';
     notifyListeners();
   }
 
@@ -350,6 +386,35 @@ Text to translate: "$text"
               '${msg.speaker}: ${msg.originalText}\nTranslated: ${msg.translatedText}',
         )
         .join('\n\n');
+  }
+
+  String _convertLanguageNameToCode(String languageName) {
+    // Convert language names to language codes
+    final lowerName = languageName.toLowerCase();
+
+    if (lowerName.contains('english')) return 'en';
+    if (lowerName.contains('spanish')) return 'es';
+    if (lowerName.contains('french')) return 'fr';
+    if (lowerName.contains('german')) return 'de';
+    if (lowerName.contains('italian')) return 'it';
+    if (lowerName.contains('portuguese')) return 'pt';
+    if (lowerName.contains('russian')) return 'ru';
+    if (lowerName.contains('japanese')) return 'ja';
+    if (lowerName.contains('korean')) return 'ko';
+    if (lowerName.contains('chinese')) return 'zh';
+    if (lowerName.contains('arabic')) return 'ar';
+    if (lowerName.contains('hindi')) return 'hi';
+    if (lowerName.contains('bengali')) return 'bn';
+    if (lowerName.contains('tamil')) return 'ta';
+    if (lowerName.contains('telugu')) return 'te';
+    if (lowerName.contains('malayalam')) return 'ml';
+    if (lowerName.contains('kannada')) return 'kn';
+    if (lowerName.contains('gujarati')) return 'gu';
+    if (lowerName.contains('marathi')) return 'mr';
+    if (lowerName.contains('punjabi')) return 'pa';
+
+    // Default to English if no match found
+    return 'en';
   }
 
   // Dispose
@@ -369,6 +434,7 @@ class ConversationMessage {
   final DateTime timestamp;
   final String speakerLanguage;
   final String targetLanguage;
+  final String? detectedLanguage; // For auto-detection
 
   ConversationMessage({
     required this.id,
@@ -378,5 +444,6 @@ class ConversationMessage {
     required this.timestamp,
     required this.speakerLanguage,
     required this.targetLanguage,
+    this.detectedLanguage,
   });
 }
