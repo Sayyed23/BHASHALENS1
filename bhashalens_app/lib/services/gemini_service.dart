@@ -99,10 +99,10 @@ class GeminiService {
       String prompt;
       if (sourceLanguage != null) {
         prompt =
-            'Translate the following text from $sourceLanguage to $targetLanguage. Maintain the original meaning and tone:\n\n$text';
+            'You are a professional translator. Translate the following text from $sourceLanguage to $targetLanguage. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
       } else {
         prompt =
-            'Translate the following text to $targetLanguage. Maintain the original meaning and tone:\n\n$text';
+            'You are a professional translator. Translate the following text to $targetLanguage. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
       }
 
       final content = [Content.text(prompt)];
