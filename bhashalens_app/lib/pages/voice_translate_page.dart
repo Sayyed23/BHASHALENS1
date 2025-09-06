@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
 import 'package:bhashalens_app/pages/saved_translations_page.dart';
@@ -24,6 +23,11 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
       context,
       listen: false,
     );
+  }
+
+  String convertLanguageCodeToName(String languageCode) {
+    return VoiceTranslationService.supportedLanguages[languageCode] ??
+        languageCode;
   }
 
   @override
@@ -305,135 +309,179 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   Widget _buildUserSection(String label, String user) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Consumer<VoiceTranslationService>(
-        builder: (context, voiceService, child) {
-          final isCurrentUser = voiceService.currentSpeaker == user;
-          final isListening = voiceService.isListening && isCurrentUser;
-          final transcript = isCurrentUser
-              ? voiceService.currentTranscript
-              : '';
-          final translatedText = isCurrentUser
-              ? voiceService.currentTranslatedText
-              : '';
-          final language = user == 'A'
-              ? voiceService.userALanguage
-              : voiceService.userBLanguage;
-          final languageName =
-              VoiceTranslationService.supportedLanguages[language] ?? language;
+    return Consumer<VoiceTranslationService>(
+      builder: (context, voiceService, child) {
+        debugPrint(
+          '_buildUserSection: label=$label, speaker=$user, isListening=${voiceService.isListening}, isTranslating=${voiceService.isTranslating}, currentTranscript=${voiceService.currentTranscript}, currentTranslatedText=${voiceService.currentTranslatedText}',
+        );
+        final isCurrentUser = voiceService.currentSpeaker == user;
+        final isListening = voiceService.isListening && isCurrentUser;
+        final transcript = isCurrentUser ? voiceService.currentTranscript : '';
+        final language = user == 'A'
+            ? voiceService.userALanguage
+            : voiceService.userBLanguage;
+        final languageName = _voiceService.convertLanguageCodeToName(language);
 
-          return Column(
-            children: [
-              // Header with label and microphone button
-              Row(
-                children: [
-                  // User info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        languageName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF94B7C9), // slate-400
-                        ),
-                      ),
-                      if (language == 'auto' && transcript.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1193D4).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: const Color(0xFF1193D4),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            'Detecting...',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: const Color(0xFF1193D4),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // Microphone button
-                  GestureDetector(
-                    onTap: () => _handleMicrophoneTap(user, voiceService),
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: isListening
-                            ? Colors.red
-                            : (user == 'A'
-                                  ? const Color(0xFF1193D4) // primary color
-                                  : const Color(0xFF233C48)), // accent color
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                (isListening
-                                        ? Colors.red
-                                        : (user == 'A'
-                                              ? const Color(0xFF1193D4)
-                                              : const Color(0xFF233C48)))
-                                    .withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        isListening ? Icons.mic : Icons.mic_off,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Transcript area
-              if (transcript.isNotEmpty) ...[
-                const SizedBox(height: 16),
+        return Column(
+          children: [
+            // Header with label and microphone button
+            Row(
+              children: [
+                // User info
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Original text
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      languageName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF94B7C9), // slate-400
+                      ),
+                    ),
+                    if (isListening) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1193D4).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: const Color(0xFF1193D4),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'Listening...',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF1193D4),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ] else if (voiceService.isTranslating) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1193D4).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: const Color(0xFF1193D4),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'Translating...',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF1193D4),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+
+                const Spacer(),
+
+                // Microphone button
+                GestureDetector(
+                  onTap: () => _handleMicrophoneTap(user, voiceService),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: isListening
+                          ? Colors.red
+                          : (user == 'A'
+                                ? const Color(0xFF1193D4) // primary color
+                                : const Color(0xFF233C48)), // accent color
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (isListening
+                                      ? Colors.red
+                                      : (user == 'A'
+                                            ? const Color(0xFF1193D4)
+                                            : const Color(0xFF233C48)))
+                                  .withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isListening ? Icons.mic : Icons.mic_off,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Transcript area
+            if (transcript.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Original text
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF233C48).withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF233C48),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      transcript,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Translated text
+                  if (voiceService.currentTranslatedText.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF233C48).withOpacity(0.3),
+                        color: const Color(0xFF1193D4).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: const Color(0xFF233C48),
+                          color: const Color(0xFF1193D4),
                           width: 1,
                         ),
                       ),
                       child: Text(
-                        transcript,
+                        voiceService.currentTranslatedText,
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,
@@ -441,115 +489,13 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Translated text
-                    if (translatedText.isNotEmpty) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1193D4).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF1193D4),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.translate,
-                                  size: 16,
-                                  color: const Color(0xFF1193D4),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Translated',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: const Color(0xFF1193D4),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const Spacer(),
-                                if (translatedText != 'Translating...') ...[
-                                  GestureDetector(
-                                    onTap: () => _playTranslatedText(
-                                      translatedText,
-                                      user == 'A'
-                                          ? voiceService.userBLanguage
-                                          : voiceService.userALanguage,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF1193D4),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Icon(
-                                        Icons.play_arrow,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              translatedText == 'Translating...'
-                                  ? 'Translating...'
-                                  : translatedText,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: translatedText == 'Translating...'
-                                    ? const Color(0xFF94B7C9)
-                                    : Colors.white,
-                                fontWeight: FontWeight.w500,
-                                fontStyle: translatedText == 'Translating...'
-                                    ? FontStyle.italic
-                                    : FontStyle.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF192B33).withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF94B7C9).withOpacity(0.3),
-                            width: 1,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Text(
-                          'Translated text will appear here',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: const Color(0xFF94B7C9).withOpacity(0.7),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
-                ),
-              ],
+                ],
+              ),
             ],
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -645,7 +591,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Original text bubble
+                // Chat bubble
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -673,87 +619,15 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           color: Colors.white,
                         ),
                       ),
-                      if (message.translatedText.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.translate,
-                                    size: 14,
-                                    color: Colors.white.withOpacity(0.8),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      message.translatedText,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () => _playTranslatedText(
-                                      message.translatedText,
-                                      message.targetLanguage,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Icon(
-                                        Icons.play_arrow,
-                                        size: 12,
-                                        color: Colors.white.withOpacity(0.8),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (message.detectedLanguage != null) ...[
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF1193D4,
-                                    ).withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(3),
-                                    border: Border.all(
-                                      color: const Color(0xFF1193D4),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Detected: ${message.detectedLanguage}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: const Color(0xFF1193D4),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                      const SizedBox(height: 8),
+                      Text(
+                        message.translatedText,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF94B7C9), // slate-400
+                          fontStyle: FontStyle.italic,
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -894,7 +768,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFDC2626).withOpacity(0.8), // red color
+                color: const Color(0xFF233C48).withOpacity(0.8), // accent color
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextButton.icon(
@@ -993,23 +867,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  // Event Handlers
   void _handleMicrophoneTap(String user, VoiceTranslationService voiceService) {
-    if (voiceService.isListening) {
-      voiceService.stopListening().then((_) {
-        voiceService.processConversationTurn();
+    if (_voiceService.isListening) {
+      _voiceService.stopListening().then((_) {
+        _voiceService.processConversationTurn();
       });
     } else {
-      voiceService.startListening(user);
+      _voiceService.startListening(user);
     }
-  }
-
-  void _playTranslatedText(String text, String languageCode) {
-    final voiceService = Provider.of<VoiceTranslationService>(
-      context,
-      listen: false,
-    );
-    voiceService.speakText(text, languageCode);
   }
 
   void _showHelpDialog() {
@@ -1048,6 +913,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   void _onTabTapped(int index) {
+    debugPrint('Tab tapped: $index');
     switch (index) {
       case 0:
         Navigator.of(context).pushReplacement(
@@ -1082,7 +948,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Conversation saved successfully!'),
-        backgroundColor: AppColors.success,
+        backgroundColor: Color(0xFF4CAF50),
       ),
     );
   }
@@ -1094,7 +960,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Transcript copied to clipboard!'),
-        backgroundColor: AppColors.info,
+        backgroundColor: Color(0xFF2196F3),
       ),
     );
   }
@@ -1104,21 +970,17 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Share functionality coming soon!'),
-        backgroundColor: AppColors.warning,
+        backgroundColor: Color(0xFFFFC107),
       ),
     );
   }
 
   void _clearConversation() {
-    final voiceService = Provider.of<VoiceTranslationService>(
-      context,
-      listen: false,
-    );
-    voiceService.clearConversation();
+    _voiceService.clearConversation();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Conversation history cleared!'),
-        backgroundColor: AppColors.error,
+        backgroundColor: Color(0xFF2196F3),
       ),
     );
   }

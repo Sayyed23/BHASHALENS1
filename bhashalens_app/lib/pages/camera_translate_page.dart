@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/pages/gemini_settings_page.dart';
 import 'dart:io';
+import 'package:bhashalens_app/services/voice_translation_service.dart';
 
 class CameraTranslatePage extends StatefulWidget {
   const CameraTranslatePage({super.key});
@@ -331,6 +332,28 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
               ),
             ),
             const Spacer(),
+            // Offline Translation Toggle
+            Consumer<VoiceTranslationService>(
+              builder: (context, voiceService, child) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Offline',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    Switch(
+                      value: voiceService.useOfflineTranslation,
+                      onChanged: (value) {
+                        voiceService.setUseOfflineTranslation(value);
+                      },
+                      activeColor: Colors.blueAccent,
+                      inactiveTrackColor: Colors.white30,
+                    ),
+                  ],
+                );
+              },
+            ),
             // Settings/Help icon
             IconButton(
               onPressed: () {
@@ -673,58 +696,45 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
               const SizedBox(height: 16),
             ],
 
-            // Original Text (scrollable preview)
-            const Text(
-              'Original Text:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
+            // Original Text and Translated Text (combined view)
             Container(
-              height: 60,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: SingleChildScrollView(
-                child: Text(
-                  _originalText,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Translated Text (large bold area)
-            const Text(
-              'Translated Text:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Text(
-                _translatedText,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Original:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(_originalText, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Translated:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _translatedText,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
               ),
             ),
 

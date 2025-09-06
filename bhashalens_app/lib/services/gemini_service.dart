@@ -68,7 +68,7 @@ class GeminiService {
       final content = [
         Content.multi([
           TextPart(
-            'Extract all the text from this image. Return only the extracted text without any additional formatting or explanations. If no text is found, return "No text detected".',
+            'Extract all visible, readable text from this image. Return ONLY the extracted textual content, without any additional formatting, explanations, or conversational filler. If no clear text is found, respond solely with "No text detected".',
           ),
           DataPart('image/jpeg', bytes),
         ]),
@@ -106,8 +106,10 @@ class GeminiService {
       }
 
       final content = [Content.text(prompt)];
+      debugPrint('Gemini Translation Prompt: $prompt');
       final response = await _model.generateContent(content);
       final translation = response.text ?? 'Translation failed';
+      debugPrint('Gemini Translation Raw Response: ${response.text}');
 
       debugPrint('Translation: $translation');
       return translation.trim();

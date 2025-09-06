@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/offline_translation_service.dart'; // Import new service
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -14,8 +13,12 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // API configuration
   String? _geminiApiKey;
-  String? _openaiApiKey;
-  bool _useOpenAI = false; // Toggle between Gemini and OpenAI
+  bool _useOpenAI = false; // This will now control online/offline
+  bool _useOfflineTranslation = false; // New flag for offline mode
+
+  late GeminiService _geminiService;
+  late OfflineTranslationService
+  _offlineTranslationService; // New offline service
 
   // Speech recognition state
   bool _isListening = false;
@@ -23,10 +26,11 @@ class VoiceTranslationService extends ChangeNotifier {
   String _lastWords = '';
   String _currentTranscript = '';
   String _currentTranslatedText = '';
+  bool _isTranslating = false; // New state for translation status
 
   // Translation state
-  String _userALanguage = 'auto';
-  String _userBLanguage = 'es';
+  String _userALanguage = 'en'; // Default to English
+  String _userBLanguage = 'es'; // Default to Spanish
   String _currentSpeaker = 'A'; // 'A' or 'B'
 
   // Conversation history
@@ -42,11 +46,17 @@ class VoiceTranslationService extends ChangeNotifier {
   String get userBLanguage => _userBLanguage;
   String get currentSpeaker => _currentSpeaker;
   List<ConversationMessage> get conversationHistory => _conversationHistory;
-  bool get useOpenAI => _useOpenAI;
+  bool get useOpenAI => _useOpenAI; // This now refers to online/offline toggle
+  bool get useOfflineTranslation => _useOfflineTranslation; // New getter
+  bool get isTranslating => _isTranslating; // New getter
+
+  void setUseOfflineTranslation(bool value) {
+    _useOfflineTranslation = value;
+    notifyListeners();
+  }
 
   // Language options
   static const Map<String, String> supportedLanguages = {
-    'auto': 'Auto Detect',
     'en': 'English',
     'es': 'Spanish',
     'fr': 'French',
@@ -76,7 +86,17 @@ class VoiceTranslationService extends ChangeNotifier {
   Future<void> _initializeServices() async {
     // Load API keys
     _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
-    _openaiApiKey = dotenv.env['OPENAI_API_KEY'];
+
+    if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
+      debugPrint('GEMINI_API_KEY not found in .env');
+    } else {
+      _geminiService = GeminiService(apiKey: _geminiApiKey);
+      await _geminiService.initialize();
+    }
+
+    // Initialize offline translation service
+    _offlineTranslationService = OfflineTranslationService();
+    await _offlineTranslationService.initialize();
 
     // Initialize speech recognition
     _speechEnabled = await _speechToText.initialize(
@@ -100,18 +120,6 @@ class VoiceTranslationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Toggle between Gemini and OpenAI
-  void toggleApiProvider() {
-    _useOpenAI = !_useOpenAI;
-    notifyListeners();
-  }
-
-  // Set API provider
-  void setApiProvider(bool useOpenAI) {
-    _useOpenAI = useOpenAI;
-    notifyListeners();
-  }
-
   // Language management
   void setUserALanguage(String languageCode) {
     _userALanguage = languageCode;
@@ -132,63 +140,83 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // Speech recognition
   Future<void> startListening(String speaker) async {
-    if (!_speechEnabled) return;
+    if (!_speechEnabled) {
+      debugPrint('Speech recognition not enabled');
+      return;
+    }
 
     _currentSpeaker = speaker;
     _currentTranscript = '';
     _currentTranslatedText = '';
+    _lastWords = '';
+
+    String localeId = _getLanguageCode(
+      _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
+    );
+
+    debugPrint(
+      'Starting listening for speaker: $_currentSpeaker with locale: $localeId',
+    );
 
     await _speechToText.listen(
       onResult: (result) {
         _currentTranscript = result.recognizedWords;
+        _lastWords = result.recognizedWords;
         notifyListeners();
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      localeId: _getLanguageCode(
-        _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
-      ),
+      localeId: localeId,
       onSoundLevelChange: (level) {
         // Handle sound level changes if needed
       },
     );
+    _isListening = true;
+    notifyListeners();
   }
 
   Future<void> stopListening() async {
-    await _speechToText.stop();
-    _isListening = false;
-    notifyListeners();
+    if (_speechToText.isListening) {
+      await _speechToText.stop();
+      _isListening = false;
+      notifyListeners();
+      debugPrint('Stopped listening');
+      await processConversationTurn(); // Trigger translation after stopping listening
+    }
   }
 
   // Translation
   Future<String> translateText(
     String text,
-    String fromLanguage,
-    String toLanguage,
-  ) async {
+    String toLanguage, {
+    String? fromLanguage,
+  }) async {
     if (text.trim().isEmpty) return '';
 
     try {
-      if (_useOpenAI && _openaiApiKey != null) {
-        return await _translateWithOpenAI(text, fromLanguage, toLanguage);
+      if (_useOfflineTranslation) {
+        if (!_offlineTranslationService.isInitialized) {
+          throw Exception('OfflineTranslationService not initialized');
+        }
+        return await _offlineTranslationService.translateTextOffline(
+          text,
+          toLanguage,
+          sourceLanguage: fromLanguage,
+        );
       } else {
-        // Use GeminiService for translation
-        if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
-          throw Exception('Gemini API key not found');
+        if (_geminiApiKey == null ||
+            _geminiApiKey!.isEmpty ||
+            !_geminiService.isInitialized) {
+          throw Exception(
+            'Gemini API key not found or GeminiService not initialized',
+          );
         }
 
-        final geminiService = GeminiService(apiKey: _geminiApiKey);
-        final initialized = await geminiService.initialize();
-
-        if (!initialized) {
-          throw Exception('Failed to initialize Gemini service');
-        }
-
-        // If source language is 'auto', detect it first
-        String actualSourceLanguage = fromLanguage;
+        String actualSourceLanguage =
+            fromLanguage ?? 'en'; // Default to English if not provided
         if (fromLanguage == 'auto') {
           try {
-            final detectedLanguage = await geminiService.detectLanguage(text);
+            final detectedLanguage = await _geminiService.detectLanguage(text);
             // Convert detected language name to language code
             actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
             debugPrint(
@@ -200,7 +228,8 @@ class VoiceTranslationService extends ChangeNotifier {
           }
         }
 
-        return await geminiService.translateText(
+        // Use GeminiService for translation
+        return await _geminiService.translateText(
           text,
           toLanguage,
           sourceLanguage: actualSourceLanguage,
@@ -212,91 +241,74 @@ class VoiceTranslationService extends ChangeNotifier {
     }
   }
 
-  Future<String> _translateWithOpenAI(
-    String text,
-    String fromLanguage,
-    String toLanguage,
-  ) async {
-    final fromLangName = supportedLanguages[fromLanguage] ?? fromLanguage;
-    final toLangName = supportedLanguages[toLanguage] ?? toLanguage;
-
-    final response = await http.post(
-      Uri.parse('https://api.openai.com/v1/chat/completions'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_openaiApiKey',
-      },
-      body: jsonEncode({
-        'model': 'gpt-3.5-tbo',
-        'messages': [
-          {
-            'role': 'system',
-            'content':
-                'You are a professional translator. Translate the given text accurately from $fromLangName to $toLangName. Only return the translated text, nothing else.',
-          },
-          {'role': 'user', 'content': text},
-        ],
-        'max_tokens': 1000,
-        'temperature': 0.1,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final translatedText = data['choices'][0]['message']['content'];
-      return translatedText.trim();
-    } else {
-      throw Exception('OpenAI API error: ${response.statusCode}');
-    }
-  }
-
   // Process conversation turn
   Future<void> processConversationTurn() async {
-    if (_currentTranscript.trim().isEmpty) return;
+    debugPrint('processConversationTurn called.');
+    if (_currentTranscript.trim().isEmpty) {
+      debugPrint('No transcript to process.');
+      return;
+    }
 
     final speaker = _currentSpeaker;
+    final originalText = _currentTranscript;
     final speakerLanguage = speaker == 'A' ? _userALanguage : _userBLanguage;
     final targetLanguage = speaker == 'A' ? _userBLanguage : _userALanguage;
 
+    debugPrint(
+      'Processing turn: Speaker: $speaker, Lang: $speakerLanguage, Target: $targetLanguage, Text: $originalText',
+    );
+
     // Show loading state
     _currentTranslatedText = 'Translating...';
+    _isTranslating = true; // Set translating state to true
     notifyListeners();
 
     try {
+      String actualSourceLanguage = speakerLanguage;
+
+      // If source language is 'auto', detect it first (only with Gemini)
+      if (speakerLanguage == 'auto') {
+        if (!_geminiService.isInitialized) {
+          throw Exception(
+            'Gemini service not initialized for language detection',
+          );
+        }
+        try {
+          final detectedLanguage = await _geminiService.detectLanguage(
+            originalText,
+          );
+          actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
+          debugPrint(
+            'Detected language: $detectedLanguage -> $actualSourceLanguage',
+          );
+        } catch (e) {
+          debugPrint('Language detection failed, using default: $e');
+          actualSourceLanguage = 'en'; // fallback to English
+        }
+      }
+
       // Translate the text
       final translatedText = await translateText(
-        _currentTranscript,
-        speakerLanguage,
+        originalText,
         targetLanguage,
+        fromLanguage: actualSourceLanguage,
       );
 
       // Update current translated text
       _currentTranslatedText = translatedText;
 
-      // Track detected language if using auto-detection
-      String? detectedLanguage;
-      if (speakerLanguage == 'auto') {
-        try {
-          final geminiService = GeminiService(apiKey: _geminiApiKey);
-          await geminiService.initialize();
-          detectedLanguage = await geminiService.detectLanguage(
-            _currentTranscript,
-          );
-        } catch (e) {
-          debugPrint('Failed to detect language: $e');
-        }
-      }
-
       // Add to conversation history
       final message = ConversationMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         speaker: speaker,
-        originalText: _currentTranscript,
+        originalText: originalText,
         translatedText: translatedText,
         timestamp: DateTime.now(),
-        speakerLanguage: speakerLanguage,
+        speakerLanguage: actualSourceLanguage, // Use actual detected language
         targetLanguage: targetLanguage,
-        detectedLanguage: detectedLanguage,
+        detectedLanguage: (speakerLanguage == 'auto')
+            ? actualSourceLanguage
+            : null,
       );
 
       _conversationHistory.add(message);
@@ -304,10 +316,12 @@ class VoiceTranslationService extends ChangeNotifier {
       // Speak the translated text
       await speakText(translatedText, targetLanguage);
 
+      _isTranslating = false; // Set translating state to false after completion
       notifyListeners();
     } catch (e) {
       debugPrint('Error processing conversation turn: $e');
-      _currentTranslatedText = 'Translation failed. Please try again.';
+      _currentTranslatedText = 'Translation failed: ${e.toString()}';
+      _isTranslating = false; // Set translating state to false on error
       notifyListeners();
     }
   }
@@ -327,47 +341,47 @@ class VoiceTranslationService extends ChangeNotifier {
     // Convert language codes to speech recognition format
     switch (languageCode) {
       case 'en':
-        return 'en_US';
+        return 'en-US'; // For FlutterTts, use BCP-47 codes
       case 'es':
-        return 'es_ES';
+        return 'es-ES';
       case 'fr':
-        return 'fr_FR';
+        return 'fr-FR';
       case 'de':
-        return 'de_DE';
+        return 'de-DE';
       case 'it':
-        return 'it_IT';
+        return 'it-IT';
       case 'pt':
-        return 'pt_PT';
+        return 'pt-PT';
       case 'ru':
-        return 'ru_RU';
+        return 'ru-RU';
       case 'ja':
-        return 'ja_JP';
+        return 'ja-JP';
       case 'ko':
-        return 'ko_KR';
+        return 'ko-KR';
       case 'zh':
-        return 'zh_CN';
+        return 'zh-CN';
       case 'ar':
-        return 'ar_SA';
+        return 'ar-SA';
       case 'hi':
-        return 'hi_IN';
+        return 'hi-IN';
       case 'bn':
-        return 'bn_IN';
+        return 'bn-IN';
       case 'ta':
-        return 'ta_IN';
+        return 'ta-IN';
       case 'te':
-        return 'te_IN';
+        return 'te-IN';
       case 'ml':
-        return 'ml_IN';
+        return 'ml-IN';
       case 'kn':
-        return 'kn_IN';
+        return 'kn-IN';
       case 'gu':
-        return 'gu_IN';
+        return 'gu-IN';
       case 'mr':
-        return 'mr_IN';
+        return 'mr-IN';
       case 'pa':
-        return 'pa_IN';
+        return 'pa-IN';
       default:
-        return 'en_US';
+        return 'en-US';
     }
   }
 
@@ -415,6 +429,10 @@ class VoiceTranslationService extends ChangeNotifier {
 
     // Default to English if no match found
     return 'en';
+  }
+
+  String convertLanguageCodeToName(String languageCode) {
+    return supportedLanguages[languageCode] ?? languageCode;
   }
 
   // Dispose
