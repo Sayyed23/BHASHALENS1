@@ -869,9 +869,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
   void _handleMicrophoneTap(String user, VoiceTranslationService voiceService) {
     if (_voiceService.isListening) {
-      _voiceService.stopListening().then((_) {
-        _voiceService.processConversationTurn();
-      });
+      _voiceService.stopListening();
     } else {
       _voiceService.startListening(user);
     }
