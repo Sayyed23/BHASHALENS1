@@ -76,7 +76,8 @@ class VoiceTranslationService extends ChangeNotifier {
 
   Future<void> _initializeServices() async {
     // Load API keys
-    _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  debugPrint('VoiceTranslationService: Loaded GEMINI_API_KEY: \\$_geminiApiKey');
 
     if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
       debugPrint('GEMINI_API_KEY not found in .env');
@@ -151,6 +152,9 @@ class VoiceTranslationService extends ChangeNotifier {
         _currentTranscript = result.recognizedWords;
         _lastWords = result.recognizedWords;
         notifyListeners();
+        if (result.finalResult) {
+          processConversationTurn();
+        }
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
@@ -169,7 +173,7 @@ class VoiceTranslationService extends ChangeNotifier {
       _isListening = false;
       notifyListeners();
       debugPrint('Stopped listening');
-      await processConversationTurn(); // Trigger translation after stopping listening
+      // Translation will be triggered in the onResult callback when speech ends
     }
   }
 

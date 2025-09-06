@@ -812,12 +812,22 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
             ),
           ],
           onTap: (index) {
-            // TODO: Implement navigation between tabs
-            if (index != 1) {
-              // If not camera tab
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Navigating to tab ${index + 1}')),
-              );
+            switch (index) {
+              case 0:
+                Navigator.of(context).pushReplacementNamed('/home');
+                break;
+              case 1:
+                // Already on camera page
+                break;
+              case 2:
+                Navigator.of(context).pushReplacementNamed('/voice_translate');
+                break;
+              case 3:
+                Navigator.of(context).pushReplacementNamed('/saved_translations');
+                break;
+              case 4:
+                Navigator.of(context).pushReplacementNamed('/settings');
+                break;
             }
           },
         ),

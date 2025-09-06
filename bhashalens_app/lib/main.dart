@@ -24,6 +24,7 @@ import 'package:bhashalens_app/pages/voice_translate_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  debugPrint('Loaded GEMINI_API_KEY: \\${dotenv.env['GEMINI_API_KEY']}');
 
   // TODO: Replace with your actual Supabase URL and anon key
   await Supabase.initialize(
