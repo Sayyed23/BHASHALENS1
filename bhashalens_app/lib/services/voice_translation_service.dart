@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/offline_translation_service.dart'; // Import new service
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -14,11 +13,8 @@ class VoiceTranslationService extends ChangeNotifier {
   // API configuration
   String? _geminiApiKey;
   bool _useOpenAI = false; // This will now control online/offline
-  bool _useOfflineTranslation = false; // New flag for offline mode
 
   late GeminiService _geminiService;
-  late OfflineTranslationService
-  _offlineTranslationService; // New offline service
 
   // Speech recognition state
   bool _isListening = false;
@@ -47,13 +43,8 @@ class VoiceTranslationService extends ChangeNotifier {
   String get currentSpeaker => _currentSpeaker;
   List<ConversationMessage> get conversationHistory => _conversationHistory;
   bool get useOpenAI => _useOpenAI; // This now refers to online/offline toggle
-  bool get useOfflineTranslation => _useOfflineTranslation; // New getter
   bool get isTranslating => _isTranslating; // New getter
 
-  void setUseOfflineTranslation(bool value) {
-    _useOfflineTranslation = value;
-    notifyListeners();
-  }
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -94,9 +85,6 @@ class VoiceTranslationService extends ChangeNotifier {
       await _geminiService.initialize();
     }
 
-    // Initialize offline translation service
-    _offlineTranslationService = OfflineTranslationService();
-    await _offlineTranslationService.initialize();
 
     // Initialize speech recognition
     _speechEnabled = await _speechToText.initialize(
@@ -194,16 +182,6 @@ class VoiceTranslationService extends ChangeNotifier {
     if (text.trim().isEmpty) return '';
 
     try {
-      if (_useOfflineTranslation) {
-        if (!_offlineTranslationService.isInitialized) {
-          throw Exception('OfflineTranslationService not initialized');
-        }
-        return await _offlineTranslationService.translateTextOffline(
-          text,
-          toLanguage,
-          sourceLanguage: fromLanguage,
-        );
-      } else {
         if (_geminiApiKey == null ||
             _geminiApiKey!.isEmpty ||
             !_geminiService.isInitialized) {
@@ -234,7 +212,6 @@ class VoiceTranslationService extends ChangeNotifier {
           toLanguage,
           sourceLanguage: actualSourceLanguage,
         );
-      }
     } catch (e) {
       debugPrint('Translation error: $e');
       return 'Translation failed: $e';

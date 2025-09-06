@@ -8,7 +8,6 @@ import 'package:bhashalens_app/pages/auth/forgot_password_page.dart';
 import 'package:bhashalens_app/pages/auth/reset_password_page.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
-import 'package:bhashalens_app/pages/offline_mode_page.dart';
 import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
 import 'package:bhashalens_app/pages/help_support_page.dart';
@@ -21,7 +20,6 @@ import 'package:bhashalens_app/services/voice_translation_service.dart'; // Impo
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:bhashalens_app/pages/voice_translate_page.dart';
-import 'package:bhashalens_app/services/offline_translation_service.dart'; // Import OfflineTranslationService
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,9 +47,6 @@ void main() async {
         Provider<GeminiService>(
           create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
         ),
-        Provider<OfflineTranslationService>(
-          create: (_) => OfflineTranslationService(),
-        ), // Add OfflineTranslationService
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(),
         ),
@@ -130,7 +125,6 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/home': (context) => const HomePage(),
         '/camera_translate': (context) => const CameraTranslatePage(),
         '/voice_translate': (context) => const VoiceTranslatePage(),
-        '/offline_mode': (context) => const OfflineModePage(),
         '/saved_translations': (context) => const SavedTranslationsPage(),
         '/settings': (context) => const SettingsPage(),
         '/help_support': (context) => const HelpSupportPage(),

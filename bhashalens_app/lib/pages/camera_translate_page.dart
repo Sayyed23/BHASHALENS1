@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/pages/gemini_settings_page.dart';
 import 'dart:io';
-import 'package:bhashalens_app/services/voice_translation_service.dart';
 
 class CameraTranslatePage extends StatefulWidget {
   const CameraTranslatePage({super.key});
@@ -332,28 +331,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
               ),
             ),
             const Spacer(),
-            // Offline Translation Toggle
-            Consumer<VoiceTranslationService>(
-              builder: (context, voiceService, child) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Offline',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    Switch(
-                      value: voiceService.useOfflineTranslation,
-                      onChanged: (value) {
-                        voiceService.setUseOfflineTranslation(value);
-                      },
-                      activeColor: Colors.blueAccent,
-                      inactiveTrackColor: Colors.white30,
-                    ),
-                  ],
-                );
-              },
-            ),
             // Settings/Help icon
             IconButton(
               onPressed: () {
