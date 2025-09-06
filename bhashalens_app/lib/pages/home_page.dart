@@ -3,6 +3,7 @@ import 'package:bhashalens_app/widgets/responsive_layout.dart';
 import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/pages/home_content.dart'; // Import HomeContent
 import 'package:bhashalens_app/pages/camera_translate_page.dart'; // Import CameraTranslatePage
+import 'package:bhashalens_app/pages/voice_translate_page.dart'; // Import VoiceTranslatePage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,7 +13,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Set Home as default selected tab
 
   // Using a GlobalKey for the Scaffold to open the drawer from anywhere
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -21,7 +22,7 @@ class _HomePageState extends State<HomePage> {
     // Placeholder widgets for each tab
     HomeContent(), // Use HomeContent for the Home tab
     Center(child: Text('Camera Translate Content')),
-    Center(child: Text('Voice Translate Content')),
+    VoiceTranslatePage(), // Voice Translate Content
     Center(child: Text('Saved Translations Content')),
     Center(child: Text('Settings Content')),
   ];
@@ -31,6 +32,11 @@ class _HomePageState extends State<HomePage> {
       // Camera tab
       Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => const CameraTranslatePage()),
+      );
+    } else if (index == 2) {
+      // Voice tab
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const VoiceTranslatePage()),
       );
     } else {
       setState(() {
@@ -153,6 +159,13 @@ class _HomePageState extends State<HomePage> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const CameraTranslatePage(),
+                  ),
+                );
+              } else if (index == 2) {
+                // Voice tab
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const VoiceTranslatePage(),
                   ),
                 );
               } else {

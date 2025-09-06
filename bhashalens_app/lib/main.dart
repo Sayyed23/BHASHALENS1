@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:app_links/app_links.dart';
 import 'package:bhashalens_app/pages/onboarding_page.dart';
 import 'package:bhashalens_app/pages/auth/login_page.dart';
 import 'package:bhashalens_app/pages/auth/signup_page.dart';
@@ -9,7 +8,6 @@ import 'package:bhashalens_app/pages/auth/forgot_password_page.dart';
 import 'package:bhashalens_app/pages/auth/reset_password_page.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
-import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/offline_mode_page.dart';
 import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
@@ -19,9 +17,11 @@ import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:bhashalens_app/pages/voice_translate_page.dart';
+import 'package:bhashalens_app/services/offline_translation_service.dart'; // Import OfflineTranslationService
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +49,9 @@ void main() async {
         Provider<GeminiService>(
           create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
         ),
+        Provider<OfflineTranslationService>(
+          create: (_) => OfflineTranslationService(),
+        ), // Add OfflineTranslationService
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(),
         ),
@@ -68,7 +71,6 @@ class BhashaLensApp extends StatefulWidget {
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
   User? _user;
-  final AppLinks _appLinks = AppLinks();
   // Removed unused declaration of _localStorageService
 
   @override
@@ -76,7 +78,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     super.initState();
     // Removed unused assignment from Provider.of
     _getAuth();
-    _initDeepLinking();
+    //_initDeepLinking(); // Keep if deep linking is re-enabled
   }
 
   Future<void> _getAuth() async {
@@ -88,117 +90,6 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         });
       }
     });
-  }
-
-  void _initDeepLinking() {
-    // Handle initial link if app was launched from a link
-    // _appLinks.getInitialAppLink().then((link) {
-    //   if (link != null) {
-    //     _handleDeepLink(link);
-    //   }
-    // });
-
-    // Handle links when app is already running
-    // Temporarily disabled to fix Navigator context issues
-    // _appLinks.uriLinkStream.listen((link) {
-    //   if (mounted) {
-    //     _handleDeepLink(link);
-    //   }
-    // });
-  }
-
-  void _handleDeepLink(Uri? link) {
-    if (link != null && mounted) {
-      final uri = link.toString();
-
-      // Prioritize onboarding if not completed
-      if (!widget.isOnboardingCompleted && !uri.contains('/onboarding')) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
-        return;
-      }
-
-      if (uri.contains('/onboarding')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
-        }
-      } else if (uri.contains('/login')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/login', (route) => false);
-        }
-      } else if (uri.contains('/signup')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/signup', (route) => false);
-        }
-      } else if (uri.contains('/forgot_password')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/forgot_password', (route) => false);
-        }
-      } else if (uri.contains('/reset_password')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/reset_password', (route) => false);
-        }
-      } else if (uri.contains('/home')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/home', (route) => false);
-        }
-      } else if (uri.contains('/camera_translate')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/camera_translate', (route) => false);
-        }
-      } else if (uri.contains('/voice_translate')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/voice_translate', (route) => false);
-        }
-      } else if (uri.contains('/offline_mode')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/offline_mode', (route) => false);
-        }
-      } else if (uri.contains('/saved_translations')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/saved_translations', (route) => false);
-        }
-      } else if (uri.contains('/settings')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/settings', (route) => false);
-        }
-      } else if (uri.contains('/help_support')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/help_support', (route) => false);
-        }
-      } else if (uri.contains('/emergency')) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/emergency', (route) => false);
-        }
-      }
-    }
   }
 
   @override
