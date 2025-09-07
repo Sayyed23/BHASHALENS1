@@ -4,6 +4,7 @@ import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/pages/home_content.dart'; // Import HomeContent
 import 'package:bhashalens_app/pages/camera_translate_page.dart'; // Import CameraTranslatePage
 import 'package:bhashalens_app/pages/voice_translate_page.dart'; // Import VoiceTranslatePage
+import 'package:bhashalens_app/pages/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,13 +19,12 @@ class _HomePageState extends State<HomePage> {
   // Using a GlobalKey for the Scaffold to open the drawer from anywhere
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    // Placeholder widgets for each tab
-    HomeContent(), // Use HomeContent for the Home tab
+  static final List<Widget> _widgetOptions = <Widget>[
+    HomeContent(),
     Center(child: Text('Camera Translate Content')),
-    VoiceTranslatePage(), // Voice Translate Content
+    VoiceTranslatePage(),
     Center(child: Text('Saved Translations Content')),
-    Center(child: Text('Settings Content')),
+    SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -38,6 +38,9 @@ class _HomePageState extends State<HomePage> {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => const VoiceTranslatePage()),
       );
+    } else if (index == 4) {
+      // Settings tab: always push as a new route, like the top button
+      Navigator.of(context).pushNamed('/settings');
     } else {
       setState(() {
         _selectedIndex = index;
@@ -155,19 +158,19 @@ class _HomePageState extends State<HomePage> {
             selectedIndex: _selectedIndex,
             onDestinationSelected: (int index) {
               if (index == 1) {
-                // Camera tab
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const CameraTranslatePage(),
                   ),
                 );
               } else if (index == 2) {
-                // Voice tab
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const VoiceTranslatePage(),
                   ),
                 );
+              } else if (index == 4) {
+                Navigator.of(context).pushNamed('/settings');
               } else {
                 setState(() {
                   _selectedIndex = index;

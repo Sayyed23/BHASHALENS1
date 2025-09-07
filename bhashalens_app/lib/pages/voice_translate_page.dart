@@ -942,13 +942,33 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   void _saveConversation() {
-    // TODO: Implement save functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Conversation saved successfully!'),
-        backgroundColor: Color(0xFF4CAF50),
-      ),
-    );
+    final provider = Provider.of<SavedTranslationsProvider>(context, listen: false);
+    final history = _voiceService.conversationHistory;
+    if (history.isNotEmpty) {
+      final last = history.last;
+      provider.add(
+        SavedTranslation(
+          originalText: last.originalText,
+          translatedText: last.translatedText,
+          fromLanguage: VoiceTranslationService.supportedLanguages[last.speakerLanguage] ?? last.speakerLanguage,
+          toLanguage: VoiceTranslationService.supportedLanguages[last.targetLanguage] ?? last.targetLanguage,
+          dateTime: last.timestamp,
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Translation saved successfully!'),
+          backgroundColor: Color(0xFF4CAF50),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No translation to save!'),
+          backgroundColor: Color(0xFFFF9800),
+        ),
+      );
+    }
   }
 
   void _copyTranscript() {

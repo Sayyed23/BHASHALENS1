@@ -2,6 +2,79 @@ import 'package:flutter/material.dart';
 
 /// App color palette based on Orange theme with complementary colors
 class AppColors {
+  // --- PRIMARY THEME COLORS ---
+  // Teal/Blue-Green (Primary)
+  static const Color primary = primaryTeal;
+  static const Color primaryLight = primaryTealLight;
+  static const Color primaryDark = primaryTealDark;
+  // Orange (Secondary)
+  static const Color secondary = secondaryOrange;
+  static const Color secondaryLight = secondaryOrangeLight;
+  static const Color secondaryDark = secondaryOrangeDark;
+
+  // --- BACKGROUND & SURFACE ---
+  static const Color background = Color(0xFFF6F8FA); // App background
+  static const Color backgroundDark = Color(0xFF10171A); // Dark mode bg
+  static const Color surface = Color(0xFFFFFFFF); // Cards, sheets
+  static const Color surfaceDark = Color(0xFF1A2327); // Cards, sheets dark
+
+  // --- TEXT COLORS ---
+  static const Color text = Color(0xFF222B45); // Main text
+  static const Color textLight = Color(0xFF8F9BB3); // Secondary text
+  static const Color textDark = Color(0xFFFFFFFF); // On dark bg
+  static const Color textOnPrimary = Color(0xFFFFFFFF); // On teal/orange
+  static const Color textOnSecondary = Color(0xFFFFFFFF); // On orange
+
+  // --- BORDER & DIVIDER ---
+  static const Color border = Color(0xFFE4E9F2);
+  static const Color borderDark = Color(0xFF222B45);
+  static const Color divider = Color(0xFFEDF1F7);
+  static const Color dividerDark = Color(0xFF222B45);
+
+  // --- ICONS ---
+  static const Color icon = primaryTeal;
+  static const Color iconInactive = Color(0xFFB3BFD7);
+  static const Color iconDark = Color(0xFF8F9BB3);
+
+  // --- STATES ---
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFFC107);
+
+  // --- BUTTONS ---
+  static const Color button = primaryTeal;
+  static const Color buttonText = Color(0xFFFFFFFF);
+  static const Color buttonSecondary = secondaryOrange;
+  static const Color buttonSecondaryText = Color(0xFFFFFFFF);
+  static const Color buttonDisabled = Color(0xFFB3BFD7);
+  static const Color buttonDisabledText = Color(0xFFFFFFFF);
+
+  // --- INPUTS ---
+  static const Color inputFill = Color(0xFFF7F9FC);
+  static const Color inputFillDark = Color(0xFF222B45);
+  static const Color inputBorder = border;
+  static const Color inputBorderDark = borderDark;
+  static const Color inputText = text;
+  static const Color inputTextDark = textDark;
+  static const Color inputLabel = textLight;
+  static const Color inputLabelDark = textDark;
+
+  // --- SHADOWS ---
+  static const Color shadow = Color(0x1A000000); // 10% black
+
+  // --- GRADIENTS ---
+  static const List<Color> mainGradient = [primaryTeal, secondaryOrange];
+  static const List<Color> accentGradient = [primaryTealLight, secondaryOrangeLight];
+
+  // --- MISC ---
+  static const Color overlay = Color(0x80000000); // 50% black
+  static const Color highlight = Color(0xFFB2F5EA); // Light teal highlight
+  // Teal/Blue-Green and Orange for new theme
+  static const Color primaryTeal = Color(0xFF1193d4); // Teal/Blue-Green
+  static const Color primaryTealLight = Color(0xFF4DD0E1); // Light Teal
+  static const Color primaryTealDark = Color(0xFF006978); // Dark Teal
+  static const Color secondaryOrange = Color(0xFFFF6B35); // Vibrant Orange
+  static const Color secondaryOrangeLight = Color(0xFFFF8A65); // Light Orange
+  static const Color secondaryOrangeDark = Color(0xFFE64A19); // Dark Orange
   // Primary Orange Colors
   static const Color primaryOrange = Color(0xFFFF6B35); // Vibrant Orange
   static const Color primaryOrangeLight = Color(0xFFFF8A65); // Light Orange
@@ -33,22 +106,7 @@ class AppColors {
   static const Color grey900 = Color(0xFF212121);
 
   // Background Colors
-  static const Color backgroundLight = Color(
-    0xFFFFF8F5,
-  ); // Very light orange tint
-  static const Color backgroundDark = Color(0xFF1A1A1A);
-  static const Color surfaceLight = Color(0xFFFFF3E0); // Light orange surface
-  static const Color surfaceDark = Color(0xFF2D2D2D);
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textOnPrimary = Color(0xFFFFFFFF);
-  static const Color textOnDark = Color(0xFFFFFFFF);
-
-  // Status Colors
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFFC107);
   static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF2196F3);
 
