@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'pages/saved_translations_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bhashalens_app/pages/onboarding_page.dart';
 import 'package:bhashalens_app/pages/auth/login_page.dart';
@@ -8,7 +9,7 @@ import 'package:bhashalens_app/pages/auth/forgot_password_page.dart';
 import 'package:bhashalens_app/pages/auth/reset_password_page.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
-import 'package:bhashalens_app/pages/saved_translations_page.dart';
+// import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
 import 'package:bhashalens_app/pages/help_support_page.dart';
 import 'package:bhashalens_app/pages/emergency_page.dart';
@@ -44,13 +45,14 @@ void main() async {
         Provider<SupabaseAuthService>(create: (_) => SupabaseAuthService()),
         Provider<LocalStorageService>.value(
           value: localStorageService,
-        ), // Provide LocalStorageService
+        ),
         Provider<GeminiService>(
           create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
         ),
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(),
         ),
+        ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
       ],
       child: BhashaLensApp(isOnboardingCompleted: isOnboardingCompleted),
     ),

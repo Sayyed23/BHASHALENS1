@@ -14,6 +14,81 @@ class CameraTranslatePage extends StatefulWidget {
 }
 
 class _CameraTranslatePageState extends State<CameraTranslatePage> {
+  Future<void> _captureImage() async {
+    if (!_isCameraInitialized) return;
+    try {
+      setState(() {
+        _isProcessing = true;
+      });
+      final XFile image = await _cameraController!.takePicture();
+      final imageFile = File(image.path);
+      setState(() {
+        _capturedImageFile = imageFile;
+        _hasCapturedImage = true;
+      });
+      // Process with Gemini service
+      await _processImageWithGemini(imageFile);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
+    } finally {
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  List<DropdownMenuItem<String>> _getLanguageDropdownItems() {
+    // TODO: Implement language dropdown items
+    return [];
+  }
+
+  void _changeTargetLanguage(String language) {
+    // TODO: Implement target language change
+  }
+
+  void _shareText() {
+    // TODO: Implement share text
+  }
+
+  void _saveTranslation() {
+    // TODO: Implement save translation
+  }
+
+  void _resetCamera() {
+    // TODO: Implement reset camera
+  }
+  Widget _buildImagePreview(File file) {
+    try {
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(file, height: 120, width: double.infinity, fit: BoxFit.cover),
+        );
+      } else {
+        return Container(
+          height: 120,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+        );
+      }
+    } catch (e) {
+      return Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(child: Icon(Icons.broken_image, size: 40, color: Colors.grey)),
+      );
+    }
+  }
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
@@ -41,56 +116,15 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
           ResolutionPreset.high,
           enableAudio: false,
         );
-
-        try {
-          await _cameraController!.initialize();
-          setState(() {
-            _isCameraInitialized = true;
-          });
-        } catch (e) {
-          debugPrint('Error initializing camera: $e');
-        }
+        await _cameraController!.initialize();
+        setState(() {
+          _isCameraInitialized = true;
+        });
       }
     } catch (e) {
       debugPrint('Camera not available on this platform: $e');
-      // For platforms without camera support (like Windows), show a placeholder
       setState(() {
         _isCameraInitialized = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _captureImage() async {
-    if (!_isCameraInitialized) return;
-
-    try {
-      setState(() {
-        _isProcessing = true;
-      });
-
-      final XFile image = await _cameraController!.takePicture();
-      final imageFile = File(image.path);
-
-      setState(() {
-        _capturedImageFile = imageFile;
-        _hasCapturedImage = true;
-      });
-
-      // Process with Gemini service
-      await _processImageWithGemini(imageFile);
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
-    } finally {
-      setState(() {
-        _isProcessing = false;
       });
     }
   }
@@ -191,83 +225,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
 
   void _copyText() {
     // TODO: Implement copy to clipboard
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Text copied to clipboard!')));
-  }
-
-  void _shareText() {
-    // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share functionality coming soon!')),
-    );
-  }
-
-  void _saveTranslation() {
-    // TODO: Implement save functionality
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Translation saved!')));
-  }
-
-  void _resetCamera() {
-    setState(() {
-      _hasCapturedImage = false;
-      _originalText = '';
-      _translatedText = '';
-      _capturedImageFile = null;
-      _sourceLanguage = 'Auto-detected';
-    });
-  }
-
-  void _changeTargetLanguage(String language) {
-    setState(() {
-      _targetLanguage = language;
-    });
-
-    // Re-translate if we have extracted text
-    if (_originalText.isNotEmpty && _originalText != 'No text detected') {
-      _retranslateText();
-    }
-  }
-
-  Future<void> _retranslateText() async {
-    if (_originalText.isEmpty || _originalText == 'No text detected') return;
-
-    try {
-      setState(() {
-        _isProcessing = true;
-      });
-
-      final geminiService = Provider.of<GeminiService>(context, listen: false);
-      final translatedText = await geminiService.translateText(
-        _originalText,
-        _targetLanguage,
-        sourceLanguage: _sourceLanguage,
-      );
-
-      setState(() {
-        _translatedText = translatedText;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error re-translating: $e')));
-    } finally {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
-  }
-
-  List<DropdownMenuItem<String>> _getLanguageDropdownItems() {
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
-    return geminiService.getSupportedLanguages().map((language) {
-      return DropdownMenuItem<String>(
-        value: language['name']!,
-        child: Text(language['name']!, style: const TextStyle(fontSize: 14)),
-      );
-    }).toList();
   }
 
   @override
@@ -556,282 +513,235 @@ class _CameraTranslatePageState extends State<CameraTranslatePage> {
   }
 
   Widget _buildTranslationOutputBlock() {
+    final theme = Theme.of(context);
     return Positioned(
-      bottom: 100, // Above footer navigation
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Captured Image Preview
-            if (_capturedImageFile != null) ...[
-              Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(_capturedImageFile!, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Language Selection
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Source:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        _sourceLanguage,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Target:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      DropdownButton<String>(
-                        value: _targetLanguage,
-                        isExpanded: true,
-                        underline: Container(),
-                        items: _getLanguageDropdownItems(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            _changeTargetLanguage(value);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+      bottom: 90,
+      left: 12,
+      right: 12,
+      child: Material(
+        elevation: 12,
+        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_capturedImageFile != null) ...[
+                _buildImagePreview(_capturedImageFile!),
+                const SizedBox(height: 20),
               ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Processing Status
-            if (_isProcessing) ...[
               Row(
                 children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Source:', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                        Text(_sourceLanguage, style: theme.textTheme.bodyMedium),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Processing with Gemini AI...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.blue,
-                      fontStyle: FontStyle.italic,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Target:', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
+                        DropdownButton<String>(
+                          value: _targetLanguage,
+                          isExpanded: true,
+                          underline: Container(),
+                          items: _getLanguageDropdownItems(),
+                          onChanged: (value) {
+                            if (value != null) _changeTargetLanguage(value);
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-            ],
-
-            // Original Text and Translated Text (combined view)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Original:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+              const SizedBox(height: 20),
+              if (_isProcessing) ...[
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(_originalText, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Translated:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _translatedText,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _copyText,
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
-                      foregroundColor: Colors.black,
-                    ),
-                  ),
+                    const SizedBox(width: 12),
+                    Text('Processing with Gemini AI...', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary)),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _shareText,
-                    icon: const Icon(Icons.share),
-                    label: const Text('Share'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[200],
-                      foregroundColor: Colors.black,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _saveTranslation,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Save'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[200],
-                      foregroundColor: Colors.black,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 18),
               ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Reset button
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                onPressed: _resetCamera,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Take Another Photo'),
-                style: TextButton.styleFrom(foregroundColor: Colors.blue),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.background,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Original:', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.secondary)),
+                    const SizedBox(height: 6),
+                    Text(_originalText, style: theme.textTheme.bodyLarge),
+                    const SizedBox(height: 16),
+                    Text('Translated:', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.secondary)),
+                    const SizedBox(height: 6),
+                    Text(_translatedText, style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _copyText,
+                        icon: const Icon(Icons.copy, size: 22),
+                        label: const Text('Copy'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.secondary.withOpacity(0.13),
+                          foregroundColor: theme.colorScheme.secondary,
+                          elevation: 0,
+                          textStyle: theme.textTheme.labelLarge,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _shareText,
+                        icon: const Icon(Icons.share, size: 22),
+                        label: const Text('Share'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary.withOpacity(0.13),
+                          foregroundColor: theme.colorScheme.primary,
+                          elevation: 0,
+                          textStyle: theme.textTheme.labelLarge,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _saveTranslation,
+                        icon: const Icon(Icons.save, size: 22),
+                        label: const Text('Save'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.tertiary.withOpacity(0.13),
+                          foregroundColor: theme.colorScheme.tertiary,
+                          elevation: 0,
+                          textStyle: theme.textTheme.labelLarge,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _resetCamera,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Take Another Photo'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    side: BorderSide(color: theme.colorScheme.primary),
+                    minimumSize: const Size(0, 48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
   }
 
   Widget _buildFooterNavigationBlock() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: 1, // Camera tab
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.camera_alt),
-              label: 'Camera',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Saved'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                Navigator.of(context).pushReplacementNamed('/home');
-                break;
-              case 1:
-                // Already on camera page
-                break;
-              case 2:
-                Navigator.of(context).pushReplacementNamed('/voice_translate');
-                break;
-              case 3:
-                Navigator.of(context).pushReplacementNamed('/saved_translations');
-                break;
-              case 4:
-                Navigator.of(context).pushReplacementNamed('/settings');
-                break;
-            }
-          },
+    return Builder(
+      builder: (context) => Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: 1, // Camera tab
+            selectedItemColor: Colors.blue,
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.camera_alt),
+                label: 'Camera',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
+              BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Saved'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings),
+                label: 'Settings',
+              ),
+            ],
+            onTap: (index) {
+              switch (index) {
+                case 0:
+                  Navigator.of(context).pushReplacementNamed('/home');
+                  break;
+                case 1:
+                  // Already on camera page
+                  break;
+                case 2:
+                  Navigator.of(context).pushReplacementNamed('/voice_translate');
+                  break;
+                case 3:
+                  Navigator.of(context).pushReplacementNamed('/saved_translations');
+                  break;
+                case 4:
+                  Navigator.of(context).pushReplacementNamed('/settings');
+                  break;
+              }
+            },
+          ),
         ),
       ),
     );
   }
-}
