@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
@@ -58,19 +57,18 @@ class GeminiService {
   bool get isInitialized => _isInitialized;
 
   // Extract text from image using Gemini Vision
-  Future<String> extractTextFromImage(File imageFile) async {
+  Future<String> extractTextFromImage(Uint8List imageBytes) async {
     if (!_isInitialized) {
       throw Exception('Gemini service not initialized');
     }
 
     try {
-      final bytes = await imageFile.readAsBytes();
       final content = [
         Content.multi([
           TextPart(
             'Extract all visible, readable text from this image. Return ONLY the extracted textual content, without any additional formatting, explanations, or conversational filler. If no clear text is found, respond solely with "No text detected".',
           ),
-          DataPart('image/jpeg', bytes),
+          DataPart('image/jpeg', imageBytes),
         ]),
       ];
 
@@ -121,13 +119,13 @@ class GeminiService {
 
   // OCR and translate in one operation
   Future<Map<String, String>> ocrAndTranslate(
-    File imageFile,
+    Uint8List imageBytes,
     String targetLanguage, {
     String? sourceLanguage,
   }) async {
     try {
       // First extract text
-      final extractedText = await extractTextFromImage(imageFile);
+      final extractedText = await extractTextFromImage(imageBytes);
 
       if (extractedText.isEmpty || extractedText == 'No text detected') {
         return {
