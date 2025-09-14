@@ -12,7 +12,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // API configuration
   String? _geminiApiKey;
-  bool _useOpenAI = false; // This will now control online/offline
+  final bool _useOpenAI = false; // This will now control online/offline
 
   late GeminiService _geminiService;
 
@@ -45,7 +45,6 @@ class VoiceTranslationService extends ChangeNotifier {
   bool get useOpenAI => _useOpenAI; // This now refers to online/offline toggle
   bool get isTranslating => _isTranslating; // New getter
 
-
   // Language options
   static const Map<String, String> supportedLanguages = {
     'en': 'English',
@@ -76,8 +75,10 @@ class VoiceTranslationService extends ChangeNotifier {
 
   Future<void> _initializeServices() async {
     // Load API keys
-  _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
-  debugPrint('VoiceTranslationService: Loaded GEMINI_API_KEY: \\$_geminiApiKey');
+    _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+    debugPrint(
+      'VoiceTranslationService: Loaded GEMINI_API_KEY: \\$_geminiApiKey',
+    );
 
     if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
       debugPrint('GEMINI_API_KEY not found in .env');
@@ -85,7 +86,6 @@ class VoiceTranslationService extends ChangeNotifier {
       _geminiService = GeminiService(apiKey: _geminiApiKey);
       await _geminiService.initialize();
     }
-
 
     // Initialize speech recognition
     _speechEnabled = await _speechToText.initialize(
@@ -186,36 +186,36 @@ class VoiceTranslationService extends ChangeNotifier {
     if (text.trim().isEmpty) return '';
 
     try {
-        if (_geminiApiKey == null ||
-            _geminiApiKey!.isEmpty ||
-            !_geminiService.isInitialized) {
-          throw Exception(
-            'Gemini API key not found or GeminiService not initialized',
-          );
-        }
-
-        String actualSourceLanguage =
-            fromLanguage ?? 'en'; // Default to English if not provided
-        if (fromLanguage == 'auto') {
-          try {
-            final detectedLanguage = await _geminiService.detectLanguage(text);
-            // Convert detected language name to language code
-            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
-            debugPrint(
-              'Detected language: $detectedLanguage -> $actualSourceLanguage',
-            );
-          } catch (e) {
-            debugPrint('Language detection failed, using default: $e');
-            actualSourceLanguage = 'en'; // fallback to English
-          }
-        }
-
-        // Use GeminiService for translation
-        return await _geminiService.translateText(
-          text,
-          toLanguage,
-          sourceLanguage: actualSourceLanguage,
+      if (_geminiApiKey == null ||
+          _geminiApiKey!.isEmpty ||
+          !_geminiService.isInitialized) {
+        throw Exception(
+          'Gemini API key not found or GeminiService not initialized',
         );
+      }
+
+      String actualSourceLanguage =
+          fromLanguage ?? 'en'; // Default to English if not provided
+      if (fromLanguage == 'auto') {
+        try {
+          final detectedLanguage = await _geminiService.detectLanguage(text);
+          // Convert detected language name to language code
+          actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
+          debugPrint(
+            'Detected language: $detectedLanguage -> $actualSourceLanguage',
+          );
+        } catch (e) {
+          debugPrint('Language detection failed, using default: $e');
+          actualSourceLanguage = 'en'; // fallback to English
+        }
+      }
+
+      // Use GeminiService for translation
+      return await _geminiService.translateText(
+        text,
+        toLanguage,
+        sourceLanguage: actualSourceLanguage,
+      );
     } catch (e) {
       debugPrint('Translation error: $e');
       return 'Translation failed: $e';

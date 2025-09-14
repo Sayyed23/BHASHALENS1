@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/accessibility_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -75,18 +73,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final accessibilityService = Provider.of<AccessibilityService>(context);
-    final theme = Theme.of(context);
-    // final isDarkMode = theme.brightness == Brightness.dark;
+    final primaryColor = const Color(0xFF1193d4);
+    final bgColor = const Color(0xFF111c22);
+    final sectionColor = const Color(0xFF192b33);
+    final dividerColor = const Color(0xFF233c48);
+    final textColor = Colors.white;
+    final subTextColor = const Color(0xFF92b7c9);
 
     Widget sectionHeader(String title) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title,
-        style: theme.textTheme.titleMedium?.copyWith(
+        style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onBackground,
+          color: Colors.white,
         ),
       ),
     );
@@ -112,18 +113,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: textColor, fontSize: 16),
                     ),
                     if (subtitle != null)
                       Text(
                         subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: subTextColor, fontSize: 13),
                       ),
                   ],
                 ),
@@ -133,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 18,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: textColor.withOpacity(0.5),
                 ),
             ],
           ),
@@ -151,19 +146,13 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontSize: 16,
-              ),
-            ),
+            Text(title, style: TextStyle(color: textColor, fontSize: 16)),
             Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: theme.colorScheme.onPrimary,
-              activeTrackColor: theme.colorScheme.primary,
-              inactiveTrackColor: theme.colorScheme.outlineVariant,
+              activeColor: Colors.white,
+              activeTrackColor: primaryColor,
+              inactiveTrackColor: dividerColor,
             ),
           ],
         ),
@@ -171,23 +160,17 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.background.withOpacity(0.8),
+        backgroundColor: bgColor.withOpacity(0.8),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: theme.colorScheme.onBackground,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(
+        title: const Text(
           'Settings',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: theme.colorScheme.onBackground,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -206,7 +189,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Language & Dialect
           sectionHeader('Language & Dialect'),
@@ -215,26 +198,24 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: 'English (US)',
             route: 'app_language',
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           navRow(
             title: 'Default Language',
             subtitle: 'English (US)',
             route: 'default_language',
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Accessibility
           sectionHeader('Accessibility'),
           navRow(title: 'Text Size', route: 'text_size'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           switchRow(
             title: 'Dark Mode',
-            value: accessibilityService.themeMode == ThemeMode.dark,
-            onChanged: (val) {
-              accessibilityService.toggleThemeMode();
-            },
+            value: isDarkMode,
+            onChanged: (val) => setState(() => isDarkMode = val),
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Notifications
           sectionHeader('Notifications'),
@@ -243,59 +224,53 @@ class _SettingsPageState extends State<SettingsPage> {
             value: pushNotifications,
             onChanged: (val) => setState(() => pushNotifications = val),
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           switchRow(
             title: 'Email Notifications',
             value: emailNotifications,
             onChanged: (val) => setState(() => emailNotifications = val),
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Privacy & Security
           sectionHeader('Privacy & Security'),
           navRow(title: 'Privacy Policy', route: 'privacy_policy'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           navRow(title: 'Security Settings', route: 'security_settings'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // General
           sectionHeader('General'),
           navRow(title: 'About', route: 'about'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           ListTile(
             title: Text(
               'App Version',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: textColor, fontSize: 16),
             ),
             trailing: Text(
               '1.2.3',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                fontSize: 16,
-              ),
+              style: TextStyle(color: subTextColor, fontSize: 16),
             ),
             tileColor: Colors.transparent,
           ),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Support & Feedback
           sectionHeader('Support & Feedback'),
           navRow(title: 'Help Center', route: 'help_center'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           navRow(title: 'Contact Us', route: 'contact_us'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           navRow(title: 'Send Feedback', route: 'send_feedback'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Legal
           sectionHeader('Legal'),
           navRow(title: 'Terms of Service', route: 'terms_of_service'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
           navRow(title: 'Licenses', route: 'licenses'),
-          Divider(color: theme.colorScheme.outlineVariant, height: 1),
+          Divider(color: dividerColor, height: 1),
 
           // Log Out & Delete Account
           Padding(
@@ -307,9 +282,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.surface,
-                      foregroundColor: theme.colorScheme.onSurface,
-                      textStyle: theme.textTheme.labelLarge?.copyWith(
+                      backgroundColor: sectionColor,
+                      foregroundColor: textColor,
+                      textStyle: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -327,12 +302,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   height: 48,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
-                      textStyle: theme.textTheme.labelLarge?.copyWith(
+                      foregroundColor: Colors.red,
+                      textStyle: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
-                      side: BorderSide(color: theme.colorScheme.error),
+                      side: const BorderSide(color: Colors.red),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -347,13 +322,13 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: theme.colorScheme.surface.withOpacity(0.9),
-        selectedItemColor: theme.colorScheme.primary,
-        unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.7),
+        backgroundColor: sectionColor.withOpacity(0.9),
+        selectedItemColor: primaryColor,
+        unselectedItemColor: subTextColor,
         currentIndex: _selectedIndex,
         onTap: _onNavTap,
         type: BottomNavigationBarType.fixed,
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.photo_camera),

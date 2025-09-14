@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/models/saved_translation.dart'; // Import the model
-import 'package:bhashalens_app/theme/app_theme.dart'; // Import custom colors
+import 'package:bhashalens_app/models/saved_translation.dart';
 
 class SavedTranslationsProvider extends ChangeNotifier {
   final List<SavedTranslation> _translations = [];
@@ -39,31 +38,23 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
   Widget build(BuildContext context) {
     final provider = Provider.of<SavedTranslationsProvider>(context);
     final grouped = _groupByDate(provider.translations);
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: const Color(0xFF1A202C),
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.background,
+        backgroundColor: const Color(0xFF1A202C),
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Saved Translations',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: theme.colorScheme.onBackground,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: theme.colorScheme.onBackground,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert, color: theme.colorScheme.onBackground),
+            icon: const Icon(Icons.more_vert, color: Colors.white),
             onPressed: () {},
           ),
         ],
@@ -73,20 +64,13 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: theme.colorScheme.surface,
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
+                fillColor: const Color(0xFF2D3748),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 hintText: 'Search translations',
-                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
+                hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -106,8 +90,8 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                       padding: const EdgeInsets.only(top: 16, bottom: 8),
                       child: Text(
                         entry.key,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        style: const TextStyle(
+                          color: Colors.grey,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                           letterSpacing: 1.2,
@@ -116,7 +100,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                     ),
                     ...entry.value
                         .where(_matchesSearch)
-                        .map((t) => _buildTranslationCard(context, t, theme)),
+                        .map((t) => _buildTranslationCard(context, t)),
                   ],
                 );
               }).toList(),
@@ -124,7 +108,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavBar(theme),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -160,11 +144,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Widget _buildTranslationCard(
-    BuildContext context,
-    SavedTranslation t,
-    ThemeData theme,
-  ) {
+  Widget _buildTranslationCard(BuildContext context, SavedTranslation t) {
     final provider = Provider.of<SavedTranslationsProvider>(
       context,
       listen: false,
@@ -172,7 +152,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: const Color(0xFF2D3748),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(
@@ -189,53 +169,44 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                     children: [
                       Text(
                         t.originalText,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
                       ),
                       Text(
                         t.translatedText,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        style: const TextStyle(
+                          color: Colors.grey,
                           fontSize: 15,
                         ),
                       ),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.translate,
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            color: Colors.grey,
                             size: 16,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '${t.fromLanguage} to ${t.toLanguage}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.7,
-                              ),
+                            style: const TextStyle(
+                              color: Colors.grey,
                               fontSize: 12,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
+                          const Text(
                             '•',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.7,
-                              ),
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             DateFormat('h:mm a').format(t.dateTime),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.7,
-                              ),
+                            style: const TextStyle(
+                              color: Colors.grey,
                               fontSize: 12,
                             ),
                           ),
@@ -245,10 +216,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.volume_up,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                  icon: const Icon(Icons.volume_up, color: Colors.white),
                   onPressed: () {
                     // TODO: Play audio for t.translatedText
                   },
@@ -262,37 +230,26 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                 IconButton(
                   icon: Icon(
                     t.isStarred ? Icons.star : Icons.star_border,
-                    color: t.isStarred
-                        ? CustomColors.of(context).warning
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: t.isStarred ? Colors.yellow : Colors.grey,
                   ),
                   onPressed: () {
                     provider.toggleStar(t);
                   },
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.content_copy,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
+                  icon: const Icon(Icons.content_copy, color: Colors.grey),
                   onPressed: () {
                     // TODO: Copy translation
                   },
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.share,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
+                  icon: const Icon(Icons.share, color: Colors.grey),
                   onPressed: () {
                     // TODO: Share translation
                   },
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.delete,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
+                  icon: const Icon(Icons.delete, color: Colors.grey),
                   onPressed: () {
                     provider.remove(t);
                   },
@@ -305,13 +262,13 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
     );
   }
 
-  Widget _buildBottomNavBar(ThemeData theme) {
+  Widget _buildBottomNavBar() {
     return BottomNavigationBar(
-      backgroundColor: theme.colorScheme.background,
-      selectedItemColor: theme.colorScheme.primary,
-      unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.7),
+      backgroundColor: const Color(0xFF1A202C),
+      selectedItemColor: const Color(0xFF1193d4),
+      unselectedItemColor: Colors.grey,
       type: BottomNavigationBarType.fixed,
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(
           icon: Icon(Icons.photo_camera),
@@ -319,7 +276,7 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
         ),
         BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
         BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark, color: theme.colorScheme.primary),
+          icon: Icon(Icons.bookmark, color: Color(0xFF1193d4)),
           label: 'Saved',
         ),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
