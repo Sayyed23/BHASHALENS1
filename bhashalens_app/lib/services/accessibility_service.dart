@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class AccessibilityService extends ChangeNotifier {
   double _textSizeFactor = 1.0; // Default text size
-  bool _highContrastMode = false; // Default high contrast mode
+  ThemeMode _themeMode = ThemeMode.dark; // Default theme mode
 
   double get textSizeFactor => _textSizeFactor;
-  bool get highContrastMode => _highContrastMode;
+  ThemeMode get themeMode => _themeMode;
 
   // AccessibilityService() {
   //   _initTts();
@@ -29,8 +29,10 @@ class AccessibilityService extends ChangeNotifier {
     }
   }
 
-  void toggleHighContrastMode() {
-    _highContrastMode = !_highContrastMode;
+  void toggleThemeMode() {
+    _themeMode = _themeMode == ThemeMode.light
+        ? ThemeMode.dark
+        : ThemeMode.light;
     notifyListeners();
   }
 }

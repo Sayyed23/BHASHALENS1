@@ -39,6 +39,7 @@ class AppColors {
   // --- STATES ---
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFFC107);
+  static const Color info = Color(0xFF2196F3);
 
   // --- BUTTONS ---
   static const Color button = primaryTeal;
@@ -63,7 +64,10 @@ class AppColors {
 
   // --- GRADIENTS ---
   static const List<Color> mainGradient = [primaryTeal, secondaryOrange];
-  static const List<Color> accentGradient = [primaryTealLight, secondaryOrangeLight];
+  static const List<Color> accentGradient = [
+    primaryTealLight,
+    secondaryOrangeLight,
+  ];
 
   // --- MISC ---
   static const Color overlay = Color(0x80000000); // 50% black
@@ -108,7 +112,6 @@ class AppColors {
   // Background Colors
 
   static const Color error = Color(0xFFE53935);
-  static const Color info = Color(0xFF2196F3);
 
   // Gradient Colors
   static const List<Color> primaryGradient = [

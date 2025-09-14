@@ -5,6 +5,8 @@ import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
 import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
+import 'package:bhashalens_app/models/saved_translation.dart';
+import 'package:bhashalens_app/theme/app_theme.dart';
 
 class VoiceTranslatePage extends StatefulWidget {
   const VoiceTranslatePage({super.key});
@@ -32,12 +34,15 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFF111C22), // Dark background matching HTML
+      backgroundColor:
+          theme.colorScheme.background, // Dark background matching HTML
       body: Column(
         children: [
           // Header
-          _buildHeader(),
+          _buildHeader(theme, isDarkMode),
 
           // Main content
           Expanded(
@@ -46,41 +51,41 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: Column(
                 children: [
                   // Language Selection Section
-                  _buildLanguageSelection(),
+                  _buildLanguageSelection(theme, isDarkMode),
 
                   const SizedBox(height: 32),
 
                   // Conversation Area
-                  _buildConversationArea(),
+                  _buildConversationArea(theme, isDarkMode),
 
                   const SizedBox(height: 32),
 
                   // Conversation History
-                  _buildConversationHistory(),
+                  _buildConversationHistory(theme, isDarkMode),
 
                   const SizedBox(height: 32),
 
                   // Action Buttons
-                  _buildActionButtons(),
+                  _buildActionButtons(theme, isDarkMode),
                 ],
               ),
             ),
           ),
 
           // Bottom Navigation
-          _buildBottomNavigation(),
+          _buildBottomNavigation(theme, isDarkMode),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ThemeData theme, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111C22).withOpacity(0.8),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFF233C48), width: 1),
+        color: theme.colorScheme.background.withOpacity(0.8),
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.surface, width: 1),
         ),
       ),
       child: SafeArea(
@@ -95,9 +100,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back,
-                  color: Colors.white,
+                  color: theme.colorScheme.onBackground,
                   size: 24,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
@@ -111,13 +116,13 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             ),
 
             // Title
-            const Expanded(
+            Expanded(
               child: Text(
                 'Voice Translation',
-                style: TextStyle(
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: theme.colorScheme.onBackground,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -132,12 +137,12 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.help_outline,
-                  color: Colors.white,
+                  color: theme.colorScheme.onBackground,
                   size: 24,
                 ),
-                onPressed: () => _showHelpDialog(),
+                onPressed: () => _showHelpDialog(theme, isDarkMode),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
@@ -152,7 +157,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildLanguageSelection() {
+  Widget _buildLanguageSelection(ThemeData theme, bool isDarkMode) {
     return Row(
       children: [
         // Your Language
@@ -160,12 +165,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Your Language',
-                style: TextStyle(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF94B7C9), // slate-400 equivalent
+                  color: theme.colorScheme.onSurface.withOpacity(
+                    0.7,
+                  ), // slate-400 equivalent
                 ),
               ),
               const SizedBox(height: 8),
@@ -175,7 +182,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF192B33), // secondary color
+                  color: theme.colorScheme.surface, // secondary color
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.transparent),
                 ),
@@ -185,8 +192,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       child: DropdownButton<String>(
                         value: voiceService.userALanguage,
                         isExpanded: true,
-                        dropdownColor: const Color(0xFF192B33),
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: theme.colorScheme.surface,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
                         items: VoiceTranslationService
                             .supportedLanguages
                             .entries
@@ -216,9 +225,13 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           margin: const EdgeInsets.symmetric(horizontal: 8),
           child: IconButton(
             onPressed: () => _voiceService.swapLanguages(),
-            icon: const Icon(Icons.swap_horiz, color: Colors.white, size: 24),
+            icon: Icon(
+              Icons.swap_horiz,
+              color: theme.colorScheme.onPrimary,
+              size: 24,
+            ),
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF233C48), // accent color
+              backgroundColor: theme.colorScheme.primary, // accent color
               shape: const CircleBorder(),
               padding: const EdgeInsets.all(12),
             ),
@@ -230,12 +243,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Their Language',
-                style: TextStyle(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF94B7C9), // slate-400 equivalent
+                  color: theme.colorScheme.onSurface.withOpacity(
+                    0.7,
+                  ), // slate-400 equivalent
                 ),
               ),
               const SizedBox(height: 8),
@@ -245,7 +260,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF192B33), // secondary color
+                  color: theme.colorScheme.surface, // secondary color
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.transparent),
                 ),
@@ -255,8 +270,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       child: DropdownButton<String>(
                         value: voiceService.userBLanguage,
                         isExpanded: true,
-                        dropdownColor: const Color(0xFF192B33),
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: theme.colorScheme.surface,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
                         items: VoiceTranslationService
                             .supportedLanguages
                             .entries
@@ -284,31 +301,36 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildConversationArea() {
+  Widget _buildConversationArea(ThemeData theme, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF192B33), // secondary color
+        color: theme.colorScheme.surface, // secondary color
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
           // You Section
-          _buildUserSection('You', 'A'),
+          _buildUserSection('You', 'A', theme, isDarkMode),
 
           // Divider
           Container(
             height: 1,
-            color: const Color(0xFF233C48), // accent color
+            color: theme.colorScheme.primary, // accent color
           ),
 
           // Them Section
-          _buildUserSection('Them', 'B'),
+          _buildUserSection('Them', 'B', theme, isDarkMode),
         ],
       ),
     );
   }
 
-  Widget _buildUserSection(String label, String user) {
+  Widget _buildUserSection(
+    String label,
+    String user,
+    ThemeData theme,
+    bool isDarkMode,
+  ) {
     return Consumer<VoiceTranslationService>(
       builder: (context, voiceService, child) {
         debugPrint(
@@ -333,17 +355,19 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       languageName,
-                      style: const TextStyle(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
-                        color: Color(0xFF94B7C9), // slate-400
+                        color: theme.colorScheme.onSurface.withOpacity(
+                          0.7,
+                        ), // slate-400
                       ),
                     ),
                     if (isListening) ...[
@@ -354,18 +378,18 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1193D4).withOpacity(0.2),
+                          color: theme.colorScheme.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: const Color(0xFF1193D4),
+                            color: theme.colorScheme.primary,
                             width: 1,
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Listening...',
-                          style: TextStyle(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             fontSize: 10,
-                            color: Color(0xFF1193D4),
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -378,18 +402,18 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1193D4).withOpacity(0.2),
+                          color: theme.colorScheme.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: const Color(0xFF1193D4),
+                            color: theme.colorScheme.primary,
                             width: 1,
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Translating...',
-                          style: TextStyle(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             fontSize: 10,
-                            color: Color(0xFF1193D4),
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -410,8 +434,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       color: isListening
                           ? Colors.red
                           : (user == 'A'
-                                ? const Color(0xFF1193D4) // primary color
-                                : const Color(0xFF233C48)), // accent color
+                                ? theme
+                                      .colorScheme
+                                      .primary // primary color
+                                : theme.colorScheme.surface), // accent color
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -419,8 +445,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                               (isListening
                                       ? Colors.red
                                       : (user == 'A'
-                                            ? const Color(0xFF1193D4)
-                                            : const Color(0xFF233C48)))
+                                            ? theme.colorScheme.primary
+                                            : theme.colorScheme.surface))
                                   .withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
@@ -429,7 +455,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                     ),
                     child: Icon(
                       isListening ? Icons.mic : Icons.mic_off,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       size: 24,
                     ),
                   ),
@@ -448,18 +474,18 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF233C48).withOpacity(0.3),
+                      color: theme.colorScheme.surface.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: const Color(0xFF233C48),
+                        color: theme.colorScheme.surface,
                         width: 1,
                       ),
                     ),
                     child: Text(
                       transcript,
-                      style: const TextStyle(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 18,
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -473,18 +499,18 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1193D4).withOpacity(0.2),
+                        color: theme.colorScheme.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: const Color(0xFF1193D4),
+                          color: theme.colorScheme.primary,
                           width: 1,
                         ),
                       ),
                       child: Text(
                         voiceService.currentTranslatedText,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontSize: 18,
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -499,16 +525,16 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildConversationHistory() {
+  Widget _buildConversationHistory(ThemeData theme, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Conversation History',
-          style: TextStyle(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: theme.colorScheme.onBackground,
           ),
         ),
         const SizedBox(height: 16),
@@ -519,22 +545,22 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               return Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF192B33),
+                  color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Center(
+                child: Center(
                   child: Column(
                     children: [
                       Icon(
                         Icons.chat_bubble_outline,
                         size: 48,
-                        color: Color(0xFF94B7C9),
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
                         'Start a conversation to see the history',
-                        style: TextStyle(
-                          color: Color(0xFF94B7C9),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                           fontSize: 14,
                         ),
                       ),
@@ -546,7 +572,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
             return Column(
               children: voiceService.conversationHistory.map((message) {
-                return _buildHistoryMessage(message);
+                return _buildHistoryMessage(message, theme, isDarkMode);
               }).toList(),
             );
           },
@@ -555,7 +581,11 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildHistoryMessage(ConversationMessage message) {
+  Widget _buildHistoryMessage(
+    ConversationMessage message,
+    ThemeData theme,
+    bool isDarkMode,
+  ) {
     final isUserA = message.speaker == 'A';
 
     return Container(
@@ -569,15 +599,15 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             height: 40,
             decoration: BoxDecoration(
               color: isUserA
-                  ? const Color(0xFF1193D4)
-                  : const Color(0xFF233C48),
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.surface,
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 message.speaker,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -596,8 +626,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isUserA
-                        ? const Color(0xFF233C48) // accent color
-                        : const Color(0xFF1193D4), // primary color
+                        ? theme
+                              .colorScheme
+                              .surface // accent color
+                        : theme.colorScheme.primary, // primary color
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(8),
                       topRight: const Radius.circular(8),
@@ -614,17 +646,23 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                     children: [
                       Text(
                         message.originalText,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontSize: 16,
-                          color: Colors.white,
+                          color: isUserA
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         message.translatedText,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 14,
-                          color: Color(0xFF94B7C9), // slate-400
+                          color: isUserA
+                              ? theme.colorScheme.onSurface.withOpacity(0.7)
+                              : theme.colorScheme.onPrimary.withOpacity(
+                                  0.7,
+                                ), // slate-400
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -636,9 +674,11 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 const SizedBox(height: 4),
                 Text(
                   _formatTimestamp(message.timestamp),
-                  style: const TextStyle(
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 12,
-                    color: Color(0xFF94B7C9), // slate-400
+                    color: theme.colorScheme.onSurface.withOpacity(
+                      0.7,
+                    ), // slate-400
                   ),
                 ),
               ],
@@ -649,7 +689,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(ThemeData theme, bool isDarkMode) {
     return Column(
       children: [
         Row(
@@ -659,20 +699,20 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF233C48), // accent color
+                  color: theme.colorScheme.surface, // accent color
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
                   onPressed: _saveConversation,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.bookmark,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                     size: 20,
                   ),
-                  label: const Text(
+                  label: Text(
                     'Save',
-                    style: TextStyle(
-                      color: Colors.white,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -694,20 +734,20 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF233C48), // accent color
+                  color: theme.colorScheme.surface, // accent color
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
                   onPressed: _copyTranscript,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.content_copy,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                     size: 20,
                   ),
-                  label: const Text(
+                  label: Text(
                     'Copy',
-                    style: TextStyle(
-                      color: Colors.white,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -729,16 +769,20 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF233C48), // accent color
+                  color: theme.colorScheme.surface, // accent color
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
                   onPressed: _shareConversation,
-                  icon: const Icon(Icons.share, color: Colors.white, size: 20),
-                  label: const Text(
+                  icon: Icon(
+                    Icons.share,
+                    color: theme.colorScheme.onSurface,
+                    size: 20,
+                  ),
+                  label: Text(
                     'Share',
-                    style: TextStyle(
-                      color: Colors.white,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -768,20 +812,22 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF233C48).withOpacity(0.8), // accent color
+                color: theme.colorScheme.surface.withOpacity(
+                  0.8,
+                ), // accent color
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextButton.icon(
                 onPressed: _clearConversation,
-                icon: const Icon(
+                icon: Icon(
                   Icons.clear_all,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   size: 20,
                 ),
-                label: const Text(
+                label: Text(
                   'Clear Conversation',
-                  style: TextStyle(
-                    color: Colors.white,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -800,11 +846,13 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildBottomNavigation() {
+  Widget _buildBottomNavigation(ThemeData theme, bool isDarkMode) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF111C22),
-        border: Border(top: BorderSide(color: Color(0xFF233C48), width: 1)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.background,
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.surface, width: 1),
+        ),
       ),
       child: SafeArea(
         child: Container(
@@ -812,11 +860,32 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(Icons.home, 'Home', 0, false),
-              _buildNavItem(Icons.camera_alt, 'Camera', 1, false),
-              _buildNavItem(Icons.mic, 'Voice', 2, true),
-              _buildNavItem(Icons.bookmark, 'Saved', 3, false),
-              _buildNavItem(Icons.settings, 'Settings', 4, false),
+              _buildNavItem(Icons.home, 'Home', 0, false, theme, isDarkMode),
+              _buildNavItem(
+                Icons.camera_alt,
+                'Camera',
+                1,
+                false,
+                theme,
+                isDarkMode,
+              ),
+              _buildNavItem(Icons.mic, 'Voice', 2, true, theme, isDarkMode),
+              _buildNavItem(
+                Icons.bookmark,
+                'Saved',
+                3,
+                false,
+                theme,
+                isDarkMode,
+              ),
+              _buildNavItem(
+                Icons.settings,
+                'Settings',
+                4,
+                false,
+                theme,
+                isDarkMode,
+              ),
             ],
           ),
         ),
@@ -829,6 +898,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     String label,
     int index,
     bool isSelected,
+    ThemeData theme,
+    bool isDarkMode,
   ) {
     return GestureDetector(
       onTap: () => _onTabTapped(index),
@@ -836,7 +907,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF1193D4).withOpacity(0.2)
+              ? theme.colorScheme.primary.withOpacity(0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -846,8 +917,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             Icon(
               icon,
               color: isSelected
-                  ? const Color(0xFF1193D4)
-                  : const Color(0xFF94B7C9),
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withOpacity(0.7),
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -856,8 +927,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               style: TextStyle(
                 fontSize: 12,
                 color: isSelected
-                    ? const Color(0xFF1193D4)
-                    : const Color(0xFF94B7C9),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -875,35 +946,68 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     }
   }
 
-  void _showHelpDialog() {
+  void _showHelpDialog(ThemeData theme, bool isDarkMode) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('How to Use Live Conversation'),
-        content: const SingleChildScrollView(
+        title: Text(
+          'How to Use Live Conversation',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 '1. Select languages for User A and User B',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-              SizedBox(height: 8),
-              Text('2. Tap the microphone button to start speaking'),
-              SizedBox(height: 8),
-              Text('3. Your speech will be transcribed and translated'),
-              SizedBox(height: 8),
-              Text('4. The conversation appears in the timeline below'),
-              SizedBox(height: 8),
-              Text('5. Use the action buttons to save, copy, or share'),
+              const SizedBox(height: 8),
+              Text(
+                '2. Tap the microphone button to start speaking',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '3. Your speech will be transcribed and translated',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '4. The conversation appears in the timeline below',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '5. Use the action buttons to save, copy, or share',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
+            child: Text(
+              'Got it',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -942,7 +1046,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   void _saveConversation() {
-    final provider = Provider.of<SavedTranslationsProvider>(context, listen: false);
+    final provider = Provider.of<SavedTranslationsProvider>(
+      context,
+      listen: false,
+    );
     final history = _voiceService.conversationHistory;
     if (history.isNotEmpty) {
       final last = history.last;
@@ -950,22 +1057,37 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         SavedTranslation(
           originalText: last.originalText,
           translatedText: last.translatedText,
-          fromLanguage: VoiceTranslationService.supportedLanguages[last.speakerLanguage] ?? last.speakerLanguage,
-          toLanguage: VoiceTranslationService.supportedLanguages[last.targetLanguage] ?? last.targetLanguage,
+          fromLanguage:
+              VoiceTranslationService.supportedLanguages[last
+                  .speakerLanguage] ??
+              last.speakerLanguage,
+          toLanguage:
+              VoiceTranslationService.supportedLanguages[last.targetLanguage] ??
+              last.targetLanguage,
           dateTime: last.timestamp,
         ),
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Translation saved successfully!'),
-          backgroundColor: Color(0xFF4CAF50),
+        SnackBar(
+          content: Text(
+            'Translation saved successfully!',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          backgroundColor: CustomColors.of(context).success,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No translation to save!'),
-          backgroundColor: Color(0xFFFF9800),
+        SnackBar(
+          content: Text(
+            'No translation to save!',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          backgroundColor: CustomColors.of(context).warning,
         ),
       );
     }
@@ -976,9 +1098,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     // TODO: Implement copy to clipboard using transcript
     debugPrint('Transcript to copy: $transcript');
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transcript copied to clipboard!'),
-        backgroundColor: Color(0xFF2196F3),
+      SnackBar(
+        content: Text(
+          'Transcript copied to clipboard!',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: CustomColors.of(context).info,
       ),
     );
   }
@@ -986,9 +1113,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   void _shareConversation() {
     // TODO: Implement share functionality
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality coming soon!'),
-        backgroundColor: Color(0xFFFFC107),
+      SnackBar(
+        content: Text(
+          'Share functionality coming soon!',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: CustomColors.of(context).warning,
       ),
     );
   }
@@ -996,9 +1128,14 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   void _clearConversation() {
     _voiceService.clearConversation();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Conversation history cleared!'),
-        backgroundColor: Color(0xFF2196F3),
+      SnackBar(
+        content: Text(
+          'Conversation history cleared!',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: CustomColors.of(context).info,
       ),
     );
   }
