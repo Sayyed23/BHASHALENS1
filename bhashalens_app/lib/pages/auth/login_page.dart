@@ -51,6 +51,10 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _signInAsGuest() {
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +108,10 @@ class _LoginPageState extends State<LoginPage> {
                   Navigator.of(context).pushNamed('/signup');
                 },
                 child: const Text('Don\'t have an account? Sign Up'),
+              ),
+              TextButton(
+                onPressed: _signInAsGuest,
+                child: const Text('Continue as Guest'),
               ),
             ],
           ),

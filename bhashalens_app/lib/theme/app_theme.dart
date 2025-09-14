@@ -114,10 +114,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -341,10 +338,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -456,4 +450,42 @@ class AppTheme {
       ),
     );
   }
+}
+
+@immutable
+class CustomColors extends ThemeExtension<CustomColors> {
+  const CustomColors({
+    required this.success,
+    required this.warning,
+    required this.info,
+  });
+
+  final Color success;
+  final Color warning;
+  final Color info;
+
+  @override
+  CustomColors copyWith({Color? success, Color? warning, Color? info}) {
+    return CustomColors(
+      success: success ?? this.success,
+      warning: warning ?? this.warning,
+      info: info ?? this.info,
+    );
+  }
+
+  @override
+  CustomColors lerp(ThemeExtension<CustomColors>? other, double t) {
+    if (other is! CustomColors) {
+      return this;
+    }
+    return CustomColors(
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      info: Color.lerp(info, other.info, t)!,
+    );
+  }
+
+  // Helper getter to use these colors with Theme.of(context).colorScheme.custom.success
+  static CustomColors of(BuildContext context) =>
+      Theme.of(context).extension<CustomColors>()!;
 }

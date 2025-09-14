@@ -43,9 +43,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => AccessibilityService()),
         Provider<SupabaseAuthService>(create: (_) => SupabaseAuthService()),
-        Provider<LocalStorageService>.value(
-          value: localStorageService,
-        ),
+        Provider<LocalStorageService>.value(value: localStorageService),
         Provider<GeminiService>(
           create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
         ),
@@ -105,17 +103,17 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
 
     return MaterialApp(
       title: 'BhashaLens',
-      theme: accessibilityService.highContrastMode
-          ? AppTheme.darkTheme.copyWith(
-              textTheme: AppTheme.darkTheme.textTheme.apply(
-                fontSizeFactor: accessibilityService.textSizeFactor,
-              ),
-            )
-          : AppTheme.lightTheme.copyWith(
-              textTheme: AppTheme.lightTheme.textTheme.apply(
-                fontSizeFactor: accessibilityService.textSizeFactor,
-              ),
-            ),
+      theme: AppTheme.lightTheme.copyWith(
+        textTheme: AppTheme.lightTheme.textTheme.apply(
+          fontSizeFactor: accessibilityService.textSizeFactor,
+        ),
+      ),
+      darkTheme: AppTheme.darkTheme.copyWith(
+        textTheme: AppTheme.darkTheme.textTheme.apply(
+          fontSizeFactor: accessibilityService.textSizeFactor,
+        ),
+      ),
+      themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
       // Use a builder to listen to auth state and decide initial route
       home: initialRoute,
