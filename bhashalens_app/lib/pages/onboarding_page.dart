@@ -217,7 +217,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          value: selectedLanguage,
+          initialValue: selectedLanguage,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Language',

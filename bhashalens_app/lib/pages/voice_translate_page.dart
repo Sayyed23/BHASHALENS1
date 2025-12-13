@@ -38,7 +38,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     final isDarkMode = theme.brightness == Brightness.dark;
     return Scaffold(
       backgroundColor:
-          theme.colorScheme.background, // Dark background matching HTML
+          theme.colorScheme.surface, // Dark background matching HTML
       body: Column(
         children: [
           // Header
@@ -83,7 +83,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.background.withOpacity(0.8),
+        color: theme.colorScheme.surface.withOpacity(0.8),
         border: Border(
           bottom: BorderSide(color: theme.colorScheme.surface, width: 1),
         ),
@@ -102,7 +102,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: IconButton(
                 icon: Icon(
                   Icons.arrow_back,
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                   size: 24,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
@@ -122,7 +122,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -139,7 +139,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               child: IconButton(
                 icon: Icon(
                   Icons.help_outline,
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                   size: 24,
                 ),
                 onPressed: () => _showHelpDialog(theme, isDarkMode),
@@ -534,7 +534,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -849,7 +849,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   Widget _buildBottomNavigation(ThemeData theme, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.background,
+        color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(color: theme.colorScheme.surface, width: 1),
         ),
