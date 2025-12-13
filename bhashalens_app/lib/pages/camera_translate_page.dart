@@ -517,7 +517,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [
           // Header with mode toggle - handles its own SafeArea
@@ -547,7 +547,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.background,
+        color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -565,13 +565,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 onPressed: () => Navigator.of(context).pop(),
                 icon: Icon(
                   Icons.arrow_back_ios_new,
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               Text(
                 'Translate',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -707,7 +707,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         if (_isProcessing) // Add this conditional loading overlay
           Positioned.fill(
             child: Container(
-              color: theme.colorScheme.background.withOpacity(0.7),
+              color: theme.colorScheme.surface.withOpacity(0.7),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -721,7 +721,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     Text(
                       'Processing image...',
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onBackground,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -736,7 +736,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   Widget _buildCameraView(ThemeData theme, bool isDarkMode) {
     if (!_isCameraInitialized) {
       return Container(
-        color: theme.colorScheme.onBackground,
+        color: theme.colorScheme.onSurface,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -744,13 +744,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               Icon(
                 Icons.camera_alt,
                 size: 80,
-                color: theme.colorScheme.background,
+                color: theme.colorScheme.surface,
               ),
               const SizedBox(height: 16),
               Text(
                 'Camera Preview',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.background,
+                  color: theme.colorScheme.surface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -758,7 +758,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               Text(
                 'Camera functionality is available on mobile devices',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.background.withOpacity(0.7),
+                  color: theme.colorScheme.surface.withOpacity(0.7),
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -767,7 +767,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               Text(
                 'Tap the capture button to simulate photo capture',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.background.withOpacity(0.6),
+                  color: theme.colorScheme.surface.withOpacity(0.6),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -795,14 +795,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               height: 100,
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: theme.colorScheme.onBackground,
+                  color: theme.colorScheme.onSurface,
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.crop_free,
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
                 size: 40,
               ),
             ),
@@ -903,7 +903,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   Widget _buildScrollableTranslationOutput(ThemeData theme, bool isDarkMode) {
     return Container(
-      color: theme.colorScheme.background,
+      color: theme.colorScheme.surface,
       child: Column(
         children: [
           // Content
@@ -1237,7 +1237,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: theme.colorScheme.onBackground,
+                      color: theme.colorScheme.onSurface,
                       width: 4,
                     ),
                     color: Colors.transparent,
@@ -1257,7 +1257,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             child: CircularProgressIndicator(
                               strokeWidth: 3,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.onBackground,
+                                theme.colorScheme.onSurface,
                               ),
                             ),
                           ),
