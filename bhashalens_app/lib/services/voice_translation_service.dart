@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -15,6 +17,10 @@ class VoiceTranslationService extends ChangeNotifier {
   final bool _useOpenAI = false; // This will now control online/offline
 
   late GeminiService _geminiService;
+
+  // ML Kit for offline translation
+  final MlKitTranslationService _mlKitService = MlKitTranslationService();
+  bool _isOfflineMode = false;
 
   // Speech recognition state
   bool _isListening = false;
@@ -44,6 +50,7 @@ class VoiceTranslationService extends ChangeNotifier {
   List<ConversationMessage> get conversationHistory => _conversationHistory;
   bool get useOpenAI => _useOpenAI; // This now refers to online/offline toggle
   bool get isTranslating => _isTranslating; // New getter
+  bool get isOfflineMode => _isOfflineMode; // Offline mode getter
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -186,36 +193,80 @@ class VoiceTranslationService extends ChangeNotifier {
     if (text.trim().isEmpty) return '';
 
     try {
-      if (_geminiApiKey == null ||
-          _geminiApiKey!.isEmpty ||
-          !_geminiService.isInitialized) {
-        throw Exception(
-          'Gemini API key not found or GeminiService not initialized',
-        );
-      }
+      // Check connectivity
+      final connectivityResult = await Connectivity().checkConnectivity();
+      _isOfflineMode = connectivityResult.contains(ConnectivityResult.none);
+      notifyListeners();
+
+      debugPrint('VoiceTranslation: isOfflineMode=$_isOfflineMode');
 
       String actualSourceLanguage =
           fromLanguage ?? 'en'; // Default to English if not provided
-      if (fromLanguage == 'auto') {
-        try {
-          final detectedLanguage = await _geminiService.detectLanguage(text);
-          // Convert detected language name to language code
-          actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
-          debugPrint(
-            'Detected language: $detectedLanguage -> $actualSourceLanguage',
-          );
-        } catch (e) {
-          debugPrint('Language detection failed, using default: $e');
-          actualSourceLanguage = 'en'; // fallback to English
-        }
-      }
 
-      // Use GeminiService for translation
-      return await _geminiService.translateText(
-        text,
-        toLanguage,
-        sourceLanguage: actualSourceLanguage,
-      );
+      if (_isOfflineMode) {
+        // Use ML Kit for offline translation
+        debugPrint(
+          'Using ML Kit for offline translation: $actualSourceLanguage -> $toLanguage',
+        );
+
+        final mlKitResult = await _mlKitService.translate(
+          text: text,
+          sourceLanguage: actualSourceLanguage,
+          targetLanguage: toLanguage,
+        );
+
+        if (mlKitResult != null && mlKitResult.isNotEmpty) {
+          return mlKitResult;
+        } else {
+          // Check if models are available
+          final sourceModelReady = await _mlKitService.isModelDownloaded(
+            actualSourceLanguage,
+          );
+          final targetModelReady = await _mlKitService.isModelDownloaded(
+            toLanguage,
+          );
+
+          if (!sourceModelReady || !targetModelReady) {
+            return 'Offline translation unavailable. Please download language models in Settings → Offline Models.';
+          }
+          return 'Translation failed. Please try again.';
+        }
+      } else {
+        // Use Gemini for online translation (better quality)
+        if (_geminiApiKey == null ||
+            _geminiApiKey!.isEmpty ||
+            !_geminiService.isInitialized) {
+          // Fall back to ML Kit if Gemini is not available
+          debugPrint('Gemini not available, falling back to ML Kit');
+          final mlKitResult = await _mlKitService.translate(
+            text: text,
+            sourceLanguage: actualSourceLanguage,
+            targetLanguage: toLanguage,
+          );
+          return mlKitResult ?? 'Translation failed';
+        }
+
+        if (fromLanguage == 'auto') {
+          try {
+            final detectedLanguage = await _geminiService.detectLanguage(text);
+            // Convert detected language name to language code
+            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
+            debugPrint(
+              'Detected language: $detectedLanguage -> $actualSourceLanguage',
+            );
+          } catch (e) {
+            debugPrint('Language detection failed, using default: $e');
+            actualSourceLanguage = 'en'; // fallback to English
+          }
+        }
+
+        // Use GeminiService for translation
+        return await _geminiService.translateText(
+          text,
+          toLanguage,
+          sourceLanguage: actualSourceLanguage,
+        );
+      }
     } catch (e) {
       debugPrint('Translation error: $e');
       return 'Translation failed: $e';
@@ -415,6 +466,23 @@ class VoiceTranslationService extends ChangeNotifier {
   String convertLanguageCodeToName(String languageCode) {
     return supportedLanguages[languageCode] ?? languageCode;
   }
+
+  /// Check if offline translation models are downloaded for current language pair
+  Future<bool> areOfflineModelsReady() async {
+    final sourceReady = await _mlKitService.isModelDownloaded(_userALanguage);
+    final targetReady = await _mlKitService.isModelDownloaded(_userBLanguage);
+    return sourceReady && targetReady;
+  }
+
+  /// Manually check and update connectivity status
+  Future<void> checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    _isOfflineMode = connectivityResult.contains(ConnectivityResult.none);
+    notifyListeners();
+  }
+
+  /// Get the ML Kit service for model management
+  MlKitTranslationService get mlKitService => _mlKitService;
 
   // Dispose
   @override
