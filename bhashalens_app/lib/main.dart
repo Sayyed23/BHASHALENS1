@@ -13,6 +13,7 @@ import 'package:bhashalens_app/pages/camera_translate_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
 import 'package:bhashalens_app/pages/help_support_page.dart';
 import 'package:bhashalens_app/pages/emergency_page.dart';
+import 'package:bhashalens_app/pages/offline_models_page.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
@@ -130,6 +131,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/settings': (context) => const SettingsPage(),
         '/help_support': (context) => const HelpSupportPage(),
         '/emergency': (context) => const EmergencyPage(),
+        '/offline_models': (context) => const OfflineModelsPage(),
       },
     );
   }

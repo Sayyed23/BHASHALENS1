@@ -4,6 +4,8 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 // import 'package:bhashalens_app/pages/gemini_settings_page.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
@@ -35,7 +37,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         _hasCapturedImage = true;
       });
       // Process with Gemini service
-      await _processImageWithGemini(imageBytes); // Pass bytes to processing
+      await _processImage(imageBytes); // Pass bytes to processing
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -102,7 +104,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         _targetLanguage = selectedLanguage;
       });
       if (_hasCapturedImage && _capturedImageBytes != null) {
-        await _processImageWithGemini(
+        await _processImage(
           _capturedImageBytes!,
         ); // Re-translate with new language
       }
@@ -157,28 +159,62 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     }
 
     try {
-      final geminiService = Provider.of<GeminiService>(context, listen: false);
-
-      if (!geminiService.isInitialized) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please configure Gemini API key in settings first'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
       setState(() {
         _isProcessing = true;
       });
 
-      final detectedLanguage = await geminiService.detectLanguage(text);
-      final translatedText = await geminiService.translateText(
-        text,
-        _targetLanguage,
-        sourceLanguage: detectedLanguage,
-      );
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none);
+
+      String translatedText = '';
+      String detectedLanguage = 'Unknown';
+
+      if (isOffline) {
+        final mlKitService = MlKitTranslationService();
+        // Assuming source is English for offline demo or we need a selector.
+        // Since we don't have source selector in UI fully, defaults to 'en'.
+
+        final result = await mlKitService.translate(
+          text: text,
+          sourceLanguage: 'en', // Constraint for offline
+          targetLanguage: _targetLanguage == 'Hindi'
+              ? 'hi'
+              : _targetLanguage == 'Marathi'
+              ? 'mr'
+              : _targetLanguage == 'Spanish'
+              ? 'es'
+              : _targetLanguage == 'French'
+              ? 'fr'
+              : 'en',
+        );
+
+        translatedText = result ?? 'Translation failed or model not downloaded';
+        detectedLanguage = 'English (Offline/Assumed)';
+      } else {
+        final geminiService = Provider.of<GeminiService>(
+          context,
+          listen: false,
+        );
+
+        if (!geminiService.isInitialized) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Please configure Gemini API key in settings first',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        detectedLanguage = await geminiService.detectLanguage(text);
+        translatedText = await geminiService.translateText(
+          text,
+          _targetLanguage,
+          sourceLanguage: detectedLanguage,
+        );
+      }
 
       setState(() {
         _originalText = text;
@@ -307,50 +343,106 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     }
   }
 
-  Future<void> _processImageWithGemini(Uint8List imageBytes) async {
+  Future<void> _processImage(Uint8List imageBytes) async {
     try {
-      final geminiService = Provider.of<GeminiService>(context, listen: false);
-
-      if (!geminiService.isInitialized) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please configure Gemini API key in settings first'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
       setState(() {
         _isProcessing = true;
       });
 
-      // Detect language first, then translate
-      final extractedText = await geminiService.extractTextFromImage(
-        imageBytes,
-      );
+      // Check connectivity
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
-      if (extractedText.isEmpty || extractedText == 'No text detected') {
-        setState(() {
-          _originalText = extractedText;
-          _translatedText = 'No text to translate';
-        });
-        return;
+      String extractedText = '';
+      String translatedText = '';
+      String detectedLanguage = 'Unknown';
+
+      if (isOffline) {
+        // Offline processing
+        final mlKitService = MlKitTranslationService();
+
+        // Extract text using ML Kit (requires file)
+        if (_capturedImageFile != null) {
+          extractedText = await mlKitService.extractTextFromFile(
+            _capturedImageFile!,
+          );
+        } else {
+          // If we only have bytes (unlikely in current flow but safe to handle)
+          // We'd need to write to temp file or skip
+          extractedText = 'Offline OCR requires file based image capture.';
+        }
+
+        if (extractedText.isEmpty) {
+          extractedText = 'No text detected';
+        }
+
+        if (extractedText != 'No text detected') {
+          // Detect language (simple heuristic or use input)
+          // ML Kit doesn't detect language from text easily without another model.
+          // We'll assume source language if set, or just try to translate assuming it matches?
+          // For now, we might default to 'en' or skip detection and let user pick source.
+          // But `translate` needs source.
+          // Let's assume auto-detect isn't available offline unless we add language identification model.
+          // For now, default to 'English' or 'Hindi' if unknown, or ask user.
+          // BhashaLens usually translates TO specific target.
+          // Helper: If _sourceLanguage is 'Auto-detected', force a default or show error.
+
+          // Using 'en' as default source for offline if not set is risky.
+          // Ideally we used LanguageIdentificationClient but that's another dependency.
+          // For MVP offline, let's assume valid source or default to 'en'.
+          String sourceCode = 'en'; // Default
+
+          final result = await mlKitService.translate(
+            text: extractedText,
+            sourceLanguage: sourceCode,
+            targetLanguage: _targetLanguage == 'Hindi'
+                ? 'hi'
+                : _targetLanguage == 'Marathi'
+                ? 'mr'
+                : _targetLanguage == 'Spanish'
+                ? 'es'
+                : _targetLanguage == 'French'
+                ? 'fr'
+                : 'en',
+          );
+
+          translatedText =
+              result ?? 'Translation failed or model not downloaded';
+          detectedLanguage = 'English (Assumed/Offline)';
+        } else {
+          translatedText = 'No text to translate';
+        }
+      } else {
+        // Online processing (Gemini)
+        final geminiService = Provider.of<GeminiService>(
+          context,
+          listen: false,
+        );
+        if (!geminiService.isInitialized) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gemini API key missing')),
+          );
+          return;
+        }
+
+        extractedText = await geminiService.extractTextFromImage(imageBytes);
+
+        if (extractedText.isEmpty || extractedText == 'No text detected') {
+          translatedText = 'No text to translate';
+        } else {
+          detectedLanguage = await geminiService.detectLanguage(extractedText);
+          translatedText = await geminiService.translateText(
+            extractedText,
+            _targetLanguage,
+            sourceLanguage: detectedLanguage,
+          );
+        }
       }
-
-      final detectedLanguage = await geminiService.detectLanguage(
-        extractedText,
-      );
-      final translatedText = await geminiService.translateText(
-        extractedText,
-        _targetLanguage,
-        sourceLanguage: detectedLanguage,
-      );
 
       setState(() {
         _originalText = extractedText;
         _translatedText = translatedText;
-        _sourceLanguage = detectedLanguage; // Reintroduced
+        _sourceLanguage = detectedLanguage;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -397,7 +489,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         });
 
         // Process with Gemini service
-        await _processImageWithGemini(imageBytes); // Pass bytes to processing
+        await _processImage(imageBytes); // Pass bytes to processing
       }
     } catch (e) {
       ScaffoldMessenger.of(

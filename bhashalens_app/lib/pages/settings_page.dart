@@ -37,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
       'camera': '/camera_translate',
       'voice': '/voice_translate',
       'saved': '/saved_translations',
+      'offline_models': '/offline_models',
     };
     final namedRoute = routeMap[route];
     if (namedRoute != null) {
@@ -203,6 +204,12 @@ class _SettingsPageState extends State<SettingsPage> {
             title: 'Default Language',
             subtitle: 'English (US)',
             route: 'default_language',
+          ),
+          Divider(color: dividerColor, height: 1),
+          navRow(
+            title: 'Offline Translation Models',
+            subtitle: 'Download models for offline use',
+            route: 'offline_models',
           ),
           Divider(color: dividerColor, height: 1),
 
