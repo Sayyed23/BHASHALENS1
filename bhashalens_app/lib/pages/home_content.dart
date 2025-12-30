@@ -164,7 +164,7 @@ class HomeContent extends StatelessWidget {
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   // TODO: Implement navigation to re-open translation
-                  print('Re-open translation: ${translation['original']}');
+                  debugPrint('Re-open translation: ${translation['original']}');
                 },
               ),
             );

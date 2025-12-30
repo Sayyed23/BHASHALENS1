@@ -18,6 +18,7 @@ import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/supabase_auth_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/openrouter_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,6 +28,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   debugPrint('Loaded GEMINI_API_KEY: \\${dotenv.env['GEMINI_API_KEY']}');
+  debugPrint('Loaded OPENROUTER_API_KEY: \\${dotenv.env['OPENROUTER_API_KEY']}');
 
   // TODO: Replace with your actual Supabase URL and anon key
   await Supabase.initialize(
@@ -47,6 +49,9 @@ void main() async {
         Provider<LocalStorageService>.value(value: localStorageService),
         Provider<GeminiService>(
           create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
+        ),
+        Provider<OpenRouterService>(
+          create: (_) => OpenRouterService(apiKey: dotenv.env['OPENROUTER_API_KEY']),
         ),
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(),

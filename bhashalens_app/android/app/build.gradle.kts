@@ -31,14 +31,7 @@ android {
     }
 
     // Generate separate APKs for each ABI to reduce download size
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false  // Set to true if you also want a universal APK
-        }
-    }
+
 
     buildTypes {
         release {

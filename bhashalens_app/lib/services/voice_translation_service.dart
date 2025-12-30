@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/openrouter_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
@@ -13,10 +13,10 @@ class VoiceTranslationService extends ChangeNotifier {
   final FlutterTts _flutterTts = FlutterTts();
 
   // API configuration
-  String? _geminiApiKey;
+  String? _openRouterApiKey;
   final bool _useOpenAI = false; // This will now control online/offline
 
-  late GeminiService _geminiService;
+  late OpenRouterService _openRouterService;
 
   // ML Kit for offline translation
   final MlKitTranslationService _mlKitService = MlKitTranslationService();
@@ -82,16 +82,16 @@ class VoiceTranslationService extends ChangeNotifier {
 
   Future<void> _initializeServices() async {
     // Load API keys
-    _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+    _openRouterApiKey = dotenv.env['OPENROUTER_API_KEY'];
     debugPrint(
-      'VoiceTranslationService: Loaded GEMINI_API_KEY: \\$_geminiApiKey',
+      'VoiceTranslationService: Loaded OPENROUTER_API_KEY: \\$_openRouterApiKey',
     );
 
-    if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
-      debugPrint('GEMINI_API_KEY not found in .env');
+    if (_openRouterApiKey == null || _openRouterApiKey!.isEmpty) {
+      debugPrint('OPENROUTER_API_KEY not found in .env');
     } else {
-      _geminiService = GeminiService(apiKey: _geminiApiKey);
-      await _geminiService.initialize();
+      _openRouterService = OpenRouterService(apiKey: _openRouterApiKey);
+      await _openRouterService.initialize();
     }
 
     // Initialize speech recognition
@@ -232,12 +232,12 @@ class VoiceTranslationService extends ChangeNotifier {
           return 'Translation failed. Please try again.';
         }
       } else {
-        // Use Gemini for online translation (better quality)
-        if (_geminiApiKey == null ||
-            _geminiApiKey!.isEmpty ||
-            !_geminiService.isInitialized) {
-          // Fall back to ML Kit if Gemini is not available
-          debugPrint('Gemini not available, falling back to ML Kit');
+        // Use OpenRouter for online translation (better quality)
+        if (_openRouterApiKey == null ||
+            _openRouterApiKey!.isEmpty ||
+            !_openRouterService.isInitialized) {
+          // Fall back to ML Kit if OpenRouter is not available
+          debugPrint('OpenRouter not available, falling back to ML Kit');
           final mlKitResult = await _mlKitService.translate(
             text: text,
             sourceLanguage: actualSourceLanguage,
@@ -248,7 +248,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
         if (fromLanguage == 'auto') {
           try {
-            final detectedLanguage = await _geminiService.detectLanguage(text);
+            final detectedLanguage = await _openRouterService.detectLanguage(text);
             // Convert detected language name to language code
             actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
             debugPrint(
@@ -260,8 +260,8 @@ class VoiceTranslationService extends ChangeNotifier {
           }
         }
 
-        // Use GeminiService for translation
-        return await _geminiService.translateText(
+        // Use OpenRouterService for translation
+        return await _openRouterService.translateText(
           text,
           toLanguage,
           sourceLanguage: actualSourceLanguage,
@@ -298,15 +298,15 @@ class VoiceTranslationService extends ChangeNotifier {
     try {
       String actualSourceLanguage = speakerLanguage;
 
-      // If source language is 'auto', detect it first (only with Gemini)
+      // If source language is 'auto', detect it first (only with OpenRouter)
       if (speakerLanguage == 'auto') {
-        if (!_geminiService.isInitialized) {
+        if (!_openRouterService.isInitialized) {
           throw Exception(
-            'Gemini service not initialized for language detection',
+            'OpenRouter service not initialized for language detection',
           );
         }
         try {
-          final detectedLanguage = await _geminiService.detectLanguage(
+          final detectedLanguage = await _openRouterService.detectLanguage(
             originalText,
           );
           actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);

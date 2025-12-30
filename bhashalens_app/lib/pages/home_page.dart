@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.notifications_none),
             onPressed: () {
               // TODO: Navigate to Notification Page
-              print('Navigate to Notification Page');
+              debugPrint('Navigate to Notification Page');
             },
           ),
           IconButton(
@@ -141,7 +141,7 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.notifications_none),
             onPressed: () {
               // TODO: Navigate to Notification Page
-              print('Navigate to Notification Page');
+              debugPrint('Navigate to Notification Page');
             },
           ),
           IconButton(
@@ -245,7 +245,7 @@ class _HomePageState extends State<HomePage> {
             title: const Text('Logout'),
             onTap: () async {
               await SupabaseAuthService().signOut();
-              if (mounted) {
+              if (context.mounted) {
                 Navigator.of(context).pushNamedAndRemoveUntil(
                   '/login',
                   (Route<dynamic> route) => false,

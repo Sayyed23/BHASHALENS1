@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/openrouter_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 // import 'package:bhashalens_app/pages/gemini_settings_page.dart';
@@ -39,6 +39,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       // Process with Gemini service
       await _processImage(imageBytes); // Pass bytes to processing
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
@@ -51,8 +52,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   // Helper method for selecting target language (placeholder for future implementation)
   void _selectTargetLanguage() async {
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
-    final languages = geminiService.getSupportedLanguages();
+    final openRouterService = Provider.of<OpenRouterService>(context, listen: false);
+    final languages = openRouterService.getSupportedLanguages();
 
     final String? selectedLanguage = await showModalBottomSheet<String>(
       context: context,
@@ -98,6 +99,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         );
       },
     );
+
+    if (!mounted) return;
 
     if (selectedLanguage != null && selectedLanguage != _targetLanguage) {
       setState(() {
@@ -164,6 +167,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       });
 
       final connectivityResult = await Connectivity().checkConnectivity();
+      if (!mounted) return;
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       String translatedText = '';
@@ -191,16 +195,16 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         translatedText = result ?? 'Translation failed or model not downloaded';
         detectedLanguage = 'English (Offline/Assumed)';
       } else {
-        final geminiService = Provider.of<GeminiService>(
+        final openRouterService = Provider.of<OpenRouterService>(
           context,
           listen: false,
         );
 
-        if (!geminiService.isInitialized) {
+        if (!openRouterService.isInitialized) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Please configure Gemini API key in settings first',
+                'Please configure OpenRouter API key in settings first',
               ),
               backgroundColor: Colors.orange,
             ),
@@ -208,8 +212,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           return;
         }
 
-        detectedLanguage = await geminiService.detectLanguage(text);
-        translatedText = await geminiService.translateText(
+        detectedLanguage = await openRouterService.detectLanguage(text);
+        translatedText = await openRouterService.translateText(
           text,
           _targetLanguage,
           sourceLanguage: detectedLanguage,
@@ -225,6 +229,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         _capturedImageBytes = null;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error translating text: $e'),
@@ -351,6 +356,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
       // Check connectivity
       final connectivityResult = await Connectivity().checkConnectivity();
+      if (!mounted) return;
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       String extractedText = '';
@@ -413,25 +419,25 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           translatedText = 'No text to translate';
         }
       } else {
-        // Online processing (Gemini)
-        final geminiService = Provider.of<GeminiService>(
+        // Online processing (OpenRouter)
+        final openRouterService = Provider.of<OpenRouterService>(
           context,
           listen: false,
         );
-        if (!geminiService.isInitialized) {
+        if (!openRouterService.isInitialized) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gemini API key missing')),
+            const SnackBar(content: Text('OpenRouter API key missing')),
           );
           return;
         }
 
-        extractedText = await geminiService.extractTextFromImage(imageBytes);
+        extractedText = await openRouterService.extractTextFromImage(imageBytes);
 
         if (extractedText.isEmpty || extractedText == 'No text detected') {
           translatedText = 'No text to translate';
         } else {
-          detectedLanguage = await geminiService.detectLanguage(extractedText);
-          translatedText = await geminiService.translateText(
+          detectedLanguage = await openRouterService.detectLanguage(extractedText);
+          translatedText = await openRouterService.translateText(
             extractedText,
             _targetLanguage,
             sourceLanguage: detectedLanguage,
@@ -445,6 +451,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         _sourceLanguage = detectedLanguage;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error processing image: $e'),
@@ -492,6 +499,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         await _processImage(imageBytes); // Pass bytes to processing
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error importing image: $e')));
@@ -524,7 +532,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               height: 120,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.8),
+                color: theme.colorScheme.surface.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Center(
@@ -547,7 +555,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               height: 120,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.8),
+                color: theme.colorScheme.surface.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -556,7 +564,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   size: 40,
                   color: isDarkMode
                       ? Colors.white54
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             );
@@ -567,7 +575,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           height: 120,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(0.8),
+            color: theme.colorScheme.surface.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -576,7 +584,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               size: 40,
               color: isDarkMode
                   ? Colors.white54
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
         );
@@ -587,7 +595,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         height: 120,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withOpacity(0.8),
+          color: theme.colorScheme.surface.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
@@ -596,7 +604,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             size: 40,
             color: isDarkMode
                 ? Colors.white54
-                : theme.colorScheme.onSurface.withOpacity(0.7),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       );
@@ -642,7 +650,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -706,7 +714,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             Icons.camera_alt,
                             color: !_isTextMode
                                 ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurface.withOpacity(0.6),
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -715,8 +723,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: !_isTextMode
                                   ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurface.withOpacity(
-                                      0.6,
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.6,
                                     ),
                               fontWeight: !_isTextMode
                                   ? FontWeight.bold
@@ -746,7 +754,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             Icons.text_fields,
                             color: _isTextMode
                                 ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurface.withOpacity(0.6),
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -755,8 +763,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: _isTextMode
                                   ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurface.withOpacity(
-                                      0.6,
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.6,
                                     ),
                               fontWeight: _isTextMode
                                   ? FontWeight.bold
@@ -799,7 +807,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         if (_isProcessing) // Add this conditional loading overlay
           Positioned.fill(
             child: Container(
-              color: theme.colorScheme.surface.withOpacity(0.7),
+              color: theme.colorScheme.surface.withValues(alpha: 0.7),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -850,7 +858,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               Text(
                 'Camera functionality is available on mobile devices',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.surface.withOpacity(0.7),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
@@ -859,7 +867,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               Text(
                 'Tap the capture button to simulate photo capture',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.surface.withOpacity(0.6),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -915,7 +923,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -924,7 +932,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 // Language selector bar
                 _buildLanguageSelectionBar(theme, isDarkMode),
                 Divider(
-                  color: theme.colorScheme.onSurface.withOpacity(0.1),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                   height: 1,
                 ),
                 // Text input field
@@ -941,7 +949,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     decoration: InputDecoration(
                       hintText: 'Enter text to translate...',
                       hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.3),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       border: InputBorder.none,
                     ),
@@ -1031,12 +1039,12 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       onPressed: _resetCamera,
                       icon: Icon(
                         Icons.refresh,
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       label: Text(
                         'Take Another Photo',
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                       style: TextButton.styleFrom(
@@ -1063,7 +1071,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.secondary.withOpacity(0.3),
+          color: theme.colorScheme.secondary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1094,12 +1102,12 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             Text(
               _originalText,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontSize: 15,
               ),
             ),
             Divider(
-              color: theme.colorScheme.onSurface.withOpacity(0.1),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
               height: 24,
             ),
           ],
@@ -1136,7 +1144,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       Text(
                         'Generating translation...',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -1152,7 +1160,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                         ? FontWeight.normal
                         : FontWeight.w600,
                     color: _translatedText.isEmpty
-                        ? theme.colorScheme.onSurface.withOpacity(0.3)
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
                         : theme.colorScheme.onSurface,
                   ),
                 ),
@@ -1199,9 +1207,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1220,10 +1228,10 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Column(
         children: [
-          // Gemini Status Indicator
-          Consumer<GeminiService>(
-            builder: (context, geminiService, child) {
-              if (!geminiService.isInitialized) {
+          // OpenRouter Status Indicator
+          Consumer<OpenRouterService>(
+            builder: (context, openRouterService, child) {
+              if (!openRouterService.isInitialized) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(
@@ -1231,7 +1239,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.error.withOpacity(0.9),
+                    color: theme.colorScheme.error.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1244,7 +1252,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Configure Gemini API Key',
+                        'Configure OpenRouter API Key',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onError,
                           fontSize: 12,
@@ -1266,7 +1274,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       //       vertical: 4,
                       //     ),
                       //     decoration: BoxDecoration(
-                      //       color: theme.colorScheme.onError.withOpacity(0.2),
+                      //       color: theme.colorScheme.onError.withValues(alpha: 0.2),
                       //       borderRadius: BorderRadius.circular(12),
                       //     ),
                       //     child: Text(
@@ -1297,7 +1305,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withOpacity(0.5),
+                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: _isProcessing
@@ -1335,7 +1343,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     color: Colors.transparent,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         spreadRadius: 4,
                         blurRadius: 8,
                       ),
@@ -1365,7 +1373,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withOpacity(0.5),
+                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Icon(
@@ -1396,7 +1404,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             child: TextButton(
               onPressed: () {},
               style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface.withOpacity(0.5),
+                foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -1414,8 +1422,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           Container(
             height: 24,
             width: 1,
-            color: theme.colorScheme.onSurface.withOpacity(
-              0.1,
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: 0.1,
             ), // Divider color
           ),
           Expanded(
@@ -1460,7 +1468,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   Widget _buildFooterNavigationBlock(ThemeData theme, bool isDarkMode) {
     return Container(
-      color: theme.colorScheme.surface.withOpacity(0.9),
+      color: theme.colorScheme.surface.withValues(alpha: 0.9),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).padding.bottom + 8,
         top: 8,
@@ -1539,7 +1547,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               icon,
               color: isSelected
                   ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ), // Text muted color
             const SizedBox(height: 4),
             Text(
@@ -1548,7 +1556,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 fontSize: 12,
                 color: isSelected
                     ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
