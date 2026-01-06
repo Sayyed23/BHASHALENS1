@@ -21,14 +21,19 @@ import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:bhashalens_app/pages/voice_translate_page.dart';
+import 'package:bhashalens_app/pages/text_translate_page.dart';
+import 'package:bhashalens_app/pages/translation_mode_page.dart';
+import 'package:bhashalens_app/pages/explain_mode_page.dart';
+import 'package:bhashalens_app/pages/assistant_mode_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   debugPrint('Loaded GEMINI_API_KEY: \\${dotenv.env['GEMINI_API_KEY']}');
 
-  // TODO: Replace with your actual Supabase URL and anon key
+  // Supabase initialization
   await Supabase.initialize(
     url: 'https://fpxczbnluwmxsdpkyddl.supabase.co',
     anonKey:
@@ -132,6 +137,10 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/help_support': (context) => const HelpSupportPage(),
         '/emergency': (context) => const EmergencyPage(),
         '/offline_models': (context) => const OfflineModelsPage(),
+        '/translation_mode': (context) => const TranslationModePage(),
+        '/explain_mode': (context) => const ExplainModePage(),
+        '/assistant_mode': (context) => const AssistantModePage(),
+        '/text_translate': (context) => const TextTranslatePage(),
       },
     );
   }

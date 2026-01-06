@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
@@ -83,7 +85,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.8),
+        color: theme.colorScheme.surface.withValues(alpha: 0.8),
         border: Border(
           bottom: BorderSide(color: theme.colorScheme.surface, width: 1),
         ),
@@ -167,7 +169,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: Colors.orange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.orange, width: 1),
                     ),
@@ -213,8 +215,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withOpacity(
-                    0.7,
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.7,
                   ), // slate-400 equivalent
                 ),
               ),
@@ -291,8 +293,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withOpacity(
-                    0.7,
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.7,
                   ), // slate-400 equivalent
                 ),
               ),
@@ -408,8 +410,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       languageName,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(
-                          0.7,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
                         ), // slate-400
                       ),
                     ),
@@ -421,7 +423,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.2),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: theme.colorScheme.primary,
@@ -445,7 +449,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.2),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: theme.colorScheme.primary,
@@ -490,7 +496,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                                       : (user == 'A'
                                             ? theme.colorScheme.primary
                                             : theme.colorScheme.surface))
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -517,7 +523,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withOpacity(0.3),
+                      color: theme.colorScheme.surface.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: theme.colorScheme.surface,
@@ -542,7 +548,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: theme.colorScheme.primary,
@@ -597,13 +603,17 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                       Icon(
                         Icons.chat_bubble_outline,
                         size: 48,
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Start a conversation to see the history',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                           fontSize: 14,
                         ),
                       ),
@@ -702,9 +712,11 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 14,
                           color: isUserA
-                              ? theme.colorScheme.onSurface.withOpacity(0.7)
-                              : theme.colorScheme.onPrimary.withOpacity(
-                                  0.7,
+                              ? theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                )
+                              : theme.colorScheme.onPrimary.withValues(
+                                  alpha: 0.7,
                                 ), // slate-400
                           fontStyle: FontStyle.italic,
                         ),
@@ -719,8 +731,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   _formatTimestamp(message.timestamp),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(
-                      0.7,
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: 0.7,
                     ), // slate-400
                   ),
                 ),
@@ -855,8 +867,8 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(
-                  0.8,
+                color: theme.colorScheme.surface.withValues(
+                  alpha: 0.8,
                 ), // accent color
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -950,7 +962,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withOpacity(0.2)
+              ? theme.colorScheme.primary.withValues(alpha: 0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -961,7 +973,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               icon,
               color: isSelected
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -971,7 +983,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                 fontSize: 12,
                 color: isSelected
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -1138,34 +1150,39 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
   void _copyTranscript() {
     final transcript = _voiceService.getConversationTranscript();
-    // TODO: Implement copy to clipboard using transcript
-    debugPrint('Transcript to copy: $transcript');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Transcript copied to clipboard!',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+    if (transcript.isNotEmpty) {
+      Clipboard.setData(ClipboardData(text: transcript));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Transcript copied to clipboard!',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
+          backgroundColor: CustomColors.of(context).info,
         ),
-        backgroundColor: CustomColors.of(context).info,
-      ),
-    );
+      );
+    }
   }
 
   void _shareConversation() {
-    // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Share functionality coming soon!',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+    final transcript = _voiceService.getConversationTranscript();
+    if (transcript.isNotEmpty) {
+      Share.share(transcript, subject: 'Conversation Transcript - BhashaLens');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Share functionality coming soon!',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
+          backgroundColor: CustomColors.of(context).warning,
         ),
-        backgroundColor: CustomColors.of(context).warning,
-      ),
-    );
+      );
+    }
   }
 
   void _clearConversation() {
