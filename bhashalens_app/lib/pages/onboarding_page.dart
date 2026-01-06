@@ -263,7 +263,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   width: MediaQuery.of(context).size.width,
                   margin: const EdgeInsets.symmetric(horizontal: 5.0),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -311,8 +311,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       (Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
                               : Colors.blueAccent)
-                          .withOpacity(
-                            _currentTutorialIndex == entry.key ? 0.9 : 0.4,
+                          .withValues(
+                            alpha: _currentTutorialIndex == entry.key
+                                ? 0.9
+                                : 0.4,
                           ),
                 ),
               ),
@@ -373,7 +375,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         TextButton(
           onPressed: () {
             // TODO: Navigate to Terms of Service
-            print('Navigate to Terms of Service');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Coming soon: Terms of Service')),
+            );
           },
           child: Text(
             'Terms of Service',
@@ -384,7 +388,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         TextButton(
           onPressed: () {
             // TODO: Navigate to Privacy Policy
-            print('Navigate to Privacy Policy');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Coming soon: Privacy Policy')),
+            );
           },
           child: Text(
             'Privacy Policy',

@@ -4,7 +4,7 @@ class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -129,7 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 18,
-                  color: textColor.withOpacity(0.5),
+                  color: textColor.withValues(alpha: 0.5),
                 ),
             ],
           ),
@@ -163,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: bgColor.withOpacity(0.8),
+        backgroundColor: bgColor.withValues(alpha: 0.8),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -329,7 +329,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: sectionColor.withOpacity(0.9),
+        backgroundColor: sectionColor.withValues(alpha: 0.9),
         selectedItemColor: primaryColor,
         unselectedItemColor: subTextColor,
         currentIndex: _selectedIndex,

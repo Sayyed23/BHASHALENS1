@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/models/saved_translation.dart';
@@ -239,13 +241,19 @@ class _SavedTranslationsPageState extends State<SavedTranslationsPage> {
                 IconButton(
                   icon: const Icon(Icons.content_copy, color: Colors.grey),
                   onPressed: () {
-                    // TODO: Copy translation
+                    Clipboard.setData(ClipboardData(text: t.translatedText));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Translation copied!')),
+                    );
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.share, color: Colors.grey),
                   onPressed: () {
-                    // TODO: Share translation
+                    Share.share(
+                      '${t.originalText} -> ${t.translatedText}',
+                      subject: 'Translation from BhashaLens',
+                    );
                   },
                 ),
                 IconButton(
