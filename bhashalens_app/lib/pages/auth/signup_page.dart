@@ -1,6 +1,6 @@
+import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/supabase_auth_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -38,21 +38,21 @@ class _SignupPageState extends State<SignupPage> {
       return;
     }
 
-    final authService = Provider.of<SupabaseAuthService>(
+    final authService = Provider.of<FirebaseAuthService>(
       context,
       listen: false,
     );
-    final String? error = await authService.signUp(
+    final user = await authService.signUpWithEmailAndPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (mounted) {
-      if (error == null) {
+      if (user != null) {
         // Handle successful signup (e.g., show verification message or navigate to home)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please check your email to verify your account.'),
+            content: Text('Sign up successful! Please log in.'),
           ),
         );
         Navigator.of(
@@ -60,7 +60,33 @@ class _SignupPageState extends State<SignupPage> {
         ).pushReplacementNamed('/login'); // Navigate to login after signup
       } else {
         setState(() {
-          _errorMessage = error;
+          _errorMessage = 'Failed to sign up. Please try again.';
+        });
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final authService = Provider.of<FirebaseAuthService>(
+      context,
+      listen: false,
+    );
+    final user = await authService.signInWithGoogle();
+
+    if (mounted) {
+      if (user != null) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to sign in with Google.';
         });
       }
       setState(() {
@@ -84,15 +110,6 @@ class _SignupPageState extends State<SignupPage> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const TextField(
-                // Phone number is optional and not handled by Supabase default email/password signup
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone Number (Optional)',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -128,6 +145,20 @@ class _SignupPageState extends State<SignupPage> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Sign Up'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                icon: Image.asset('assets/google_logo.png', height: 24),
+                label: const Text('Sign up with Google'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: () {
