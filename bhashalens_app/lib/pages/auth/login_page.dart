@@ -1,6 +1,6 @@
+import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/supabase_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,21 +28,47 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
-    final authService = Provider.of<SupabaseAuthService>(
+    final authService = Provider.of<FirebaseAuthService>(
       context,
       listen: false,
     );
-    final String? error = await authService.signIn(
+    final user = await authService.signInWithEmailAndPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (mounted) {
-      if (error == null) {
+      if (user != null) {
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
         setState(() {
-          _errorMessage = error;
+          _errorMessage = 'Failed to sign in. Please check your credentials.';
+        });
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final authService = Provider.of<FirebaseAuthService>(
+      context,
+      listen: false,
+    );
+    final user = await authService.signInWithGoogle();
+
+    if (mounted) {
+      if (user != null) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to sign in with Google.';
         });
       }
       setState(() {
@@ -97,6 +123,20 @@ class _LoginPageState extends State<LoginPage> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Login'),
               ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                icon: Image.asset('assets/google_logo.png', height: 24),
+                label: const Text('Sign in with Google'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pushNamed('/forgot_password');
@@ -107,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: () {
                   Navigator.of(context).pushNamed('/signup');
                 },
-                child: const Text('Don\'t have an account? Sign Up'),
+                child: const Text("Don't have an account? Sign Up"),
               ),
               TextButton(
                 onPressed: _signInAsGuest,

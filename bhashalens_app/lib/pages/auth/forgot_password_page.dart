@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/supabase_auth_service.dart';
+import 'package:bhashalens_app/services/firebase_auth_service.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -28,7 +28,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _successMessage = null;
     });
 
-    final authService = Provider.of<SupabaseAuthService>(
+    final authService = Provider.of<FirebaseAuthService>(
       context,
       listen: false,
     );
@@ -42,17 +42,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           _successMessage =
               'Password reset email sent! Check your inbox and click the link to reset your password.';
         });
-
-        // Show additional information about deep linking
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'If you have the app installed, clicking the link will open BhashaLens directly!',
-            ),
-            duration: Duration(seconds: 4),
-            backgroundColor: Colors.blue,
-          ),
-        );
       } else {
         setState(() {
           _errorMessage = error;
