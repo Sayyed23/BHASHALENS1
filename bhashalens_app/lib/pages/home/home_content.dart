@@ -37,11 +37,19 @@ class HomeContent extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     final firebaseAuthService = Provider.of<FirebaseAuthService>(context);
     // Extract first name for a more personal greeting
-    String userName = 'Rahul'; // Default per mock
-    final email = firebaseAuthService.currentUser?.email;
-    if (email != null && email.isNotEmpty) {
-      userName = email.split('@')[0];
-      // Capitalize first letter
+    String userName = 'User';
+    final user = firebaseAuthService.currentUser;
+
+    if (user != null) {
+      if (user.displayName != null && user.displayName!.isNotEmpty) {
+        // Use first name from display name
+        userName = user.displayName!.split(' ')[0];
+      } else if (user.email != null && user.email!.isNotEmpty) {
+        // Fallback to email username
+        userName = user.email!.split('@')[0];
+      }
+
+      // Capitalize first letter for typical names or email handles
       if (userName.isNotEmpty) {
         userName =
             userName[0].toUpperCase() + userName.substring(1).toLowerCase();
