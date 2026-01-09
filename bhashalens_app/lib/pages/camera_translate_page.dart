@@ -6,11 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-// import 'package:bhashalens_app/pages/gemini_settings_page.dart';
-import 'package:share_plus/share_plus.dart';
 import 'dart:io';
-// import 'package:bhashalens_app/theme/app_theme.dart'; // Import AppTheme
-// Added for Uint8List
+import 'package:share_plus/share_plus.dart';
 
 class CameraTranslatePage extends StatefulWidget {
   const CameraTranslatePage({super.key});
@@ -20,212 +17,62 @@ class CameraTranslatePage extends StatefulWidget {
 }
 
 class _CameraTranslatePageState extends State<CameraTranslatePage>
-    with SingleTickerProviderStateMixin {
-  Future<void> _captureImage() async {
-    if (!_isCameraInitialized) return;
-    try {
-      setState(() {
-        _isProcessing = true;
-      });
-      final XFile image = await _cameraController!.takePicture();
-      // final imageFile = File(image.path); // Commented out
-      final Uint8List imageBytes = await image
-          .readAsBytes(); // Read image as bytes
-      setState(() {
-        _capturedImageFile = File(image.path); // Keep for _buildImagePreview
-        _capturedImageBytes = imageBytes; // Store bytes
-        _hasCapturedImage = true;
-      });
-      // Process with Gemini service
-      await _processImage(imageBytes); // Pass bytes to processing
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
-      }
-    } finally {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
-  }
-
-  // Helper method for selecting target language (placeholder for future implementation)
-  void _selectTargetLanguage() async {
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
-    final languages = geminiService.getSupportedLanguages();
-
-    final String? selectedLanguage = await showModalBottomSheet<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          color: const Color(0xFF111C22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Select Target Language',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: languages.length,
-                  itemBuilder: (context, index) {
-                    final lang = languages[index];
-                    return ListTile(
-                      title: Text(
-                        lang['name']!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context, lang['name']);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (!mounted) return;
-    if (selectedLanguage != null && selectedLanguage != _targetLanguage) {
-      setState(() {
-        _targetLanguage = selectedLanguage;
-      });
-      if (_hasCapturedImage && _capturedImageBytes != null) {
-        await _processImage(
-          _capturedImageBytes!,
-        ); // Re-translate with new language
-      }
-    }
-  }
-
-  void _shareText() {
-    if (_translatedText.isNotEmpty) {
-      final shareText =
-          'Original: $_originalText\n\nTranslation: $_translatedText';
-      Share.share(shareText, subject: 'Translation from BhashaLens');
-    }
-  }
-
-  void _saveTranslation() {
-    if (_originalText.isNotEmpty && _translatedText.isNotEmpty) {
-      // For now, we'll show a success message
-      // In a real implementation, you'd save to a database or local storage
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Translation saved successfully'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
-  void _resetCamera() {
-    setState(() {
-      _capturedImageFile = null;
-      _capturedImageBytes = null; // Reset image bytes
-      _hasCapturedImage = false;
-      _originalText = '';
-      _translatedText = '';
-      _sourceLanguage = 'Auto-detected';
-    });
-  }
-
-  // Widget _buildImagePreview(File file) {
-  //   try {
-  //     if (file.existsSync()) {
-  //       return ClipRRect(
-  //         borderRadius: BorderRadius.circular(12),
-  //         child: Image.file(
-  //           file,
-  //           height: 120,
-  //           width: double.infinity,
-  //           fit: BoxFit.cover,
-  //         ),
-  //       );
-  //     } else {
-  //       return Container(
-  //         height: 120,
-  //         width: double.infinity,
-  //         decoration: BoxDecoration(
-  //           color: Colors.grey[200],
-  //           borderRadius: BorderRadius.circular(12),
-  //         ),
-  //         child: const Center(
-  //           child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
-  //         ),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     return Container(
-  //       height: 120,
-  //       width: double.infinity,
-  //       decoration: BoxDecoration(
-  //         color: Colors.grey[200],
-  //         borderRadius: BorderRadius.circular(12),
-  //       ),
-  //       child: const Center(
-  //         child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
-  //       ),
-  //     );
-  //   }
-  // }
-
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
-  bool _hasCapturedImage = false;
-  String _originalText = '';
-  String _translatedText = '';
-  String _sourceLanguage = 'Auto-detected'; // Reintroduced
-  String _targetLanguage = 'English'; // Removed final
   bool _isProcessing = false;
-  File? _capturedImageFile; // Reintroduced
-  Uint8List? _capturedImageBytes; // New: Stores image as bytes
-  final ImagePicker _imagePicker = ImagePicker();
 
-  // New state variables for enhanced features
-  final ScrollController _scrollController = ScrollController();
-  // late AnimationController _animationController;
-  // late Animation<double> _fadeAnimation;
+  // Translation State
+  XFile? _capturedImage;
+  Uint8List? _capturedImageBytes;
+  String _extractedText = '';
+  String _translatedText = '';
+  String _sourceLanguageCode = 'auto'; // 'auto' means detect
+  String _targetLanguageCode = 'en'; // Default target
+
+  // Mapping for display (Simplified for now, can be expanded)
+  final Map<String, String> _displayLanguages = {
+    'auto': 'Detect Language',
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'hi': 'Hindi',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'mr': 'Marathi', // Added based on context
+  };
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
-    // _animationController = AnimationController(
-    //   duration: const Duration(milliseconds: 300),
-    //   vsync: this,
-    // );
-    // _fadeAnimation = CurvedAnimation(
-    //   parent: _animationController,
-    //   curve: Curves.easeInOut,
-    // );
-    // _animationController.forward();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
-    _scrollController.dispose();
-    // _animationController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-initialize camera on resume if needed
+    final CameraController? cameraController = _cameraController;
+
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initializeCamera();
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -236,1043 +83,630 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           cameras[0],
           ResolutionPreset.high,
           enableAudio: false,
+          imageFormatGroup: Platform.isAndroid
+              ? ImageFormatGroup.jpeg
+              : ImageFormatGroup.bgra8888,
         );
+
         await _cameraController!.initialize();
-        setState(() {
-          _isCameraInitialized = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isCameraInitialized = true;
+          });
+        }
       }
     } catch (e) {
-      debugPrint('Camera not available on this platform: $e');
-      setState(() {
-        _isCameraInitialized = false;
-      });
+      debugPrint('Error initializing camera: $e');
     }
   }
 
-  Future<void> _processImage(Uint8List imageBytes) async {
+  Future<void> _takePicture() async {
+    if (!_isCameraInitialized || _isProcessing) return;
+
     try {
       setState(() {
         _isProcessing = true;
       });
 
-      // Check connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (!mounted) return;
-      final isOffline = connectivityResult.contains(ConnectivityResult.none);
-
-      String extractedText = '';
-      String translatedText = '';
-      String detectedLanguage = 'Unknown';
-
-      if (isOffline) {
-        // Offline processing
-        final mlKitService = MlKitTranslationService();
-
-        // Extract text using ML Kit (requires file)
-        if (_capturedImageFile != null) {
-          extractedText = await mlKitService.extractTextFromFile(
-            _capturedImageFile!,
-          );
-        } else {
-          // If we only have bytes (unlikely in current flow but safe to handle)
-          // We'd need to write to temp file or skip
-          extractedText = 'Offline OCR requires file based image capture.';
-        }
-
-        if (extractedText.isEmpty) {
-          extractedText = 'No text detected';
-        }
-
-        if (extractedText != 'No text detected') {
-          // Detect language (simple heuristic or use input)
-          // ML Kit doesn't detect language from text easily without another model.
-          // We'll assume source language if set, or just try to translate assuming it matches?
-          // For now, we might default to 'en' or skip detection and let user pick source.
-          // But `translate` needs source.
-          // Let's assume auto-detect isn't available offline unless we add language identification model.
-          // For now, default to 'English' or 'Hindi' if unknown, or ask user.
-          // BhashaLens usually translates TO specific target.
-          // Helper: If _sourceLanguage is 'Auto-detected', force a default or show error.
-
-          // Using 'en' as default source for offline if not set is risky.
-          // Ideally we used LanguageIdentificationClient but that's another dependency.
-          // For MVP offline, let's assume valid source or default to 'en'.
-          String sourceCode = 'en'; // Default
-
-          final result = await mlKitService.translate(
-            text: extractedText,
-            sourceLanguage: sourceCode,
-            targetLanguage: _targetLanguage == 'Hindi'
-                ? 'hi'
-                : _targetLanguage == 'Marathi'
-                ? 'mr'
-                : _targetLanguage == 'Spanish'
-                ? 'es'
-                : _targetLanguage == 'French'
-                ? 'fr'
-                : 'en',
-          );
-
-          translatedText =
-              result ?? 'Translation failed or model not downloaded';
-          detectedLanguage = 'English (Assumed/Offline)';
-        } else {
-          translatedText = 'No text to translate';
-        }
-      } else {
-        // Online processing (Gemini)
-        final geminiService = Provider.of<GeminiService>(
-          context,
-          listen: false,
-        );
-        if (!geminiService.isInitialized) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gemini API key missing')),
-          );
-          return;
-        }
-
-        extractedText = await geminiService.extractTextFromImage(imageBytes);
-
-        if (extractedText.isEmpty || extractedText == 'No text detected') {
-          translatedText = 'No text to translate';
-        } else {
-          detectedLanguage = await geminiService.detectLanguage(extractedText);
-          translatedText = await geminiService.translateText(
-            extractedText,
-            _targetLanguage,
-            sourceLanguage: detectedLanguage,
-          );
-        }
-      }
+      final XFile image = await _cameraController!.takePicture();
+      final Uint8List bytes = await image.readAsBytes();
 
       setState(() {
-        _originalText = extractedText;
-        _translatedText = translatedText;
-        _sourceLanguage = detectedLanguage;
+        _capturedImage = image;
+        _capturedImageBytes = bytes;
       });
+
+      await _processImage(bytes);
     } catch (e) {
+      debugPrint('Error capturing image: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error processing image: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
       }
-    } finally {
       setState(() {
         _isProcessing = false;
       });
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        setState(() {
+          _isProcessing = true;
+        });
+
+        final Uint8List bytes = await image.readAsBytes();
+        setState(() {
+          _capturedImage = image;
+          _capturedImageBytes = bytes;
+        });
+
+        await _processImage(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  Future<void> _processImage(Uint8List bytes) async {
+    // Logic adapted from previous implementation
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none);
+
+      String extracted = '';
+      String translated = '';
+      String detectedLang = _sourceLanguageCode;
+
+      if (isOffline) {
+        // ML Kit Offline Logic
+        final mlKitService = MlKitTranslationService();
+        // ML Kit Text Recognition often needs a file path or InputImage
+        // Assuming we have _capturedImage path
+        if (_capturedImage != null) {
+          extracted = await mlKitService.extractTextFromFile(
+            File(_capturedImage!.path),
+          );
+        } else {
+          extracted = "Error: Image file not available for offline OCR.";
+        }
+
+        if (extracted.isNotEmpty && !extracted.startsWith("Error")) {
+          // Heuristic: If auto, default to 'en' or try to guess?
+          // Offline translation usually requires explicit source.
+          String source = _sourceLanguageCode == 'auto'
+              ? 'en'
+              : _sourceLanguageCode;
+
+          final result = await mlKitService.translate(
+            text: extracted,
+            sourceLanguage: source,
+            targetLanguage: _targetLanguageCode,
+          );
+          translated = result ?? "Translation failed (Offline)";
+        }
+      } else {
+        // Gemini Online Logic
+        final geminiService = Provider.of<GeminiService>(
+          context,
+          listen: false,
+        );
+        if (!geminiService.isInitialized) {
+          throw Exception("Gemini Service not initialized");
+        }
+
+        extracted = await geminiService.extractTextFromImage(bytes);
+        if (extracted.isNotEmpty && extracted != 'No text detected') {
+          if (_sourceLanguageCode == 'auto') {
+            detectedLang = await geminiService.detectLanguage(extracted);
+          }
+          translated = await geminiService.translateText(
+            extracted,
+            _targetLanguageCode,
+            sourceLanguage: detectedLang == 'auto'
+                ? null
+                : detectedLang, // Check logic
+          );
+        } else {
+          extracted = "No text found in image.";
+        }
+      }
+
+      setState(() {
+        _extractedText = extracted;
+        _translatedText = translated;
+        _isProcessing = false;
+      });
+    } catch (e) {
+      debugPrint('Processing error: $e');
+      setState(() {
+        _extractedText = "Error processing image";
+        _translatedText = e.toString();
+        _isProcessing = false;
+      });
+    }
+  }
+
+  void _resetState() {
+    setState(() {
+      _capturedImage = null;
+      _capturedImageBytes = null;
+      _extractedText = '';
+      _translatedText = '';
+    });
+    _initializeCamera(); // Re-init preview if needed
+  }
+
   void _toggleFlash() {
-    if (_isCameraInitialized) {
+    if (_cameraController != null && _isCameraInitialized) {
       setState(() {
         _isFlashOn = !_isFlashOn;
       });
-      _cameraController?.setFlashMode(
+      _cameraController!.setFlashMode(
         _isFlashOn ? FlashMode.torch : FlashMode.off,
-      );
-    }
-  }
-
-  Future<void> _importFromGallery() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        // final imageFile = File(image.path); // Commented out
-        final Uint8List imageBytes = await image
-            .readAsBytes(); // Read image as bytes
-        setState(() {
-          _capturedImageFile = File(image.path); // Keep for _buildImagePreview
-          _capturedImageBytes = imageBytes; // Store bytes
-          _hasCapturedImage = true;
-        });
-
-        // Process with Gemini service
-        await _processImage(imageBytes); // Pass bytes to processing
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error importing image: $e')));
-      }
-    }
-  }
-
-  void _copyText() {
-    if (_translatedText.isNotEmpty) {
-      Clipboard.setData(ClipboardData(text: _translatedText));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Translation copied to clipboard'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  // Helper method to build the image preview (reintroduced)
-  Widget _buildImagePreview(File file, ThemeData theme, bool isDarkMode) {
-    try {
-      // Prefer bytes if available (more reliable on mobile)
-      if (_capturedImageBytes != null) {
-        return Image.memory(
-          _capturedImageBytes!,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.broken_image,
-                  size: 40,
-                  color: Colors.white54,
-                ),
-              ),
-            );
-          },
-        );
-      } else if (file.existsSync()) {
-        return Image.file(
-          file,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.broken_image,
-                  size: 40,
-                  color: isDarkMode
-                      ? Colors.white54
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            );
-          },
-        );
-      } else {
-        return Container(
-          height: 120,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.image_not_supported,
-              size: 40,
-              color: isDarkMode
-                  ? Colors.white54
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error loading image: $e');
-      return Container(
-        height: 120,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.broken_image,
-            size: 40,
-            color: isDarkMode
-                ? Colors.white54
-                : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-          ),
-        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    // Dark theme enforce
+    const backgroundColor = Color(0xFF111827);
+    const surfaceColor = Color(0xFF1F2937);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Column(
+      backgroundColor: backgroundColor,
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Header with mode toggle - handles its own SafeArea
-          SafeArea(
-            bottom: false,
-            child: _buildEnhancedHeader(theme, isDarkMode),
-          ),
+          // 1. Camera Preview Layer
+          if (_isCameraInitialized && _capturedImageBytes == null)
+            CameraPreview(_cameraController!)
+          else if (_capturedImageBytes != null)
+            Image.memory(_capturedImageBytes!, fit: BoxFit.cover)
+          else
+            Container(color: Colors.black),
 
-          // Main content area
-          Expanded(child: _buildCameraTranslationView(theme, isDarkMode)),
-
-          // Footer Navigation
-          _buildFooterNavigationBlock(theme, isDarkMode),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEnhancedHeader(ThemeData theme, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(
-              Icons.arrow_back_ios_new,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          Text(
-            'Camera Translate',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(width: 48), // Spacer to balance back button
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCameraTranslationView(ThemeData theme, bool isDarkMode) {
-    if (_hasCapturedImage) {
-      // Show translation results
-      return _buildScrollableTranslationOutput(theme, isDarkMode);
-    }
-
-    // Show camera view with controls
-    return Stack(
-      children: [
-        // Camera view fills the available space
-        _buildCameraView(theme, isDarkMode),
-
-        // Action controls overlay
-        Positioned(
-          bottom: 20,
-          left: 0,
-          right: 0,
-          child: _buildActionControlsBlock(theme, isDarkMode),
-        ),
-
-        if (_isProcessing) // Add this conditional loading overlay
-          Positioned.fill(
-            child: Container(
-              color: theme.colorScheme.surface.withValues(alpha: 0.7),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Processing image...',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
+          // 2. Overlay (Dimmer & Focus Area) - Only in Camera Mode
+          if (_capturedImageBytes == null)
+            ColorFiltered(
+              colorFilter: const ColorFilter.mode(
+                Colors.black54,
+                BlendMode.srcOut,
               ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCameraView(ThemeData theme, bool isDarkMode) {
-    if (!_isCameraInitialized) {
-      return Container(
-        color: theme.colorScheme.onSurface,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.camera_alt,
-                size: 80,
-                color: theme.colorScheme.surface,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Camera Preview',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.surface,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Camera functionality is available on mobile devices',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.7),
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Tap the capture button to simulate photo capture',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        // Camera preview
-        SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: CameraPreview(_cameraController!),
-        ),
-
-        // Overlay guides (crosshair)
-        if (!_hasCapturedImage)
-          Center(
-            child: Container(
-              width: 200,
-              height: 100,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: theme.colorScheme.onSurface,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.crop_free,
-                color: theme.colorScheme.onSurface,
-                size: 40,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildScrollableTranslationOutput(ThemeData theme, bool isDarkMode) {
-    return Container(
-      color: theme.colorScheme.surface,
-      child: Column(
-        children: [
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  if (_capturedImageFile != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        child: _buildImagePreview(
-                          _capturedImageFile!,
-                          theme,
-                          isDarkMode,
-                        ),
-                      ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      backgroundBlendMode: BlendMode.dstOut,
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildLanguageSelectionBar(theme, isDarkMode),
-                  const SizedBox(height: 16),
-                  _buildTranslationResultCard(theme, isDarkMode),
-                  const SizedBox(height: 16),
-                  _buildActionButtons(theme, isDarkMode),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: _resetCamera,
-                      icon: Icon(
-                        Icons.refresh,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                      label: Text(
-                        'Take Another Photo',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor: theme.colorScheme.surface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  Center(
+                    child: Container(
+                      width: 300,
+                      height: 200, // Focus Rectangle
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildTranslationResultCard(ThemeData theme, bool isDarkMode) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Original text
-          if (_originalText.isNotEmpty && !_isProcessing) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _sourceLanguage,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+          // 2.5 Focus Brackets Decoration (Visual only)
+          if (_capturedImageBytes == null)
+            Center(
+              child: Container(
+                width: 320,
+                height: 220,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.transparent),
                 ),
-                Icon(
-                  Icons.check_circle,
-                  color: theme.colorScheme.secondary,
-                  size: 20,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _originalText,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                fontSize: 15,
-              ),
-            ),
-            Divider(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-              height: 24,
-            ),
-          ],
-          // Translated text
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _targetLanguage,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.secondary,
-                  fontWeight: FontWeight.w600,
+                child: Stack(
+                  children: [
+                    // Top Left
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: _buildCorner(true, true),
+                    ),
+                    // Top Right
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: _buildCorner(true, false),
+                    ),
+                    // Bottom Left
+                    Positioned(
+                      left: 0,
+                      bottom: 0,
+                      child: _buildCorner(false, true),
+                    ),
+                    // Bottom Right
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: _buildCorner(false, false),
+                    ),
+                  ],
                 ),
               ),
-              if (_translatedText.isNotEmpty && !_isProcessing)
-                Icon(
-                  Icons.check_circle,
-                  color: theme.colorScheme.secondary,
-                  size: 20,
+            ),
+
+          // 3. Top Language Bar
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _isProcessing && _translatedText.isEmpty
-              ? Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
-                        ),
+                child: Row(
+                  children: [
+                    // Back Button
+                    Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black45,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Generating translation...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.7,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Language Selector Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        children: [
+                          // Source
+                          GestureDetector(
+                            onTap: () {
+                              // Show source picker
+                              _showLanguagePicker(true);
+                            },
+                            child: Text(
+                              _displayLanguages[_sourceLanguageCode] ??
+                                  _sourceLanguageCode,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white70,
+                              size: 16,
+                            ),
+                          ),
+                          // Target
+                          GestureDetector(
+                            onTap: () {
+                              // Show target picker
+                              _showLanguagePicker(false);
+                            },
+                            child: Text(
+                              _displayLanguages[_targetLanguageCode] ??
+                                  _targetLanguageCode,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 40), // Balance spacing
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Bottom Controls / Result Card
+          if (_capturedImageBytes == null && !_isProcessing)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                padding: const EdgeInsets.only(bottom: 40, top: 20),
+                color: Colors.transparent,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Gallery
+                    IconButton(
+                      icon: const Icon(
+                        Icons.photo_library,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                      onPressed: _pickFromGallery,
+                    ),
+
+                    // Shutter
+                    GestureDetector(
+                      onTap: _takePicture,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
+                          color: Colors.transparent,
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                )
-              : Text(
-                  _translatedText.isEmpty
-                      ? 'Translation will appear here...'
-                      : _translatedText,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: _translatedText.isEmpty ? 15 : 18,
-                    fontWeight: _translatedText.isEmpty
-                        ? FontWeight.normal
-                        : FontWeight.w600,
-                    color: _translatedText.isEmpty
-                        ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
+                    ),
 
-  Widget _buildActionButtons(ThemeData theme, bool isDarkMode) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildActionButton(
-          icon: Icons.content_copy,
-          label: 'Copy',
-          onTap: _copyText,
-          color: theme.colorScheme.primary,
-        ),
-        _buildActionButton(
-          icon: Icons.share,
-          label: 'Share',
-          onTap: _shareText,
-          color: Colors.purple,
-        ),
-        _buildActionButton(
-          icon: Icons.bookmark_border,
-          label: 'Save',
-          onTap: _saveTranslation,
-          color: Colors.orange,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required Color color,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionControlsBlock(ThemeData theme, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Column(
-        children: [
-          // Gemini Status Indicator
-          Consumer<GeminiService>(
-            builder: (context, geminiService, child) {
-              if (!geminiService.isInitialized) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.error.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning,
-                        color: theme.colorScheme.onError,
-                        size: 16,
+                    // Flash
+                    IconButton(
+                      icon: Icon(
+                        _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                        color: Colors.white,
+                        size: 32,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Configure Gemini API Key',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onError,
-                          fontSize: 12,
+                      onPressed: _toggleFlash,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // 5. Processing Indicator
+          if (_isProcessing)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+
+          // 6. Result Sheet
+          if (_capturedImageBytes != null && !_isProcessing)
+            DraggableScrollableSheet(
+              initialChildSize: 0.45,
+              minChildSize: 0.3,
+              maxChildSize: 0.85,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // GestureDetector(
-                      //   onTap: () {
-                      //     Navigator.of(context).push(
-                      //       MaterialPageRoute(
-                      //         builder: (context) =>
-                      //             const GeminiSettingsPage(),
-                      //       ),
-                      //     );
-                      //   },
-                      //   child: Container(
-                      //     padding: const EdgeInsets.symmetric(
-                      //       horizontal: 8,
-                      //       vertical: 4,
-                      //     ),
-                      //     decoration: BoxDecoration(
-                      //       color: theme.colorScheme.onError.withValues(alpha:0.2),
-                      //       borderRadius: BorderRadius.circular(12),
-                      //     ),
-                      //     child: Text(
-                      //       'Settings',
-                      //       style: theme.textTheme.labelSmall?.copyWith(
-                      //         color: theme.colorScheme.onError,
-                      //         fontSize: 10,
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
+                      const SizedBox(height: 24),
+
+                      // Translation
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "English (Translated)", // Placeholder dynamic
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _translatedText,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.volume_up,
+                              color: Color(0xFF3B82F6),
+                            ),
+                            onPressed: () {
+                              // TTS placeholder
+                            },
+                          ),
+                        ],
+                      ),
+
+                      const Divider(color: Colors.grey, height: 32),
+
+                      // Original
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Original Text",
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _extractedText,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildActionButton(
+                            Icons.copy,
+                            "Copy",
+                            _copyTranslation,
+                          ),
+                          _buildActionButton(
+                            Icons.share,
+                            "Share",
+                            _shareTranslation,
+                          ),
+                          _buildActionButton(
+                            Icons.restart_alt,
+                            "Retake",
+                            _resetState,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-
-          // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Gallery import button
-              GestureDetector(
-                onTap: _isProcessing ? null : _importFromGallery,
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: _isProcessing
-                      ? Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Icon(
-                          Icons.photo_library,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                ),
-              ),
-              const SizedBox(width: 16), // Space between buttons
-              // Large circular capture button
-              GestureDetector(
-                onTap: _isProcessing ? null : _captureImage,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: theme.colorScheme.onSurface,
-                      width: 4,
-                    ),
-                    color: Colors.transparent,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        spreadRadius: 4,
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: _isProcessing
-                      ? Center(
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Container(), // Empty container for the inner circle as per HTML
-                ),
-              ),
-              const SizedBox(width: 16), // Space between buttons
-              // Flash toggle button
-              GestureDetector(
-                onTap: _isProcessing ? null : _toggleFlash,
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Icon(
-                    _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLanguageSelectionBar(ThemeData theme, bool isDarkMode) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface, // var(--secondary-color)
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.symmetric(
-        vertical: 2,
-      ), // Reduced vertical padding to match HTML
-      child: Row(
-        children: [
-          Expanded(
-            child: TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface.withValues(
-                  alpha: 0.5,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 16,
-                ),
-              ),
-              child: Text(
-                _sourceLanguage, // Display detected language
-                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
-              ),
-            ),
-          ),
-          Container(
-            height: 24,
-            width: 1,
-            color: theme.colorScheme.onSurface.withValues(
-              alpha: 0.1,
-            ), // Divider color
-          ),
-          Expanded(
-            child: TextButton(
-              onPressed: () {
-                _selectTargetLanguage(); // Call the new method for language selection
               },
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 16,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _targetLanguage, // Display target language
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.expand_more,
-                    size: 16,
-                    color: theme.colorScheme.onSurface,
-                  ), // Dropdown icon
-                ],
-              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildFooterNavigationBlock(ThemeData theme, bool isDarkMode) {
+  Widget _buildCorner(bool isTop, bool isLeft) {
+    const double size = 20;
+    const double thickness = 3;
+    const color = Color(0xFF3B82F6);
+
     return Container(
-      color: theme.colorScheme.surface.withValues(alpha: 0.9),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 8,
-        top: 8,
-        left: 8,
-        right: 8,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavBarItem(
-            Icons.home,
-            'Home',
-            '/home',
-            theme.colorScheme.onSurface,
-            theme: theme,
-            isDarkMode: isDarkMode,
-          ),
-          _buildNavBarItem(
-            Icons.photo_camera,
-            'Camera',
-            '/camera_translate',
-            theme.colorScheme.primary,
-            isSelected: true,
-            theme: theme,
-            isDarkMode: isDarkMode,
-          ), // Selected camera icon
-          _buildNavBarItem(
-            Icons.mic,
-            'Voice',
-            '/voice_translate',
-            theme.colorScheme.onSurface,
-            theme: theme,
-            isDarkMode: isDarkMode,
-          ),
-          _buildNavBarItem(
-            Icons.bookmark,
-            'Saved',
-            '/saved_translations',
-            theme.colorScheme.onSurface,
-            theme: theme,
-            isDarkMode: isDarkMode,
-          ),
-          _buildNavBarItem(
-            Icons.settings,
-            'Settings',
-            '/settings',
-            theme.colorScheme.onSurface,
-            theme: theme,
-            isDarkMode: isDarkMode,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavBarItem(
-    IconData icon,
-    String label,
-    String routeName,
-    Color color, {
-    bool isSelected = false,
-    required ThemeData theme,
-    required bool isDarkMode,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (!isSelected) {
-            Navigator.of(context).pushReplacementNamed(routeName);
-          }
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ), // Text muted color
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontSize: 12,
-                color: isSelected
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        border: Border(
+          top: isTop
+              ? const BorderSide(color: color, width: thickness)
+              : BorderSide.none,
+          bottom: !isTop
+              ? const BorderSide(color: color, width: thickness)
+              : BorderSide.none,
+          left: isLeft
+              ? const BorderSide(color: color, width: thickness)
+              : BorderSide.none,
+          right: !isLeft
+              ? const BorderSide(color: color, width: thickness)
+              : BorderSide.none,
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF374151),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyTranslation() {
+    Clipboard.setData(ClipboardData(text: _translatedText));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+  }
+
+  void _shareTranslation() {
+    Share.share("$_extractedText\n\n$_translatedText");
+  }
+
+  void _showLanguagePicker(bool isSource) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1F2937),
+      builder: (ctx) {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: _displayLanguages.entries.map((e) {
+            return ListTile(
+              title: Text(e.value, style: const TextStyle(color: Colors.white)),
+              onTap: () {
+                setState(() {
+                  if (isSource) {
+                    _sourceLanguageCode = e.key;
+                  } else {
+                    _targetLanguageCode = e.key;
+                  }
+                });
+                Navigator.pop(ctx);
+                // Rerun process if image exists?
+              },
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

@@ -116,26 +116,31 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
       String detectedLanguage = 'Unknown';
 
       if (isOffline) {
+        if (_sourceLanguage == 'Auto-detected') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Offline mode: Please select a source language.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          setState(() => _isProcessing = false);
+          return;
+        }
+
         final mlKitService = MlKitTranslationService();
-        // Offline translation
-        // Assuming source is English for offline demo or we need a selector.
+        final sourceCode = _getLanguageCode(_sourceLanguage);
+        final targetCode = _getLanguageCode(_targetLanguage);
 
         final result = await mlKitService.translate(
           text: text,
-          sourceLanguage: 'en', // Constraint for offline
-          targetLanguage: _targetLanguage == 'Hindi'
-              ? 'hi'
-              : _targetLanguage == 'Marathi'
-              ? 'mr'
-              : _targetLanguage == 'Spanish'
-              ? 'es'
-              : _targetLanguage == 'French'
-              ? 'fr'
-              : 'en',
+          sourceLanguage: sourceCode,
+          targetLanguage: targetCode,
         );
 
         translatedText = result ?? 'Translation failed or model not downloaded';
-        detectedLanguage = 'English (Offline/Assumed)';
+        detectedLanguage = _sourceLanguage;
       } else {
         final geminiService = Provider.of<GeminiService>(
           context,
@@ -408,6 +413,82 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
     );
   }
 
+  void _selectSourceLanguage() async {
+    final geminiService = Provider.of<GeminiService>(context, listen: false);
+    final languages = geminiService.getSupportedLanguages();
+
+    final String? selectedLanguage = await showModalBottomSheet<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          color: const Color(0xFF111C22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Select Source Language',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: languages.length,
+                  itemBuilder: (context, index) {
+                    final lang = languages[index];
+                    return ListTile(
+                      title: Text(
+                        lang['name']!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context, lang['name']);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (selectedLanguage != null && selectedLanguage != _sourceLanguage) {
+      setState(() {
+        _sourceLanguage = selectedLanguage;
+      });
+      // Re-translate if there is text and target is set
+      if (_originalText.isNotEmpty) {
+        _translateText();
+      }
+    }
+  }
+
+  void _swapLanguages() {
+    if (_sourceLanguage == 'Auto-detected') return;
+    setState(() {
+      final temp = _sourceLanguage;
+      _sourceLanguage = _targetLanguage;
+      _targetLanguage = temp;
+
+      final tempText = _originalText;
+      _originalText = _translatedText;
+      _translatedText = tempText;
+
+      _textInputController.text = _originalText; // update input with new source
+    });
+  }
+
   Widget _buildLanguageSelectionBar(ThemeData theme, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
@@ -419,11 +500,9 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
         children: [
           Expanded(
             child: TextButton(
-              onPressed: () {},
+              onPressed: _selectSourceLanguage,
               style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface.withValues(
-                  alpha: 0.5,
-                ),
+                foregroundColor: theme.colorScheme.onSurface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -432,22 +511,34 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                   horizontal: 16,
                 ),
               ),
-              child: Text(
-                _sourceLanguage,
-                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _sourceLanguage,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.expand_more,
+                    size: 16,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ],
               ),
             ),
           ),
-          Container(
-            height: 24,
-            width: 1,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+          IconButton(
+            icon: Icon(Icons.swap_horiz, color: theme.colorScheme.primary),
+            onPressed: _swapLanguages,
+            tooltip: 'Swap languages',
           ),
           Expanded(
             child: TextButton(
-              onPressed: () {
-                _selectTargetLanguage();
-              },
+              onPressed: _selectTargetLanguage,
               style: TextButton.styleFrom(
                 foregroundColor: theme.colorScheme.onSurface,
                 shape: RoundedRectangleBorder(
@@ -641,5 +732,29 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
         ),
       ),
     );
+  }
+
+  String _getLanguageCode(String languageName) {
+    if (languageName == 'Auto-detected') return 'en';
+    final supported = MlKitTranslationService().getSupportedLanguages();
+    for (var lang in supported) {
+      if (lang['name']?.toLowerCase() == languageName.toLowerCase()) {
+        return lang['code']!;
+      }
+    }
+    switch (languageName.toLowerCase()) {
+      case 'english':
+        return 'en';
+      case 'hindi':
+        return 'hi';
+      case 'marathi':
+        return 'mr';
+      case 'spanish':
+        return 'es';
+      case 'french':
+        return 'fr';
+      default:
+        return 'en';
+    }
   }
 }

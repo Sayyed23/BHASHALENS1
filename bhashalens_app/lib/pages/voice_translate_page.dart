@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:bhashalens_app/pages/home_page.dart';
-import 'package:bhashalens_app/pages/camera_translate_page.dart';
-import 'package:bhashalens_app/pages/saved_translations_page.dart';
-import 'package:bhashalens_app/pages/settings_page.dart';
-import 'package:bhashalens_app/models/saved_translation.dart';
-import 'package:bhashalens_app/theme/app_theme.dart';
 
 class VoiceTranslatePage extends StatefulWidget {
   const VoiceTranslatePage({super.key});
@@ -18,16 +11,7 @@ class VoiceTranslatePage extends StatefulWidget {
 }
 
 class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
-  late VoiceTranslationService _voiceService;
-
-  @override
-  void initState() {
-    super.initState();
-    _voiceService = Provider.of<VoiceTranslationService>(
-      context,
-      listen: false,
-    );
-  }
+  // VoiceTranslationService is accessed via Provider
 
   String convertLanguageCodeToName(String languageCode) {
     return VoiceTranslationService.supportedLanguages[languageCode] ??
@@ -38,955 +22,364 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+
+    // We force dark mode look for this page based on mock (dark background)
+    // Or we respect theme but use specific colors. Mock is dark.
+    // Let's use the dark colors from mock.
+    const backgroundColor = Color(0xFF111827); // Dark background
+    const surfaceColor = Color(0xFF1F2937); // Card/Bubble default
+    const accentColor = Color(0xFF3B82F6); // Blue
+
     return Scaffold(
-      backgroundColor:
-          theme.colorScheme.surface, // Dark background matching HTML
-      body: Column(
-        children: [
-          // Header
-          _buildHeader(theme, isDarkMode),
-
-          // Main content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Language Selection Section
-                  _buildLanguageSelection(theme, isDarkMode),
-
-                  const SizedBox(height: 32),
-
-                  // Conversation Area
-                  _buildConversationArea(theme, isDarkMode),
-
-                  const SizedBox(height: 32),
-
-                  // Conversation History
-                  _buildConversationHistory(theme, isDarkMode),
-
-                  const SizedBox(height: 32),
-
-                  // Action Buttons
-                  _buildActionButtons(theme, isDarkMode),
-                ],
-              ),
-            ),
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Voice Translation',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Colors.white),
+            onPressed: () => _showHelpDialog(theme, true),
           ),
-
-          // Bottom Navigation
-          _buildBottomNavigation(theme, isDarkMode),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader(ThemeData theme, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.8),
-        border: Border(
-          bottom: BorderSide(color: theme.colorScheme.surface, width: 1),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                // Back button
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: theme.colorScheme.onSurface,
-                      size: 24,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
+      body: Consumer<VoiceTranslationService>(
+        builder: (context, voiceService, child) {
+          return Column(
+            children: [
+              // Language Selector Row
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Your Language (A)
+                    _buildLanguagePill(
+                      voiceService.userALanguage,
+                      (lang) => voiceService.setUserALanguage(lang),
+                      theme,
+                    ),
 
-                // Title
-                Expanded(
-                  child: Text(
-                    'Voice Translation',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                // Help button
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.help_outline,
-                      color: theme.colorScheme.onSurface,
-                      size: 24,
-                    ),
-                    onPressed: () => _showHelpDialog(theme, isDarkMode),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            // Offline mode indicator
-            Consumer<VoiceTranslationService>(
-              builder: (context, voiceService, child) {
-                if (voiceService.isOfflineMode) {
-                  return Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.orange, width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.cloud_off,
-                          color: Colors.orange,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Offline Mode - Using ML Kit',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w500,
+                    // Swap Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: GestureDetector(
+                        onTap: () => voiceService.swapLanguages(),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: accentColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.swap_horiz,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
+
+                    // Their Language (B)
+                    _buildLanguagePill(
+                      voiceService.userBLanguage,
+                      (lang) => voiceService.setUserBLanguage(lang),
+                      theme,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Chat Area
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Show user Prompt "Tap a microphone below to start translating." if empty
+                    if (voiceService.conversationHistory.isEmpty &&
+                        !voiceService.isListening &&
+                        !voiceService.isTranslating)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 100),
+                        child: Column(
+                          children: [
+                            Icon(Icons.mic, size: 48, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              "Tap a microphone below to start translating.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    ...voiceService.conversationHistory.map(
+                      (msg) => _buildChatBubble(msg),
+                    ),
+
+                    // Active Transcript Bubble
+                    if (voiceService.isListening || voiceService.isTranslating)
+                      _buildActiveTranscriptBubble(voiceService),
+                  ],
+                ),
+              ),
+
+              // Bottom Controls
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                decoration: const BoxDecoration(
+                  color: backgroundColor, // Match/Extend body
+                ),
+                child: Row(
+                  children: [
+                    // Hindi (Them / B) - Left
+                    Expanded(
+                      child: _buildMicButton(
+                        label:
+                            "${_getLanguageName(voiceService.userBLanguage)} (Them)",
+                        isListening:
+                            voiceService.isListening &&
+                            voiceService.currentSpeaker == 'B',
+                        onTap: () => _handleMicrophoneTap('B', voiceService),
+                        activeColor: Colors
+                            .grey[700]!, // Or distinct color for Them? Mock shows Grey vs Blue.
+                        // Actually mock shows Left button is Grey pill with mic. Right is Blue pill with mic.
+                        isPrimary: false,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // English (You / A) - Right
+                    Expanded(
+                      child: _buildMicButton(
+                        label:
+                            "${_getLanguageName(voiceService.userALanguage)} (You)",
+                        isListening:
+                            voiceService.isListening &&
+                            voiceService.currentSpeaker == 'A',
+                        onTap: () => _handleMicrophoneTap('A', voiceService),
+                        activeColor: accentColor,
+                        isPrimary: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildLanguageSelection(ThemeData theme, bool isDarkMode) {
-    return Row(
-      children: [
-        // Your Language
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your Language',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.7,
-                  ), // slate-400 equivalent
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface, // secondary color
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: Consumer<VoiceTranslationService>(
-                  builder: (context, voiceService, child) {
-                    return DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: voiceService.userALanguage,
-                        isExpanded: true,
-                        dropdownColor: theme.colorScheme.surface,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        items: VoiceTranslationService
-                            .supportedLanguages
-                            .entries
-                            .map(
-                              (entry) => DropdownMenuItem(
-                                value: entry.key,
-                                child: Text(entry.value),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            voiceService.setUserALanguage(value);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Swap Button
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          child: IconButton(
-            onPressed: () => _voiceService.swapLanguages(),
-            icon: Icon(
-              Icons.swap_horiz,
-              color: theme.colorScheme.onPrimary,
-              size: 24,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary, // accent color
-              shape: const CircleBorder(),
-              padding: const EdgeInsets.all(12),
-            ),
-          ),
-        ),
-
-        // Their Language
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Their Language',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.7,
-                  ), // slate-400 equivalent
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface, // secondary color
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: Consumer<VoiceTranslationService>(
-                  builder: (context, voiceService, child) {
-                    return DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: voiceService.userBLanguage,
-                        isExpanded: true,
-                        dropdownColor: theme.colorScheme.surface,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        items: VoiceTranslationService
-                            .supportedLanguages
-                            .entries
-                            .map(
-                              (entry) => DropdownMenuItem(
-                                value: entry.key,
-                                child: Text(entry.value),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            voiceService.setUserBLanguage(value);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  String _getLanguageName(String code) {
+    return VoiceTranslationService.supportedLanguages[code] ?? code;
   }
 
-  Widget _buildConversationArea(ThemeData theme, bool isDarkMode) {
+  Widget _buildLanguagePill(
+    String currentCode,
+    Function(String) onChanged,
+    ThemeData theme,
+  ) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface, // secondary color
+        color: const Color(0xFF1F2937),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        children: [
-          // You Section
-          _buildUserSection('You', 'A', theme, isDarkMode),
-
-          // Divider
-          Container(
-            height: 1,
-            color: theme.colorScheme.primary, // accent color
-          ),
-
-          // Them Section
-          _buildUserSection('Them', 'B', theme, isDarkMode),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserSection(
-    String label,
-    String user,
-    ThemeData theme,
-    bool isDarkMode,
-  ) {
-    return Consumer<VoiceTranslationService>(
-      builder: (context, voiceService, child) {
-        debugPrint(
-          '_buildUserSection: label=$label, speaker=$user, isListening=${voiceService.isListening}, isTranslating=${voiceService.isTranslating}, currentTranscript=${voiceService.currentTranscript}, currentTranslatedText=${voiceService.currentTranslatedText}',
-        );
-        final isCurrentUser = voiceService.currentSpeaker == user;
-        final isListening = voiceService.isListening && isCurrentUser;
-        final transcript = isCurrentUser ? voiceService.currentTranscript : '';
-        final language = user == 'A'
-            ? voiceService.userALanguage
-            : voiceService.userBLanguage;
-        final languageName = _voiceService.convertLanguageCodeToName(language);
-
-        return Column(
-          children: [
-            // Header with label and microphone button
-            Row(
-              children: [
-                // User info
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      languageName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ), // slate-400
-                      ),
-                    ),
-                    if (isListening) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: theme.colorScheme.primary,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'Listening...',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ] else if (voiceService.isTranslating) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: theme.colorScheme.primary,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'Translating...',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-
-                const Spacer(),
-
-                // Microphone button
-                GestureDetector(
-                  onTap: () => _handleMicrophoneTap(user, voiceService),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: isListening
-                          ? Colors.red
-                          : (user == 'A'
-                                ? theme
-                                      .colorScheme
-                                      .primary // primary color
-                                : theme.colorScheme.surface), // accent color
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              (isListening
-                                      ? Colors.red
-                                      : (user == 'A'
-                                            ? theme.colorScheme.primary
-                                            : theme.colorScheme.surface))
-                                  .withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      isListening ? Icons.mic : Icons.mic_off,
-                      color: theme.colorScheme.onPrimary,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // Transcript area
-            if (transcript.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentCode,
+          dropdownColor: const Color(0xFF1F2937),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          isDense: true,
+          onChanged: (val) {
+            if (val != null) onChanged(val);
+          },
+          items: VoiceTranslationService.supportedLanguages.entries.map((e) {
+            return DropdownMenuItem(
+              value: e.key,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Original text
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: theme.colorScheme.surface,
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      transcript,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 18,
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Translated text
-                  if (voiceService.currentTranslatedText.isNotEmpty) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: theme.colorScheme.primary,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        voiceService.currentTranslatedText,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 18,
-                          color: theme.colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
+                  // Flag could go here
+                  Text(e.value),
                 ],
               ),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildConversationHistory(ThemeData theme, bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Conversation History',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        Consumer<VoiceTranslationService>(
-          builder: (context, voiceService, child) {
-            if (voiceService.conversationHistory.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 48,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Start a conversation to see the history',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.7,
-                          ),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              children: voiceService.conversationHistory.map((message) {
-                return _buildHistoryMessage(message, theme, isDarkMode);
-              }).toList(),
             );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHistoryMessage(
-    ConversationMessage message,
-    ThemeData theme,
-    bool isDarkMode,
-  ) {
-    final isUserA = message.speaker == 'A';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isUserA
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.surface,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                message.speaker,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Message Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Chat bubble
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isUserA
-                        ? theme
-                              .colorScheme
-                              .surface // accent color
-                        : theme.colorScheme.primary, // primary color
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(8),
-                      topRight: const Radius.circular(8),
-                      bottomLeft: isUserA
-                          ? const Radius.circular(0)
-                          : const Radius.circular(8),
-                      bottomRight: isUserA
-                          ? const Radius.circular(8)
-                          : const Radius.circular(0),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        message.originalText,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 16,
-                          color: isUserA
-                              ? theme.colorScheme.onSurface
-                              : theme.colorScheme.onPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        message.translatedText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 14,
-                          color: isUserA
-                              ? theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                )
-                              : theme.colorScheme.onPrimary.withValues(
-                                  alpha: 0.7,
-                                ), // slate-400
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Timestamp
-                const SizedBox(height: 4),
-                Text(
-                  _formatTimestamp(message.timestamp),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(
-                      alpha: 0.7,
-                    ), // slate-400
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(ThemeData theme, bool isDarkMode) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            // Save Button
-            Expanded(
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface, // accent color
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  onPressed: _saveConversation,
-                  icon: Icon(
-                    Icons.bookmark,
-                    color: theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
-                  label: Text(
-                    'Save',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Copy Button
-            Expanded(
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface, // accent color
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  onPressed: _copyTranscript,
-                  icon: Icon(
-                    Icons.content_copy,
-                    color: theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
-                  label: Text(
-                    'Copy',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Share Button
-            Expanded(
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface, // accent color
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  onPressed: _shareConversation,
-                  icon: Icon(
-                    Icons.share,
-                    color: theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
-                  label: Text(
-                    'Share',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12),
-
-        // Clear Conversation Button
-        Consumer<VoiceTranslationService>(
-          builder: (context, voiceService, child) {
-            if (voiceService.conversationHistory.isEmpty) {
-              return const SizedBox.shrink();
-            }
-
-            return Container(
-              width: double.infinity,
-              height: 48,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(
-                  alpha: 0.8,
-                ), // accent color
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TextButton.icon(
-                onPressed: _clearConversation,
-                icon: Icon(
-                  Icons.clear_all,
-                  color: theme.colorScheme.onSurface,
-                  size: 20,
-                ),
-                label: Text(
-                  'Clear Conversation',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNavigation(ThemeData theme, bool isDarkMode) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.surface, width: 1),
-        ),
-      ),
-      child: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', 0, false, theme, isDarkMode),
-              _buildNavItem(
-                Icons.camera_alt,
-                'Camera',
-                1,
-                false,
-                theme,
-                isDarkMode,
-              ),
-              _buildNavItem(Icons.mic, 'Voice', 2, true, theme, isDarkMode),
-              _buildNavItem(
-                Icons.bookmark,
-                'Saved',
-                3,
-                false,
-                theme,
-                isDarkMode,
-              ),
-              _buildNavItem(
-                Icons.settings,
-                'Settings',
-                4,
-                false,
-                theme,
-                isDarkMode,
-              ),
-            ],
-          ),
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index,
-    bool isSelected,
-    ThemeData theme,
-    bool isDarkMode,
-  ) {
+  Widget _buildMicButton({
+    required String label,
+    required bool isListening,
+    required VoidCallback onTap,
+    required Color activeColor,
+    required bool isPrimary,
+  }) {
+    // Mock:
+    // Left: Grey Pill, White Text/Icon
+    // Right: Blue Pill, White Text/Icon
+    final bgColor = isPrimary
+        ? (isListening ? Colors.red : const Color(0xFF3B82F6))
+        : (isListening ? Colors.red : const Color(0xFF374151));
+
     return GestureDetector(
-      onTap: () => _onTabTapped(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 60,
         decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: 0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: isListening
+              ? [
+                  BoxShadow(
+                    color: bgColor.withValues(alpha: 0.5),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : [],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              icon,
-              color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              size: 24,
+              isListening ? Icons.graphic_eq : Icons.mic,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatBubble(ConversationMessage msg) {
+    final isYou = msg.speaker == 'A';
+    return Align(
+      alignment: isYou ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 280),
+        decoration: BoxDecoration(
+          color: isYou ? const Color(0xFF3B82F6) : const Color(0xFF374151),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: isYou ? const Radius.circular(16) : Radius.zero,
+            bottomRight: isYou ? Radius.zero : const Radius.circular(16),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isYou
+                  ? "You (${msg.speakerLanguage})"
+                  : "Them (${msg.speakerLanguage})",
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              msg.originalText,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+
+            // Divider
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(
+                color: Colors.white.withValues(alpha: 0.2),
+                height: 1,
               ),
             ),
+
+            Text(
+              msg.translatedText,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveTranscriptBubble(VoiceTranslationService service) {
+    final isYou = service.currentSpeaker == 'A';
+    // If we only have transcript (original) but no translation yet
+    final text = service.currentTranscript;
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    return Align(
+      alignment: isYou ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 280),
+        decoration: BoxDecoration(
+          color: (isYou ? const Color(0xFF3B82F6) : const Color(0xFF374151))
+              .withOpacity(0.7), // Slightly transparent to indicate processing
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Listening...",
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.white.withValues(alpha: 0.7),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              text,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            if (service.isTranslating)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: SizedBox(
+                  height: 2,
+                  width: 50,
+                  child: LinearProgressIndicator(
+                    color: Colors.white,
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -994,10 +387,10 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   }
 
   void _handleMicrophoneTap(String user, VoiceTranslationService voiceService) {
-    if (_voiceService.isListening) {
-      _voiceService.stopListening();
+    if (voiceService.isListening) {
+      voiceService.stopListening();
     } else {
-      _voiceService.startListening(user);
+      voiceService.startListening(user);
     }
   }
 
@@ -1005,51 +398,29 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
+        backgroundColor: const Color(0xFF1F2937),
+        title: const Text(
           'How to Use Live Conversation',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-          ),
+          style: TextStyle(color: Colors.white),
         ),
-        content: SingleChildScrollView(
+        content: const SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '1. Select languages for User A and User B',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
+                '1. Select languages for "You" and "Them".',
+                style: TextStyle(color: Colors.white70),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
-                '2. Tap the microphone button to start speaking',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
+                '2. Tap the microphone button corresponding to who is speaking.',
+                style: TextStyle(color: Colors.white70),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
-                '3. Your speech will be transcribed and translated',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '4. The conversation appears in the timeline below',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '5. Use the action buttons to save, copy, or share',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
+                '3. The app will transcribe and translate automatically.',
+                style: TextStyle(color: Colors.white70),
               ),
             ],
           ),
@@ -1057,161 +428,13 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(
+            child: const Text(
               'Got it',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: TextStyle(color: Color(0xFF3B82F6)),
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _onTabTapped(int index) {
-    debugPrint('Tab tapped: $index');
-    switch (index) {
-      case 0:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
-        break;
-      case 1:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const CameraTranslatePage()),
-        );
-        break;
-      case 2:
-        // Already on voice page
-        break;
-      case 3:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const SavedTranslationsPage(),
-          ),
-        );
-        break;
-      case 4:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const SettingsPage()),
-        );
-        break;
-    }
-  }
-
-  void _saveConversation() {
-    final provider = Provider.of<SavedTranslationsProvider>(
-      context,
-      listen: false,
-    );
-    final history = _voiceService.conversationHistory;
-    if (history.isNotEmpty) {
-      final last = history.last;
-      provider.add(
-        SavedTranslation(
-          originalText: last.originalText,
-          translatedText: last.translatedText,
-          fromLanguage:
-              VoiceTranslationService.supportedLanguages[last
-                  .speakerLanguage] ??
-              last.speakerLanguage,
-          toLanguage:
-              VoiceTranslationService.supportedLanguages[last.targetLanguage] ??
-              last.targetLanguage,
-          dateTime: last.timestamp,
-        ),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Translation saved successfully!',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          backgroundColor: CustomColors.of(context).success,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'No translation to save!',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          backgroundColor: CustomColors.of(context).warning,
-        ),
-      );
-    }
-  }
-
-  void _copyTranscript() {
-    final transcript = _voiceService.getConversationTranscript();
-    if (transcript.isNotEmpty) {
-      Clipboard.setData(ClipboardData(text: transcript));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Transcript copied to clipboard!',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          backgroundColor: CustomColors.of(context).info,
-        ),
-      );
-    }
-  }
-
-  void _shareConversation() {
-    final transcript = _voiceService.getConversationTranscript();
-    if (transcript.isNotEmpty) {
-      Share.share(transcript, subject: 'Conversation Transcript - BhashaLens');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Share functionality coming soon!',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          backgroundColor: CustomColors.of(context).warning,
-        ),
-      );
-    }
-  }
-
-  void _clearConversation() {
-    _voiceService.clearConversation();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Conversation history cleared!',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        backgroundColor: CustomColors.of(context).info,
-      ),
-    );
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${timestamp.day}/${timestamp.month} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
-    }
   }
 }

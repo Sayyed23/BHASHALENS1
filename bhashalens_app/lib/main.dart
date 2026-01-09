@@ -28,10 +28,12 @@ import 'package:bhashalens_app/pages/translation_mode_page.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/pages/assistant_mode_page.dart';
 
+import 'package:bhashalens_app/firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final localStorageService = LocalStorageService(); // Initialize service
   final isOnboardingCompleted = await localStorageService
@@ -65,7 +67,6 @@ class BhashaLensApp extends StatefulWidget {
 }
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
-
   @override
   Widget build(BuildContext context) {
     final accessibilityService = Provider.of<AccessibilityService>(context);
@@ -93,7 +94,9 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
           if (snapshot.hasData) {
             return const HomePage();
           }
-          return widget.isOnboardingCompleted ? const LoginPage() : const OnboardingPage();
+          return widget.isOnboardingCompleted
+              ? const LoginPage()
+              : const OnboardingPage();
         },
       ),
       routes: {
