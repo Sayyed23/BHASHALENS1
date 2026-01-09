@@ -27,6 +27,7 @@ import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/translation_mode_page.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/pages/assistant_mode_page.dart';
+import 'package:bhashalens_app/pages/video_splash_screen.dart';
 
 import 'package:bhashalens_app/firebase_options.dart';
 
@@ -67,6 +68,8 @@ class BhashaLensApp extends StatefulWidget {
 }
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
+  bool _showSplash = true;
+
   @override
   Widget build(BuildContext context) {
     final accessibilityService = Provider.of<AccessibilityService>(context);
@@ -85,20 +88,28 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       ),
       themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          }
-          if (snapshot.hasData) {
-            return const HomePage();
-          }
-          return widget.isOnboardingCompleted
-              ? const LoginPage()
-              : const OnboardingPage();
-        },
-      ),
+      home: _showSplash
+          ? VideoSplashScreen(
+              onComplete: () {
+                setState(() {
+                  _showSplash = false;
+                });
+              },
+            )
+          : StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+                if (snapshot.hasData) {
+                  return const HomePage();
+                }
+                return widget.isOnboardingCompleted
+                    ? const LoginPage()
+                    : const OnboardingPage();
+              },
+            ),
       routes: {
         '/onboarding': (context) => const OnboardingPage(),
         '/login': (context) => const LoginPage(),

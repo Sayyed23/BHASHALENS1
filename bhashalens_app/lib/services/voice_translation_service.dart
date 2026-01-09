@@ -32,7 +32,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // Translation state
   String _userALanguage = 'en'; // Default to English
-  String _userBLanguage = 'es'; // Default to Spanish
+  String _userBLanguage = 'hi'; // Default to Hindi
   String _currentSpeaker = 'A'; // 'A' or 'B'
 
   // Conversation history
