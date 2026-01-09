@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 
@@ -21,13 +20,12 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
 
     // We force dark mode look for this page based on mock (dark background)
     // Or we respect theme but use specific colors. Mock is dark.
     // Let's use the dark colors from mock.
     const backgroundColor = Color(0xFF111827); // Dark background
-    const surfaceColor = Color(0xFF1F2937); // Card/Bubble default
+
     const accentColor = Color(0xFF3B82F6); // Blue
 
     return Scaffold(
@@ -349,7 +347,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         constraints: const BoxConstraints(maxWidth: 280),
         decoration: BoxDecoration(
           color: (isYou ? const Color(0xFF3B82F6) : const Color(0xFF374151))
-              .withOpacity(0.7), // Slightly transparent to indicate processing
+              .withValues(
+                alpha: 0.7,
+              ), // Slightly transparent to indicate processing
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
