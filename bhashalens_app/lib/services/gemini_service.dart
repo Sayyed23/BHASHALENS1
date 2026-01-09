@@ -181,6 +181,57 @@ class GeminiService {
     ];
   }
 
+  // Refine text to be more confident/professional
+  Future<String> refineText(String text, {String style = 'confident'}) async {
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
+
+    try {
+      String prompt;
+      if (style == 'auto') {
+        prompt =
+            'Analyze the context of the following text. Rewrite it using the most appropriate tone (Confident, Professional, Polite, or Direct). IMPORTANT: Use simple, clear, and universally understandable English suitable for non-native speakers. Avoid complex jargon unless necessary. Input: $text';
+      } else {
+        prompt =
+            'Rewrite the following text to sound more $style. IMPORTANT: Use simple, clear, and universally understandable English suitable for non-native speakers. Keep it concise. Input: $text';
+      }
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final refinedText = response.text ?? 'Refinement failed';
+
+      return refinedText.trim();
+    } catch (e) {
+      debugPrint('Error refining text: $e');
+      throw Exception('Failed to refine text: $e');
+    }
+  }
+
+  // Explain and Simplify text
+  Future<String> explainAndSimplify(
+    String text, {
+    String simplicity = 'Simple',
+    String targetLanguage = 'English',
+  }) async {
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
+
+    try {
+      final prompt =
+          'Explain the following text in $simplicity language, translated into $targetLanguage. Break it down into key points if necessary. Avoid jargon. Input: $text';
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final simplifiedText = response.text ?? 'Simplification failed';
+
+      return simplifiedText.trim();
+    } catch (e) {
+      debugPrint('Error simplifying text: $e');
+      throw Exception('Failed to simplify text: $e');
+    }
+  }
+
   // Detect language of text
   Future<String> detectLanguage(String text) async {
     if (!_isInitialized) {

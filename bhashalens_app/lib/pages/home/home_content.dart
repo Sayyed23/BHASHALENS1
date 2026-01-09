@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Import Provider
-import 'package:bhashalens_app/services/firebase_auth_service.dart'; // Import FirebaseAuthService
-import 'package:carousel_slider/carousel_slider.dart'; // Import carousel_slider
+import 'package:provider/provider.dart';
+import 'package:bhashalens_app/services/firebase_auth_service.dart';
+import 'package:bhashalens_app/pages/home/widgets/feature_card.dart';
+import 'package:bhashalens_app/pages/home/widgets/recent_activity_card.dart';
+import 'package:bhashalens_app/pages/home/widgets/quick_access_button.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -14,260 +16,174 @@ class HomeContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildWelcomeUserInfoBlock(context),
+            _buildHeader(context),
+            const SizedBox(height: 24),
+            RecentActivityCard(
+              onTap: () {
+                // TODO: Navigate to recent activity details
+              },
+            ),
+            const SizedBox(height: 24),
+            _buildFeatureCards(context),
+            const SizedBox(height: 24),
+            _buildQuickAccessSection(context),
             const SizedBox(height: 20),
-            _buildQuickActionButtonsBlock(context),
-            const SizedBox(height: 20),
-            _buildRecentActivityBlock(context),
-            const SizedBox(height: 20),
-            _buildTipsInfoBlock(context),
-            const SizedBox(height: 20),
-            // Other blocks will go here
           ],
         ),
       ),
     );
   }
 
-  Widget _buildWelcomeUserInfoBlock(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     final firebaseAuthService = Provider.of<FirebaseAuthService>(context);
-    final userName =
-        firebaseAuthService.currentUser?.email ??
-        'Guest'; // Placeholder, replace with actual user name
+    // Extract first name for a more personal greeting
+    String userName = 'Rahul'; // Default per mock
+    final email = firebaseAuthService.currentUser?.email;
+    if (email != null && email.isNotEmpty) {
+      userName = email.split('@')[0];
+      // Capitalize first letter
+      if (userName.isNotEmpty) {
+        userName =
+            userName[0].toUpperCase() + userName.substring(1).toLowerCase();
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hello, $userName!',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Ready to translate?',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionButtonsBlock(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      children: [
-        _buildActionButton(
-          context,
-          Icons.camera_alt,
-          'Camera Translate',
-          '/camera_translate',
-        ),
-        _buildActionButton(
-          context,
-          Icons.mic,
-          'Voice Translate',
-          '/voice_translate',
-        ),
-        _buildActionButton(
-          context,
-          Icons.offline_bolt,
-          'Offline Mode',
-          '/offline_mode',
-        ),
-        _buildActionButton(
-          context,
-          Icons.bookmark,
-          'Saved Translations',
-          '/saved_translations',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String route,
-  ) {
-    return ElevatedButton(
-      onPressed: () => Navigator.of(context).pushNamed(route),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        backgroundColor: Theme.of(
-          context,
-        ).cardColor, // Use card color for a modern look
-        foregroundColor: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.color, // Use text color
-        elevation: 2,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: Colors.blueAccent),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+          'Namaste, $userName',
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentActivityBlock(BuildContext context) {
-    // Placeholder data for recent translations
-    final List<Map<String, String>> recentTranslations = [
-      {'original': 'Hello', 'translated': 'Hola', 'language': 'Spanish'},
-      {'original': 'Thank you', 'translated': 'Merci', 'language': 'French'},
-      {
-        'original': 'Good morning',
-        'translated': 'Guten Morgen',
-        'language': 'German',
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Recent Activity',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 10),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: recentTranslations.length,
-          itemBuilder: (context, index) {
-            final translation = recentTranslations[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              child: ListTile(
-                title: Text(
-                  translation['original']!,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${translation['translated']} (${translation['language']})',
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  // TODO: Implement navigation to re-open translation
-                  print('Re-open translation: ${translation['original']}');
-                },
-              ),
-            );
-          },
+        const SizedBox(height: 4),
+        Text(
+          'How can we help you communicate today?',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTipsInfoBlock(BuildContext context) {
-    final List<Map<String, String>> tips = [
-      {
-        'title': 'Offline Packs',
-        'description': 'Download language packs for offline translation.',
-        'icon': 'offline_bolt',
-      },
-      {
-        'title': 'Camera Tips',
-        'description': 'For best results, ensure good lighting and clear text.',
-        'icon': 'light_mode',
-      },
-      {
-        'title': 'Voice Accuracy',
-        'description':
-            'Speak clearly and at a moderate pace for better voice translation.',
-        'icon': 'volume_up',
-      },
-    ];
+  Widget _buildFeatureCards(BuildContext context) {
+    return Column(
+      children: [
+        FeatureCard(
+          title: 'Translation Mode',
+          description: 'Translate text, voice, and signboards instantly',
+          buttonText: 'Open Translation Mode',
+          icon: Icons.camera_alt,
+          iconColor: Colors.blue,
+          // Using a gradient background to mimic the graphic
+          backgroundGradient: const LinearGradient(
+            colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          onTap: () => Navigator.pushNamed(context, '/translation_mode'),
+        ),
+        FeatureCard(
+          title: 'Explain & Simplify',
+          description:
+              'Understand notices, bills, and messages in simple words',
+          buttonText: 'Explain Something',
+          icon: Icons.article,
+          iconColor: Colors.purple,
+          // Gradient for the second card
+          backgroundGradient: const LinearGradient(
+            colors: [Color(0xFF4B1248), Color(0xFFF0C27B)],
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            stops: [0.0, 1.0], // Dark purple to soft gold/white
+          ),
+          // To make it look more like the mockup (grey/white image), we can tweak colors
+          // For now, using a solid distinctive look
+          backgroundColor: const Color(0xFF2D2D2D),
+          onTap: () => Navigator.pushNamed(context, '/explain_mode'),
+        ),
+        FeatureCard(
+          title: 'Daily Life Assistant',
+          description:
+              'Speak confidently in offices, hospitals, and daily life',
+          buttonText: 'Get Help Speaking',
+          icon: Icons.chat_bubble,
+          iconColor: Colors.green,
+          // Gradient for the third card
+          backgroundGradient: const LinearGradient(
+            colors: [Color(0xFF134E5E), Color(0xFF71B280)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          onTap: () => Navigator.pushNamed(context, '/assistant_mode'),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildQuickAccessSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Tips & Information',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        CarouselSlider(
-          options: CarouselOptions(
-            height: 140, // Increased height to prevent overflow
-            enlargeCenterPage: true,
-            autoPlay: true,
-            aspectRatio: 16 / 9,
-            autoPlayCurve: Curves.fastOutSlowIn,
-            enableInfiniteScroll: true,
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            viewportFraction: 0.8,
+        const Text(
+          'QUICK ACCESS',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
           ),
-          items: tips.map((tip) {
-            return Builder(
-              builder: (BuildContext context) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _getIconData(tip['icon']!),
-                          size: 30,
-                          color: Colors.blueAccent,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          tip['title']!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        Text(
-                          tip['description']!,
-                          style: const TextStyle(fontSize: 12),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            QuickAccessButton(
+              label: 'SOS',
+              icon: Icons.light_mode, // Or dedicated SOS icon if available
+              color: const Color(0xFFE57373), // Red/Pink
+              onTap: () {
+                // TODO
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('SOS Clicked')),
                 );
               },
-            );
-          }).toList(),
+            ),
+            const SizedBox(width: 12),
+            QuickAccessButton(
+              label: 'Offline Pack',
+              icon: Icons.wifi_off,
+              color: const Color(0xFF64B5F6), // Blue
+              onTap: () => Navigator.pushNamed(context, '/offline_models'),
+            ),
+            const SizedBox(width: 12),
+            QuickAccessButton(
+              label: 'Saved Items',
+              icon: Icons.bookmark,
+              color: const Color(0xFFFFD54F), // Amber/Yellow
+              onTap: () => Navigator.pushNamed(context, '/saved_translations'),
+            ),
+            const SizedBox(width: 12),
+            QuickAccessButton(
+              label: 'History',
+              icon: Icons.history,
+              color: const Color(0xFFE0E0E0), // Grey
+              onTap: () {
+                // TODO
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('History Clicked')),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );
-  }
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'offline_bolt':
-        return Icons.offline_bolt;
-      case 'light_mode':
-        return Icons.light_mode;
-      case 'volume_up':
-        return Icons.volume_up;
-      default:
-        return Icons.info_outline;
-    }
   }
 }

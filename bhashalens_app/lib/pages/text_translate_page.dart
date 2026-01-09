@@ -124,8 +124,8 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                 backgroundColor: Colors.orange,
               ),
             );
+            setState(() => _isProcessing = false);
           }
-          setState(() => _isProcessing = false);
           return;
         }
 
@@ -159,7 +159,9 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
           return;
         }
 
+        if (!mounted) return;
         detectedLanguage = await geminiService.detectLanguage(text);
+        if (!mounted) return;
         translatedText = await geminiService.translateText(
           text,
           _targetLanguage,
@@ -167,11 +169,13 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
         );
       }
 
-      setState(() {
-        _originalText = text;
-        _translatedText = translatedText;
-        _sourceLanguage = detectedLanguage;
-      });
+      if (mounted) {
+        setState(() {
+          _originalText = text;
+          _translatedText = translatedText;
+          _sourceLanguage = detectedLanguage;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,9 +186,11 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
         );
       }
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 

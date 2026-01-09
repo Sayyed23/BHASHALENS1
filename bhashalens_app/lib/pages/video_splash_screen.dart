@@ -23,11 +23,13 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
             'assets/_video_intent_create_202601091901_8ebgc.mp4',
           )
           ..initialize().then((_) {
+            if (!mounted) return;
             setState(() {
               _initialized = true;
             });
-            _controller.play();
             _controller.addListener(_checkVideo);
+            _controller.setLooping(false);
+            _controller.play();
           });
   }
 

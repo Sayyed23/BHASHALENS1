@@ -109,7 +109,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       });
 
       final XFile image = await _cameraController!.takePicture();
+      if (!mounted) return;
       final Uint8List bytes = await image.readAsBytes();
+      if (!mounted) return;
 
       setState(() {
         _capturedImage = image;
@@ -123,10 +125,10 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
+        setState(() {
+          _isProcessing = false;
+        });
       }
-      setState(() {
-        _isProcessing = false;
-      });
     }
   }
 
@@ -136,11 +138,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image != null) {
+        if (!mounted) return;
         setState(() {
           _isProcessing = true;
         });
 
         final Uint8List bytes = await image.readAsBytes();
+        if (!mounted) return;
         setState(() {
           _capturedImage = image;
           _capturedImageBytes = bytes;
@@ -150,9 +154,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -160,6 +166,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     // Logic adapted from previous implementation
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
+      if (!mounted) return;
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       String extracted = '';
@@ -204,34 +211,39 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         }
 
         extracted = await geminiService.extractTextFromImage(bytes);
+        if (!mounted) return;
+
         if (extracted.isNotEmpty && extracted != 'No text detected') {
           if (_sourceLanguageCode == 'auto') {
             detectedLang = await geminiService.detectLanguage(extracted);
+            if (!mounted) return;
           }
           translated = await geminiService.translateText(
             extracted,
             _targetLanguageCode,
-            sourceLanguage: detectedLang == 'auto'
-                ? null
-                : detectedLang, // Check logic
+            sourceLanguage: detectedLang == 'auto' ? null : detectedLang,
           );
         } else {
           extracted = "No text found in image.";
         }
       }
 
-      setState(() {
-        _extractedText = extracted;
-        _translatedText = translated;
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _extractedText = extracted;
+          _translatedText = translated;
+          _isProcessing = false;
+        });
+      }
     } catch (e) {
       debugPrint('Processing error: $e');
-      setState(() {
-        _extractedText = "Error processing image";
-        _translatedText = e.toString();
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _extractedText = "Error processing image";
+          _translatedText = e.toString();
+          _isProcessing = false;
+        });
+      }
     }
   }
 

@@ -1,5 +1,7 @@
 import 'package:bhashalens_app/pages/home/home_content.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:bhashalens_app/services/voice_translation_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,7 +15,10 @@ class _HomePageState extends State<HomePage> {
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      Navigator.pushNamed(context, '/translation_mode');
+      Navigator.pushNamed(
+        context,
+        '/text_translate',
+      ); // Corrected route based on file structure
     } else if (index == 2) {
       Navigator.pushNamed(context, '/explain_mode');
     } else if (index == 3) {
@@ -31,60 +36,71 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: const Color(0xFF0F172A), // Dark background
         elevation: 0,
         title: Row(
           children: [
-            Icon(Icons.translate, color: Theme.of(context).colorScheme.primary),
+            Icon(Icons.translate, color: Colors.blue[400]),
             const SizedBox(width: 8),
             const Text(
               'BhashaLens',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
         actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'HI',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+          Consumer<VoiceTranslationService>(
+            builder: (context, voiceService, child) {
+              return GestureDetector(
+                onTap: () {
+                  voiceService.swapLanguages();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        voiceService.userBLanguage.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.swap_horiz,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        voiceService.userALanguage.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.swap_horiz,
-                  color: Theme.of(context).iconTheme.color,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'EN',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
+          const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
@@ -97,9 +113,9 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        backgroundColor: const Color(0xFF0F172A),
+        selectedItemColor: Colors.blue[400],
+        unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -108,7 +124,7 @@ class _HomePageState extends State<HomePage> {
             label: 'Translate',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.description),
+            icon: Icon(Icons.article), // Changed to article for 'Explain'
             label: 'Explain',
           ),
           BottomNavigationBarItem(

@@ -129,4 +129,16 @@ class AppColors {
     Color(0xFFFFC107),
     Color(0xFFFF8A65),
   ];
+  // --- MOCKUP DARK THEME COLORS ---
+  static const Color darkBackground = Color(0xFF101C25); // Deep Blue/Charcoal
+  static const Color darkCard = Color(0xFF1A2630); // Slightly lighter
+  static const Color darkAccent = Color(0xFF2196F3); // Clear Blue
+  static const Color darkText = Color(0xFFFFFFFF);
+  static const Color darkSubText = Color(0xFF8F9BB3);
+  
+  static const Color orangeAccent = Color(0xFFE65100); // Warm orange for icon
+  static const Color purpleAccent = Color(0xFFAB47BC); // Purple for explain icon
+  static const Color greenAccent = Color(0xFF43A047); // Green for assistant icon
+
+  static const Color sosRed = Color(0xFFCF6679); // Muted red for SOS
 }

@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -58,11 +59,35 @@ class DefaultFirebaseOptions {
     storageBucket: 'bhashalens-app.appspot.com', // Placeholder
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDq9OGt80kD3ZxtTUrzG0pFdaaOE87AaPY',
-    appId: '1:705407154234:android:2825d6e1c7db6fb4915d03',
-    messagingSenderId: '705407154234',
-    projectId: 'chicha123',
-    storageBucket: 'chicha123.firebasestorage.app',
-  );
+  static FirebaseOptions get android {
+    final apiKey = dotenv.env['FIREBASE_ANDROID_API_KEY'];
+    final appId = dotenv.env['FIREBASE_ANDROID_APP_ID'];
+    final messagingSenderId =
+        dotenv.env['FIREBASE_ANDROID_MESSAGING_SENDER_ID'];
+    final projectId = dotenv.env['FIREBASE_ANDROID_PROJECT_ID'];
+    final storageBucket = dotenv.env['FIREBASE_ANDROID_STORAGE_BUCKET'];
+
+    if (apiKey == null ||
+        appId == null ||
+        messagingSenderId == null ||
+        projectId == null ||
+        storageBucket == null) {
+      throw StateError('Missing Firebase Android credentials in .env file.');
+    }
+
+    // Validation to ensure projectId matches the intended app
+    if (projectId != 'chicha123') {
+      throw StateError(
+        'Invalid Firebase Project ID: $projectId. Expected: chicha123',
+      );
+    }
+
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+    );
+  }
 }
