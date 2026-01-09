@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "705407154234",
+    "project_id": "chicha123",
+    "storage_bucket": "chicha123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705407154234:android:2825d6e1c7db6fb4915d03",
+        "android_client_info": {
+          "package_name": "com.example.bhashalens_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "705407154234-q2mb77u480vnlga3j3calc3mgtl105p1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bhashalens_app",
+            "certificate_hash": "99b8908ec5e8686801ab983d0816266ce5f4314f"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDq9OGt80kD3ZxtTUrzG0pFdaaOE87AaPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
