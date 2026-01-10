@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
@@ -16,14 +17,30 @@ class GeminiService {
     }
   }
 
+  Future<void> _lastLimitCheck = Future.value();
+
   Future<void> _checkAndIncrementLimit() async {
-    final count = await localStorageService.getApiUsageCount();
-    if (count >= 20) {
-      throw Exception(
-        'API usage limit reached (20/20). Please contact support or upgrade.',
-      );
+    final previous = _lastLimitCheck;
+    final completer = Completer<void>();
+    _lastLimitCheck = completer.future;
+
+    try {
+      await previous;
+    } catch (_) {
+      // Process next even if previous failed
     }
-    await localStorageService.incrementApiUsageCount();
+
+    try {
+      final count = await localStorageService.getApiUsageCount();
+      if (count >= 20) {
+        throw Exception(
+          'API usage limit reached (20/20). Please contact support or upgrade.',
+        );
+      }
+      await localStorageService.incrementApiUsageCount();
+    } finally {
+      completer.complete();
+    }
   }
 
   // Initialize the Gemini service with API key
@@ -312,7 +329,7 @@ class GeminiService {
         throw Exception('Empty response from Gemini');
       }
 
-      // Clean cleanup markdown code blocks if present
+      // Clean up markdown code blocks if present
       String jsonString = responseText.trim();
       if (jsonString.startsWith('```json')) {
         jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
@@ -401,8 +418,9 @@ class GeminiService {
     String goal,
     String language,
   ) async {
-    if (!_isInitialized) return "Service not initialized";
-
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
     final systemPrompt =
         'You are functioning as a person in a "$context". The user has the goal: "$goal". '
         'You should roleplay this situation naturally. '
@@ -414,8 +432,8 @@ class GeminiService {
       history: [Content.text(systemPrompt)],
     );
 
-    // Generate initial greeting
     try {
+      await _checkAndIncrementLimit();
       final response = await _currentChatSession!.sendMessage(
         Content.text(
           "Start the conversation with a generic greeting suitable for this role.",

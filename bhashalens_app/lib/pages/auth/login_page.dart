@@ -78,6 +78,13 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.of(context).pushReplacementNamed('/home');
         } else {
           // User cancelled
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google Sign-In cancelled'),
+              backgroundColor: Colors.orangeAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -146,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: 'Email or Phone',
+                    hintText: 'Email',
                     hintStyle: TextStyle(color: Colors.white38),
                     prefixIcon: Icon(
                       Icons.email_outlined,
@@ -264,11 +271,16 @@ class _LoginPageState extends State<LoginPage> {
                     "Don't have an account? ",
                     style: TextStyle(color: textGrey),
                   ),
-                  GestureDetector(
-                    onTap: () {
+                  TextButton(
+                    onPressed: () {
                       Navigator.of(context).pushNamed('/signup');
                     },
-                    child: const Text(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
                       "Sign Up",
                       style: TextStyle(
                         color: primaryTeal,
@@ -281,7 +293,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: _signInAsGuest,
-                child: const Text(
+                child: Text(
                   'Continue as Guest',
                   style: TextStyle(color: textGrey),
                 ),
