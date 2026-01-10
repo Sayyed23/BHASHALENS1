@@ -430,7 +430,7 @@ class GeminiService {
         '3. If they make a mistake, gently correct it. '
         'Always provide the corrected or improved phrase clearly. '
         'Keep your feedback concise and encouraging. '
-        'IMPORTANT: Respond in the SAME LANGUAGE that the user speaks to you (or the target language "$language").';
+        'IMPORTANT: Always respond in the target language: "$language".';
 
     _currentChatSession = _model.startChat(
       history: [Content.text(systemPrompt)],
