@@ -15,10 +15,7 @@ class _HomePageState extends State<HomePage> {
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      Navigator.pushNamed(
-        context,
-        '/text_translate',
-      ); // Corrected route based on file structure
+      Navigator.pushNamed(context, '/translation_mode');
     } else if (index == 2) {
       Navigator.pushNamed(context, '/explain_mode');
     } else if (index == 3) {

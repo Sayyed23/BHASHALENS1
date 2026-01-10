@@ -1,16 +1,29 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:bhashalens_app/services/local_storage_service.dart';
 
 class GeminiService {
   final String? apiKey;
+  final LocalStorageService localStorageService;
   late GenerativeModel _model;
   late GenerativeModel _visionModel;
   bool _isInitialized = false;
 
-  GeminiService({this.apiKey}) {
+  GeminiService({this.apiKey, required this.localStorageService}) {
     if (apiKey != null && apiKey!.isNotEmpty) {
       initialize();
     }
+  }
+
+  Future<void> _checkAndIncrementLimit() async {
+    final count = await localStorageService.getApiUsageCount();
+    if (count >= 20) {
+      throw Exception(
+        'API usage limit reached (20/20). Please contact support or upgrade.',
+      );
+    }
+    await localStorageService.incrementApiUsageCount();
   }
 
   // Initialize the Gemini service with API key
@@ -24,7 +37,7 @@ class GeminiService {
       }
 
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -35,7 +48,7 @@ class GeminiService {
       );
 
       _visionModel = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.3,
@@ -63,6 +76,8 @@ class GeminiService {
     }
 
     try {
+      await _checkAndIncrementLimit();
+
       final content = [
         Content.multi([
           TextPart(
@@ -102,6 +117,8 @@ class GeminiService {
         prompt =
             'You are a professional translator. Translate the following text to $targetLanguage. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
       }
+
+      await _checkAndIncrementLimit();
 
       final content = [Content.text(prompt)];
       debugPrint('Gemini Translation Prompt: $prompt');
@@ -197,6 +214,8 @@ class GeminiService {
             'Rewrite the following text to sound more $style. IMPORTANT: Use simple, clear, and universally understandable English suitable for non-native speakers. Keep it concise. Input: $text';
       }
 
+      await _checkAndIncrementLimit();
+
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
       final refinedText = response.text ?? 'Refinement failed';
@@ -221,6 +240,8 @@ class GeminiService {
     try {
       final prompt =
           'Explain the following text in $simplicity language, translated into $targetLanguage. Break it down into key points if necessary. Avoid jargon. Input: $text';
+      await _checkAndIncrementLimit();
+
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
       final simplifiedText = response.text ?? 'Simplification failed';
@@ -241,6 +262,8 @@ class GeminiService {
     try {
       final prompt =
           'Detect the language of this text and return only the language name in English:\n\n$text';
+      await _checkAndIncrementLimit();
+
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
       final language = response.text ?? 'Unknown';
@@ -249,6 +272,177 @@ class GeminiService {
     } catch (e) {
       debugPrint('Error detecting language: $e');
       return 'Unknown';
+    }
+  }
+
+  // Explain with rich context (JSON output)
+  Future<Map<String, dynamic>> explainTextWithContext(
+    String text, {
+    String targetLanguage = 'English',
+  }) async {
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
+
+    try {
+      final prompt =
+          'Analyze the following text provided in any language. '
+          'Target Language for translation and explanation: $targetLanguage. '
+          'Return a valid JSON object with the following keys and no markdown formatting: '
+          '{'
+          '"translation": "String - The text translated to $targetLanguage", '
+          '"analysis": "String - A brief contextual summary of what is happening or being said (e.g., The patient is describing...)", '
+          '"meaning": "String - A simplified explanation of what the text means in $targetLanguage", '
+          '"suggested_questions": ["String", "String"] - A list of 2-3 relevant follow-up questions for the user to ask", '
+          '"when_to_use": "String - A brief recommendation on when to use this phrase", '
+          '"tone": "String - The tone of the text (e.g., Formal, Casual, Urgent)", '
+          '"situational_context": ["String", "String"] - A list of 2-3 specific situational details or implications", '
+          '"cultural_insight": "String - A brief insight into the cultural nuance (if any). If none, provide a general context note.", '
+          '"safety_note": "String - (Optional) Any safety warnings, urgency, or legal implications. Return null or empty string if not applicable."'
+          '} '
+          'Input Text: "$text"';
+
+      await _checkAndIncrementLimit();
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null) {
+        throw Exception('Empty response from Gemini');
+      }
+
+      // Clean cleanup markdown code blocks if present
+      String jsonString = responseText.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replaceAll('```', '');
+      }
+
+      debugPrint('Gemini Context Response: $jsonString');
+
+      try {
+        final Map<String, dynamic> data = jsonDecode(jsonString);
+        return data;
+      } catch (e) {
+        debugPrint('Failed to decode JSON: $e');
+        // Fallback to basic map if JSON fails
+        return {
+          'translation': 'Could not analyze context',
+          'meaning': responseText,
+          'when_to_use': 'General',
+          'tone': 'Neutral',
+          'situational_context': [],
+          'cultural_insight': 'N/A',
+          'safety_note': null,
+        };
+      }
+    } catch (e) {
+      debugPrint('Error explaining with context: $e');
+      throw Exception('Failed to explain text: $e');
+    }
+  }
+
+  // Get Basic Guide for a context
+  Future<Map<String, dynamic>> getBasicGuide(
+    String context,
+    String language,
+  ) async {
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
+
+    try {
+      final prompt =
+          'Create a "Basic Guide" for someone visiting a "$context". Language: $language. '
+          'Return a JSON object with these keys (no markdown): '
+          '{'
+          '"etiquette": ["String", "String"], '
+          '"opening_phrase": "String (Polite opening in target language)", '
+          '"documents": ["String", "String"], '
+          '"steps": ["String", "String"]'
+          '}';
+
+      await _checkAndIncrementLimit();
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null) {
+        throw Exception('Empty response from Gemini');
+      }
+
+      String jsonString = responseText.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replaceAll('```', '');
+      }
+
+      return jsonDecode(jsonString);
+    } catch (e) {
+      debugPrint('Error getting basic guide: $e');
+      return {
+        'etiquette': ['Be polite', 'Wait for your turn'],
+        'opening_phrase': 'Hello',
+        'documents': ['ID Proof'],
+        'steps': ['Queuing', 'Speaking'],
+      };
+    }
+  }
+
+  // Start a Roleplay Session
+  ChatSession? _currentChatSession;
+
+  Future<String> startRoleplay(
+    String context,
+    String goal,
+    String language,
+  ) async {
+    if (!_isInitialized) return "Service not initialized";
+
+    final systemPrompt =
+        'You are functioning as a person in a "$context". The user has the goal: "$goal". '
+        'You should roleplay this situation naturally. '
+        'IMPORTANT: Respond in the SAME LANGUAGE that the user speaks to you. If they speak Hindi, respond in Hindi. If English, respond in English. '
+        'Keep your responses concise and realistic. Do not break character. '
+        'If the user makes a mistake, gently guide them but stay in character.';
+
+    _currentChatSession = _model.startChat(
+      history: [Content.text(systemPrompt)],
+    );
+
+    // Generate initial greeting
+    try {
+      final response = await _currentChatSession!.sendMessage(
+        Content.text(
+          "Start the conversation with a generic greeting suitable for this role.",
+        ),
+      );
+      return response.text ?? "Hello, how can I help you?";
+    } catch (e) {
+      debugPrint("Error fetching initial greeting: $e");
+      return "Hello, how can I help you?";
+    }
+  }
+
+  // Chat with Assistant
+  Future<String> chatWithAssistant(String message) async {
+    if (!_isInitialized || _currentChatSession == null) {
+      throw Exception('Chat session not initialized');
+    }
+
+    try {
+      await _checkAndIncrementLimit();
+      final response = await _currentChatSession!.sendMessage(
+        Content.text(message),
+      );
+      return response.text ?? '...';
+    } catch (e) {
+      debugPrint('Error in chat: $e');
+      return 'Sorry, I assumed you said something else.';
     }
   }
 }
