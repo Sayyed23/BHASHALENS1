@@ -47,26 +47,87 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
-    appId: '1:705407154234:web:5ed3f38a275607fa915d03',
-    messagingSenderId: '705407154234',
-    projectId: 'chicha123',
-    authDomain: 'chicha123.firebaseapp.com',
-    storageBucket: 'chicha123.firebasestorage.app',
-    measurementId: 'G-9FEPLCY5TW',
-  );
+  static FirebaseOptions get web {
+    final apiKey = dotenv.env['FIREBASE_WEB_API_KEY'];
+    final appId = dotenv.env['FIREBASE_WEB_APP_ID'];
+    final messagingSenderId = dotenv.env['FIREBASE_WEB_MESSAGING_SENDER_ID'];
+    final projectId = dotenv.env['FIREBASE_WEB_PROJECT_ID'];
+    final authDomain = dotenv.env['FIREBASE_WEB_AUTH_DOMAIN'];
+    final storageBucket = dotenv.env['FIREBASE_WEB_STORAGE_BUCKET'];
+    final measurementId = dotenv.env['FIREBASE_WEB_MEASUREMENT_ID'];
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
-    appId:
-        '1:705407154234:web:5ed3f38a275607fa915d03', // Reusing Web App ID as placeholder/fallback if not specific
-    messagingSenderId: '705407154234',
-    projectId: 'chicha123',
-    authDomain: 'chicha123.firebaseapp.com',
-    storageBucket: 'chicha123.firebasestorage.app',
-    measurementId: 'G-9FEPLCY5TW',
-  );
+    if (apiKey == null ||
+        appId == null ||
+        messagingSenderId == null ||
+        projectId == null ||
+        authDomain == null ||
+        storageBucket == null) {
+      throw StateError('Missing Firebase Web credentials in .env file.');
+    }
+
+    if (projectId != 'chicha123') {
+      throw StateError(
+        'Invalid Firebase Project ID: $projectId. Expected: chicha123',
+      );
+    }
+
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      authDomain: authDomain,
+      storageBucket: storageBucket,
+      measurementId: measurementId,
+    );
+  }
+
+  static FirebaseOptions get windows {
+    // Check if Windows specific keys exist, otherwise fall back to Web keys
+    final apiKey =
+        dotenv.env['FIREBASE_WINDOWS_API_KEY'] ??
+        dotenv.env['FIREBASE_WEB_API_KEY'];
+    final appId =
+        dotenv.env['FIREBASE_WINDOWS_APP_ID'] ??
+        dotenv.env['FIREBASE_WEB_APP_ID'];
+    final messagingSenderId =
+        dotenv.env['FIREBASE_WINDOWS_MESSAGING_SENDER_ID'] ??
+        dotenv.env['FIREBASE_WEB_MESSAGING_SENDER_ID'];
+    final projectId =
+        dotenv.env['FIREBASE_WINDOWS_PROJECT_ID'] ??
+        dotenv.env['FIREBASE_WEB_PROJECT_ID'];
+    final authDomain =
+        dotenv.env['FIREBASE_WINDOWS_AUTH_DOMAIN'] ??
+        dotenv.env['FIREBASE_WEB_AUTH_DOMAIN'];
+    final storageBucket =
+        dotenv.env['FIREBASE_WINDOWS_STORAGE_BUCKET'] ??
+        dotenv.env['FIREBASE_WEB_STORAGE_BUCKET'];
+    final measurementId =
+        dotenv.env['FIREBASE_WINDOWS_MEASUREMENT_ID'] ??
+        dotenv.env['FIREBASE_WEB_MEASUREMENT_ID'];
+
+    if (apiKey == null ||
+        appId == null ||
+        messagingSenderId == null ||
+        projectId == null ||
+        authDomain == null ||
+        storageBucket == null ||
+        measurementId == null) {
+      throw StateError(
+        'Missing Firebase Windows/Web credentials in .env file.',
+      );
+    }
+
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      authDomain: authDomain,
+      storageBucket: storageBucket,
+      measurementId: measurementId,
+    );
+  }
 
   static FirebaseOptions get android {
     final apiKey = dotenv.env['FIREBASE_ANDROID_API_KEY'];

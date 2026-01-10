@@ -1,4 +1,22 @@
 {
+  "name": "bhashalens_app",
+  "version": "1.0.0",
+  "description": "BhashaLens Application",
+  "main": "index.js",
+  "author": "Ismail Sayyed",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sayyed23/BHASHALENS1.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "flutter",
+    "firebase",
+    "bhashalens"
+  ],
   "dependencies": {
     "firebase": "^12.7.0"
   }
