@@ -90,10 +90,12 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (lastMsg.id != _lastAnalyzedMsgId &&
             !voiceService.isListening &&
             !_isAnalyzing) {
-          _lastAnalyzedMsgId = lastMsg.id;
-          _inputController.text =
-              lastMsg.originalText; // Ensure text logic works
-          _isAnalyzing = true;
+          setState(() {
+            _lastAnalyzedMsgId = lastMsg.id;
+            _inputController.text =
+                lastMsg.originalText; // Ensure text logic works
+            _isAnalyzing = true;
+          });
           _explainWithContext()
               .then((_) {
                 if (mounted) setState(() => _isAnalyzing = false);

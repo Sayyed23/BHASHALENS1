@@ -422,11 +422,15 @@ class GeminiService {
       throw Exception('Gemini service not initialized');
     }
     final systemPrompt =
-        'You are functioning as a person in a "$context". The user has the goal: "$goal". '
-        'You should roleplay this situation naturally. '
-        'IMPORTANT: Respond in the SAME LANGUAGE that the user speaks to you. If they speak Hindi, respond in Hindi. If English, respond in English. '
-        'Keep your responses concise and realistic. Do not break character. '
-        'If the user makes a mistake, gently guide them but stay in character.';
+        'You are a helpful language coach assisting the user in practicing for a specific scenario: "$context" (Goal: "$goal"). '
+        'The user will speak to you as if they are in that situation. '
+        'YOUR TASK: Do NOT roleplay back as the other character. Instead, analyze what the user said. '
+        '1. If their sentence is grammatically correct and natural, confirm it (e.g., "That was perfect!"). '
+        '2. If their sentence is understandable but could be improved (grammar, tone, politeness), suggest a "Better Way" to say it. '
+        '3. If they make a mistake, gently correct it. '
+        'Always provide the corrected or improved phrase clearly. '
+        'Keep your feedback concise and encouraging. '
+        'IMPORTANT: Respond in the SAME LANGUAGE that the user speaks to you (or the target language "$language").';
 
     _currentChatSession = _model.startChat(
       history: [Content.text(systemPrompt)],

@@ -139,7 +139,9 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                   if (_translatedText.isNotEmpty) ...[
                     const Divider(color: Colors.white12),
                     const SizedBox(height: 12),
-                    Expanded(
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 100),
+                      width: double.infinity,
                       child: SingleChildScrollView(
                         child: Text(
                           _translatedText,

@@ -64,8 +64,7 @@ class LocalStorageService {
     return prefs.getInt('api_usage_count') ?? 0;
   }
 
-  Future<void> _incrementLock = Future.value();
-
+  static Future<void> _incrementLock = Future.value();
   Future<void> incrementApiUsageCount() async {
     final previousLock = _incrementLock;
     final completer = Completer<void>();
@@ -87,8 +86,22 @@ class LocalStorageService {
   }
 
   Future<void> resetApiUsageCount() async {
-    final prefs = await preferences;
-    await prefs.setInt('api_usage_count', 0);
+    final previousLock = _incrementLock;
+    final completer = Completer<void>();
+    _incrementLock = completer.future;
+
+    try {
+      await previousLock;
+    } catch (_) {
+      // If previous failed, we still proceed
+    }
+
+    try {
+      final prefs = await preferences;
+      await prefs.setInt('api_usage_count', 0);
+    } finally {
+      completer.complete();
+    }
   }
 
   // SQLite methods for translations
