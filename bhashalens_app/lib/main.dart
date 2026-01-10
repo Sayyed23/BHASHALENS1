@@ -27,7 +27,7 @@ import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/translation_mode_page.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/pages/assistant_mode_page.dart';
-import 'package:bhashalens_app/pages/video_splash_screen.dart';
+import 'package:bhashalens_app/pages/splash_screen.dart';
 
 import 'package:bhashalens_app/firebase_options.dart';
 
@@ -47,10 +47,14 @@ void main() async {
         Provider<FirebaseAuthService>(create: (_) => FirebaseAuthService()),
         Provider<LocalStorageService>.value(value: localStorageService),
         Provider<GeminiService>(
-          create: (_) => GeminiService(apiKey: dotenv.env['GEMINI_API_KEY']!),
+          create: (_) => GeminiService(
+            apiKey: dotenv.env['GEMINI_API_KEY']!,
+            localStorageService: localStorageService,
+          ),
         ),
         ChangeNotifierProvider<VoiceTranslationService>(
-          create: (_) => VoiceTranslationService(),
+          create: (_) =>
+              VoiceTranslationService(localStorageService: localStorageService),
         ),
         ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
       ],
@@ -89,7 +93,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
       home: _showSplash
-          ? VideoSplashScreen(
+          ? SplashScreen(
               onComplete: () {
                 setState(() {
                   _showSplash = false;

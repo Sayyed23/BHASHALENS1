@@ -57,6 +57,23 @@ class LocalStorageService {
         false; // Default to false if not set
   }
 
+  // API Usage Tracking
+  Future<int> getApiUsageCount() async {
+    final prefs = await preferences;
+    return prefs.getInt('api_usage_count') ?? 0;
+  }
+
+  Future<void> incrementApiUsageCount() async {
+    final prefs = await preferences;
+    int current = prefs.getInt('api_usage_count') ?? 0;
+    await prefs.setInt('api_usage_count', current + 1);
+  }
+
+  Future<void> resetApiUsageCount() async {
+    final prefs = await preferences;
+    await prefs.setInt('api_usage_count', 0);
+  }
+
   // SQLite methods for translations
   Future<int> insertTranslation(Map<String, dynamic> translation) async {
     final db = await database;

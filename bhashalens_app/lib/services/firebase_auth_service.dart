@@ -22,7 +22,7 @@ class FirebaseAuthService {
       return result.user;
     } catch (e) {
       debugPrint(e.toString());
-      return null;
+      rethrow;
     }
   }
 
@@ -38,7 +38,7 @@ class FirebaseAuthService {
       return result.user;
     } catch (e) {
       debugPrint(e.toString());
-      return null;
+      rethrow;
     }
   }
 
@@ -47,7 +47,7 @@ class FirebaseAuthService {
       final gsi.GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // The user canceled the sign-in
-        return null;
+        return null; // Keep null for cancellation
       }
 
       final gsi.GoogleSignInAuthentication googleAuth =
@@ -63,7 +63,7 @@ class FirebaseAuthService {
       return userCredential.user;
     } catch (e) {
       debugPrint(e.toString());
-      return null;
+      rethrow;
     }
   }
 

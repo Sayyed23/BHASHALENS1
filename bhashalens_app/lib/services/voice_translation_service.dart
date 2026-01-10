@@ -6,6 +6,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/services/local_storage_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -17,6 +18,7 @@ class VoiceTranslationService extends ChangeNotifier {
   final bool _useOpenAI = false; // This will now control online/offline
 
   late GeminiService _geminiService;
+  final LocalStorageService localStorageService;
 
   // ML Kit for offline translation
   final MlKitTranslationService _mlKitService = MlKitTranslationService();
@@ -76,7 +78,7 @@ class VoiceTranslationService extends ChangeNotifier {
     'pa': 'Punjabi',
   };
 
-  VoiceTranslationService() {
+  VoiceTranslationService({required this.localStorageService}) {
     _initializeServices();
   }
 
@@ -90,7 +92,10 @@ class VoiceTranslationService extends ChangeNotifier {
     if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
       debugPrint('GEMINI_API_KEY not found in .env');
     } else {
-      _geminiService = GeminiService(apiKey: _geminiApiKey);
+      _geminiService = GeminiService(
+        apiKey: _geminiApiKey,
+        localStorageService: localStorageService,
+      );
       await _geminiService.initialize();
     }
 
@@ -182,6 +187,31 @@ class VoiceTranslationService extends ChangeNotifier {
       debugPrint('Stopped listening');
       // Translation will be triggered in the onResult callback when speech ends
     }
+  }
+
+  // Simple listening for Assistant Mode
+  Future<void> listenOnce(Function(String) onResult) async {
+    if (!_speechEnabled) {
+      debugPrint('Speech recognition not enabled');
+      return;
+    }
+
+    _isListening = true;
+    notifyListeners();
+
+    await _speechToText.listen(
+      onResult: (result) {
+        onResult(result.recognizedWords);
+        if (result.finalResult) {
+          _isListening = false;
+          notifyListeners();
+        }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      localeId: 'en-US',
+      listenOptions: SpeechListenOptions(cancelOnError: true),
+    );
   }
 
   // Translation
@@ -359,9 +389,14 @@ class VoiceTranslationService extends ChangeNotifier {
   }
 
   // Text-to-speech
-  Future<void> speakText(String text, String languageCode) async {
+  Future<void> speakText(
+    String text,
+    String languageCode, {
+    bool slow = false,
+  }) async {
     try {
       await _flutterTts.setLanguage(_getLanguageCode(languageCode));
+      await _flutterTts.setSpeechRate(slow ? 0.3 : 0.5);
       await _flutterTts.speak(text);
     } catch (e) {
       debugPrint('TTS error: $e');
