@@ -668,26 +668,29 @@ class _AssistantModePageState extends State<AssistantModePage> {
                 ),
                 icon: const Icon(Icons.mic),
                 label: const Text(
-                  "Practice Speaking (Start Roleplay)",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  "Practice Speaking (Start Coaching)",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 32),
 
-            // Live Roleplay Chat
-            Row(
-              children: [
-                const Text(
-                  "LIVE ROLEPLAY",
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
+            // Live Coaching Chat
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                "LIVE COACHING",
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
             Container(

@@ -18,10 +18,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -50,13 +47,25 @@ class DefaultFirebaseOptions {
     }
   }
 
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
+    appId: '1:705407154234:web:5ed3f38a275607fa915d03',
+    messagingSenderId: '705407154234',
+    projectId: 'chicha123',
+    authDomain: 'chicha123.firebaseapp.com',
+    storageBucket: 'chicha123.firebasestorage.app',
+    measurementId: 'G-9FEPLCY5TW',
+  );
+
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY', // Placeholder
-    appId: '1:1234567890:web:1234567890abcdef', // Placeholder
-    messagingSenderId: '1234567890', // Placeholder
-    projectId: 'bhashalens-app', // Placeholder
-    authDomain: 'bhashalens-app.firebaseapp.com', // Placeholder
-    storageBucket: 'bhashalens-app.appspot.com', // Placeholder
+    apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
+    appId:
+        '1:705407154234:web:5ed3f38a275607fa915d03', // Reusing Web App ID as placeholder/fallback if not specific
+    messagingSenderId: '705407154234',
+    projectId: 'chicha123',
+    authDomain: 'chicha123.firebaseapp.com',
+    storageBucket: 'chicha123.firebasestorage.app',
+    measurementId: 'G-9FEPLCY5TW',
   );
 
   static FirebaseOptions get android {
