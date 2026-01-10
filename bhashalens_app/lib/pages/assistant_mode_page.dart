@@ -41,10 +41,8 @@ class _AssistantModePageState extends State<AssistantModePage> {
     'Book appointment',
   ];
 
-  // Mock Data for "Hospital" + "Request leave"
-  // Mock Data for "Hospital" + "Request leave"
   // This will now be the initial state, but chat will be dynamic
-  // Scenarios Data
+  // Scenarios Data  // Scenarios Data
   final Map<String, Map<String, dynamic>> _scenarios = {
     'Hospital': {
       'user_lang_text': 'मुझे डॉक्टर से मिलना है।',
@@ -88,6 +86,13 @@ class _AssistantModePageState extends State<AssistantModePage> {
         'text': 'Please fill this form first, then we can process it.',
       },
     ];
+  }
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    _chatScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchBasicGuide() async {
@@ -151,18 +156,34 @@ class _AssistantModePageState extends State<AssistantModePage> {
       ];
     });
 
-    final greeting = await service.startRoleplay(
-      situation,
-      goalText,
-      'English',
-    );
+    try {
+      final greeting = await service.startRoleplay(
+        situation,
+        goalText,
+        'English',
+      );
 
-    if (mounted) {
-      setState(() {
-        _chatMessages = [
-          {'role': 'other', 'text': greeting},
-        ];
-      });
+      if (mounted) {
+        setState(() {
+          _chatMessages = [
+            {'role': 'other', 'text': greeting},
+          ];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chatMessages = [
+            {
+              'role': 'other',
+              'text': 'Failed to start roleplay. Please try again.',
+            },
+          ];
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     }
   }
 
@@ -171,20 +192,32 @@ class _AssistantModePageState extends State<AssistantModePage> {
       context,
       listen: false,
     );
-    if (_isListening) {
-      await service.stopListening();
-      setState(() => _isListening = false);
-    } else {
-      setState(() => _isListening = true);
-      await service.listenOnce((text) {
+    try {
+      if (_isListening) {
+        await service.stopListening();
+        setState(() => _isListening = false);
+      } else {
+        setState(() => _isListening = true);
+        await service.listenOnce((text) {
+          if (mounted) {
+            setState(() {
+              _chatController.text = text;
+            });
+          }
+        });
         if (mounted) {
-          setState(() {
-            _chatController.text = text;
-          });
+          setState(() => _isListening = false);
         }
-      });
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _isListening = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Voice Input Failed: ${e.toString()}"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -750,6 +783,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
             // Translate Icon
             GestureDetector(
               onTap: () async {
+                if (!mounted) return;
                 final service = Provider.of<VoiceTranslationService>(
                   context,
                   listen: false,

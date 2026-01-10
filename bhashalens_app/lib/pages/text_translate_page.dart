@@ -12,7 +12,7 @@ class TextTranslatePage extends StatefulWidget {
 
 class _TextTranslatePageState extends State<TextTranslatePage> {
   final TextEditingController _textController = TextEditingController();
-  String _sourceLanguage = 'auto';
+  String _sourceLanguage = 'Auto-detected';
   String _targetLanguage = 'English';
   String _translatedText = '';
   bool _isTranslating = false;
@@ -26,6 +26,12 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
     'German',
     'Japanese',
   ];
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +85,7 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                         final temp = _sourceLanguage;
                         _sourceLanguage = _targetLanguage;
                         _targetLanguage = temp;
+                        _translatedText = ''; // Clear stale translation
                       });
                     },
                     child: Container(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -63,10 +64,26 @@ class LocalStorageService {
     return prefs.getInt('api_usage_count') ?? 0;
   }
 
+  Future<void> _incrementLock = Future.value();
+
   Future<void> incrementApiUsageCount() async {
-    final prefs = await preferences;
-    int current = prefs.getInt('api_usage_count') ?? 0;
-    await prefs.setInt('api_usage_count', current + 1);
+    final previousLock = _incrementLock;
+    final completer = Completer<void>();
+    _incrementLock = completer.future;
+
+    try {
+      await previousLock;
+    } catch (_) {
+      // If previous failed, we still proceed
+    }
+
+    try {
+      final prefs = await preferences;
+      int current = prefs.getInt('api_usage_count') ?? 0;
+      await prefs.setInt('api_usage_count', current + 1);
+    } finally {
+      completer.complete();
+    }
   }
 
   Future<void> resetApiUsageCount() async {

@@ -190,7 +190,7 @@ class VoiceTranslationService extends ChangeNotifier {
   }
 
   // Simple listening for Assistant Mode
-  Future<void> listenOnce(Function(String) onResult) async {
+  Future<void> listenOnce(Function(String) onResult, {String? localeId}) async {
     if (!_speechEnabled) {
       debugPrint('Speech recognition not enabled');
       return;
@@ -207,14 +207,14 @@ class VoiceTranslationService extends ChangeNotifier {
           notifyListeners();
         }
       },
+
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      localeId: 'en-US',
+      localeId: localeId ?? 'en-US',
       listenOptions: SpeechListenOptions(cancelOnError: true),
     );
-  }
+  } // Translation
 
-  // Translation
   Future<String> translateText(
     String text,
     String toLanguage, {
