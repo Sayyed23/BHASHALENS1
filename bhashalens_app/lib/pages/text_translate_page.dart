@@ -291,8 +291,8 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF334155),
+        decoration: const BoxDecoration(
+          color: Color(0xFF334155),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white70, size: 20),

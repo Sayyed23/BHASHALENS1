@@ -65,11 +65,11 @@ class HomeContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'How can we help you communicate today?',
           style: TextStyle(
             fontSize: 16,
-            color: const Color(0xFF94A3B8), // Slate-400 equivalent
+            color: Color(0xFF94A3B8), // Slate-400 equivalent
           ),
         ),
       ],

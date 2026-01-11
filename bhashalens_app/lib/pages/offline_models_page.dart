@@ -175,9 +175,9 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
         child: CircularProgressIndicator(strokeWidth: 2, color: primaryBlue),
       );
     } else if (status == 'downloading') {
-      return Row(
+      return const Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
+        children: [
           Text(
             "Downloading...",
             style: TextStyle(color: primaryBlue, fontSize: 12),
