@@ -282,7 +282,12 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                     .map((doc) {
                       try {
                         return SavedTranslation.fromFirestore(doc);
+                      } on StateError catch (e) {
+                        debugPrint('Skipping invalid document: $e');
+                        return null;
                       } catch (e) {
+                        // Fallback for other errors
+                        debugPrint('Error parsing document: $e');
                         return null;
                       }
                     })
