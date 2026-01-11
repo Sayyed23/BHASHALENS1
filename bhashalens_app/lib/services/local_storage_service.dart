@@ -23,15 +23,36 @@ class LocalStorageService {
     String path = join(await getDatabasesPath(), 'bhashalens.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2, // Incremented version
       onCreate: (db, version) async {
-        await db.execute(
-          "CREATE TABLE translations(id INTEGER PRIMARY KEY AUTOINCREMENT, originalText TEXT, translatedText TEXT, sourceLanguage TEXT, targetLanguage TEXT, timestamp INTEGER)",
-        );
-        await db.execute(
-          "CREATE TABLE languagePacks(id INTEGER PRIMARY KEY AUTOINCREMENT, languageCode TEXT, data TEXT)",
-        );
+        await _createTables(db);
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Add new columns to existing table
+          // SQLite doesn't support adding multiple columns in one statement easily or IF NOT EXISTS nicely for columns
+          // So we do one by one.
+          try {
+            await db.execute(
+              "ALTER TABLE translations ADD COLUMN isStarred INTEGER DEFAULT 0",
+            );
+            await db.execute(
+              "ALTER TABLE translations ADD COLUMN category TEXT DEFAULT 'General'",
+            );
+          } catch (e) {
+            // Columns might already exist if we messed up dev, ignore
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _createTables(Database db) async {
+    await db.execute(
+      "CREATE TABLE translations(id INTEGER PRIMARY KEY AUTOINCREMENT, originalText TEXT, translatedText TEXT, sourceLanguage TEXT, targetLanguage TEXT, timestamp INTEGER, isStarred INTEGER DEFAULT 0, category TEXT DEFAULT 'General')",
+    );
+    await db.execute(
+      "CREATE TABLE languagePacks(id INTEGER PRIMARY KEY AUTOINCREMENT, languageCode TEXT, data TEXT)",
     );
   }
 
@@ -116,7 +137,33 @@ class LocalStorageService {
 
   Future<List<Map<String, dynamic>>> getTranslations() async {
     final db = await database;
+    // Get all (History)
     return await db.query('translations', orderBy: 'timestamp DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> getSavedTranslations() async {
+    final db = await database;
+    return await db.query(
+      'translations',
+      where: 'isStarred = ?',
+      whereArgs: [1],
+      orderBy: 'timestamp DESC',
+    );
+  }
+
+  Future<int> updateTranslationStatus(int id, bool isStarred) async {
+    final db = await database;
+    return await db.update(
+      'translations',
+      {'isStarred': isStarred ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteTranslation(int id) async {
+    final db = await database;
+    return await db.delete('translations', where: 'id = ?', whereArgs: [id]);
   }
 
   // SQLite methods for language packs

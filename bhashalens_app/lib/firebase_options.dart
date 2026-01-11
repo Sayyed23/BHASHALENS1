@@ -71,6 +71,12 @@ class DefaultFirebaseOptions {
       );
     }
 
+    if (projectId != 'chicha123') {
+      throw StateError(
+        'Invalid Firebase Project ID: $projectId. Expected: chicha123',
+      );
+    }
+
     return FirebaseOptions(
       apiKey: apiKey,
       appId: appId,
@@ -111,13 +117,11 @@ class DefaultFirebaseOptions {
         messagingSenderId == null ||
         projectId == null ||
         authDomain == null ||
-        storageBucket == null ||
-        measurementId == null) {
+        storageBucket == null) {
       throw StateError(
         'Missing Firebase Windows/Web credentials in .env file.',
       );
     }
-
     return FirebaseOptions(
       apiKey: apiKey,
       appId: appId,

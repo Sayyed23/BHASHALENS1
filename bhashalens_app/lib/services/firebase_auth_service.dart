@@ -78,6 +78,17 @@ class FirebaseAuthService {
     }
   }
 
+  Future<User?> signInAnonymously() async {
+    try {
+      UserCredential result = await _auth.signInAnonymously();
+      return result.user;
+    } catch (e) {
+      debugPrint("Anonymous Auth Error: ${e.toString()}");
+      // Don't rethrow, return null so app can decide what to do (retry or show offline mode)
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();

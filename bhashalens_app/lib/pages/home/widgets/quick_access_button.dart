@@ -18,11 +18,11 @@ class QuickAccessButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        height: 85,
+        height: 100, // Slightly taller to accommodate padding
         decoration: BoxDecoration(
-          color: const Color(0xFF1E2B38),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Material(
           color: Colors.transparent,
@@ -36,10 +36,12 @@ class QuickAccessButton extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Color(0xFFB0BEC5), // Light grey text
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

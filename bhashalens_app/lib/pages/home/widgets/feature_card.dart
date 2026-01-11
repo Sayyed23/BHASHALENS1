@@ -6,10 +6,9 @@ class FeatureCard extends StatelessWidget {
   final String buttonText;
   final IconData icon;
   final Color iconColor;
-  final String? backgroundImagePath;
-  final VoidCallback onTap;
   final LinearGradient? backgroundGradient;
-  final Color? backgroundColor;
+  final VoidCallback onTap;
+  final bool isPrimary; // Formatting for the top card (Blue button)
 
   const FeatureCard({
     super.key,
@@ -18,10 +17,9 @@ class FeatureCard extends StatelessWidget {
     required this.buttonText,
     required this.icon,
     required this.iconColor,
-    this.backgroundImagePath,
-    required this.onTap,
     this.backgroundGradient,
-    this.backgroundColor,
+    required this.onTap,
+    this.isPrimary = false,
   });
 
   @override
@@ -30,103 +28,126 @@ class FeatureCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       height: 160,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: backgroundColor ?? const Color(0xFF1A2630),
-        gradient: backgroundGradient,
-        image: backgroundImagePath != null
-            ? DecorationImage(
-                image: AssetImage(backgroundImagePath!),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: 0.3),
-                  BlendMode.darken,
-                ),
-              )
-            : null,
+        color: const Color(0xFF1E2B38), // Dark card background
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  if (backgroundImagePath == null) ...[
-                    // Icon Box for cards without background image
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: iconColor,
-                        borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Row(
+            children: [
+              // Left Graphic Area
+              Container(
+                width: 110,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                  ),
+                  gradient:
+                      backgroundGradient ??
+                      LinearGradient(
+                        colors: [
+                          iconColor.withValues(alpha: 0.2),
+                          iconColor.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      child: Icon(icon, color: Colors.white, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                  ],
-                  // Text Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          description,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: onTap,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.15,
-                              ),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                ),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 16,
-                              ),
-                              alignment: Alignment.center,
-                            ),
-                            child: Text(
-                              buttonText,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: isPrimary ? Colors.white : iconColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
+                    child: Icon(
+                      icon,
+                      color: isPrimary ? iconColor : Colors.white,
+                      size: 28,
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // Right Content Area
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          height: 1.2,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: onTap,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isPrimary
+                                ? const Color(0xFF136DEC) // Primary Blue
+                                : Colors.white.withValues(alpha: 0.08),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: !isPrimary
+                                  ? BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    )
+                                  : BorderSide.none,
+                            ),
+                          ),
+                          child: Text(
+                            buttonText,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

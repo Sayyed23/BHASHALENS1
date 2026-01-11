@@ -296,26 +296,33 @@ class GeminiService {
   Future<Map<String, dynamic>> explainTextWithContext(
     String text, {
     String targetLanguage = 'English',
+    String? sourceLanguage,
   }) async {
     if (!_isInitialized) {
       throw Exception('Gemini service not initialized');
     }
 
     try {
-      final prompt =
-          'Analyze the following text provided in any language. '
+      String prompt = 'Analyze the following text provided in ';
+      if (sourceLanguage != null && sourceLanguage != 'Auto-detected') {
+        prompt += '$sourceLanguage. ';
+      } else {
+        prompt += 'any language. ';
+      }
+
+      prompt +=
           'Target Language for translation and explanation: $targetLanguage. '
           'Return a valid JSON object with the following keys and no markdown formatting: '
           '{'
           '"translation": "String - The text translated to $targetLanguage", '
-          '"analysis": "String - A brief contextual summary of what is happening or being said (e.g., The patient is describing...)", '
-          '"meaning": "String - A simplified explanation of what the text means in $targetLanguage", '
-          '"suggested_questions": ["String", "String"] - A list of 2-3 relevant follow-up questions for the user to ask", '
-          '"when_to_use": "String - A brief recommendation on when to use this phrase", '
-          '"tone": "String - The tone of the text (e.g., Formal, Casual, Urgent)", '
-          '"situational_context": ["String", "String"] - A list of 2-3 specific situational details or implications", '
-          '"cultural_insight": "String - A brief insight into the cultural nuance (if any). If none, provide a general context note.", '
-          '"safety_note": "String - (Optional) Any safety warnings, urgency, or legal implications. Return null or empty string if not applicable."'
+          '"analysis": "String - A brief contextual summary (1-2 sentences). Who is speaking? What is the main topic?", '
+          '"meaning": "String - A very simple, jargon-free explanation of what this means. Imagine explaining to a child (EL15). Use clear, short sentences.", '
+          '"suggested_questions": ["String", "String"] - A list of 2-3 relevant follow-up questions", '
+          '"when_to_use": "String - Recommendation on when to use this", '
+          '"tone": "String - The tone (e.g., Formal, Casual, Urgent)", '
+          '"situational_context": ["String", "String"] - 2 specific situational examples", '
+          '"cultural_insight": "String - Brief cultural nuance or \'N/A\' if none", '
+          '"safety_note": "String - (Optional) Safety warnings or null"'
           '} '
           'Input Text: "$text"';
 

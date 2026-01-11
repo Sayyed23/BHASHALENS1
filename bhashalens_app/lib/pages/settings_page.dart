@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:bhashalens_app/services/accessibility_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -8,162 +10,66 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool isDarkMode = true;
-  bool pushNotifications = false;
-  bool emailNotifications = false;
+  // Mock State for UI Demo (will be connected to services later where applicable)
+  bool _highContrast =
+      false; // Mapped to Dark Mode via Service usually, but keeping separate for UI demo
+  bool _simplifiedInterface = false;
+  bool _voiceGuidance = false;
+  bool _autoDetectLanguage = true;
+  bool _offlineMode = false;
+  bool _wifiOnlyDownloads = false;
 
   void _navigateTo(String route) {
-    if (route == 'settings') {
-      // Already on settings, do nothing
-      return;
-    }
-    // Map route keys to named routes
+    if (route == 'settings') return;
+
     final routeMap = {
       'edit_profile': '/profile',
       'app_language': '/app_language',
-      'default_language': '/default_language',
-      'text_size': '/text_size',
-      'privacy_policy': '/privacy_policy',
-      'security_settings': '/security_settings',
-      'about': '/about',
-      'help_center': '/help_support',
-      'contact_us': '/contact_us',
-      'send_feedback': '/send_feedback',
-      'terms_of_service': '/terms_of_service',
-      'licenses': '/licenses',
-      'logout': '/login',
-      'delete_account': '/delete_account',
-      'home': '/home',
-      'camera': '/camera_translate',
-      'voice': '/voice_translate',
-      'saved': '/saved_translations',
-      'offline_models': '/offline_models',
+      'default_translation': '/default_language', // Updated key
+      'privacy_permissions': '/privacy_policy', // Updated key
+      'help_support': '/help_support',
+      'clear_history': '/clear_history', // Placeholder route
+      'manage_packs': '/offline_models',
     };
+
     final namedRoute = routeMap[route];
     if (namedRoute != null) {
+      if (route == 'clear_history') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('History cleared (Demo)')));
+        return;
+      }
       Navigator.of(context).pushNamed(namedRoute);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('No page found for "$route"')));
-    }
-  }
-
-  int _selectedIndex = 4;
-  void _onNavTap(int index) {
-    setState(() => _selectedIndex = index);
-    // Navigation logic for bottom nav bar
-    switch (index) {
-      case 0:
-        _navigateTo('home');
-        break;
-      case 1:
-        _navigateTo('camera');
-        break;
-      case 2:
-        _navigateTo('voice');
-        break;
-      case 3:
-        _navigateTo('saved');
-        break;
-      case 4:
-        _navigateTo('settings');
-        break;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Feature not implemented: $route')),
+      );
     }
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Sync local state with actual services if needed
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color(0xFF1193d4);
-    final bgColor = const Color(0xFF111c22);
-    final sectionColor = const Color(0xFF192b33);
-    final dividerColor = const Color(0xFF233c48);
-    final textColor = Colors.white;
-    final subTextColor = const Color(0xFF92b7c9);
+    final accessibilityService = Provider.of<AccessibilityService>(context);
 
-    Widget sectionHeader(String title) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    );
-
-    Widget navRow({
-      required String title,
-      String? subtitle,
-      String? route,
-      VoidCallback? onTap,
-      Widget? trailing,
-      bool showArrow = true,
-    }) {
-      return InkWell(
-        onTap: onTap ?? (route != null ? () => _navigateTo(route) : null),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(color: Colors.transparent),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(color: textColor, fontSize: 16),
-                    ),
-                    if (subtitle != null)
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: subTextColor, fontSize: 13),
-                      ),
-                  ],
-                ),
-              ),
-              if (trailing != null) trailing,
-              if (showArrow)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 18,
-                  color: textColor.withValues(alpha: 0.5),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    Widget switchRow({
-      required String title,
-      required bool value,
-      required ValueChanged<bool> onChanged,
-    }) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(title, style: TextStyle(color: textColor, fontSize: 16)),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: primaryColor,
-              inactiveTrackColor: dividerColor,
-            ),
-          ],
-        ),
-      );
-    }
+    // Theme Colors from Mockup
+    const Color bgDark = Color(0xFF101822);
+    const Color cardDark = Color(0xFF1C222B);
+    const Color primaryBlue = Color(0xFF136DEC);
+    // const Color textWhite = Colors.white; // Unused
+    const Color textGrey = Color(0xFF94A3B8); // Slate-400
+    const Color dividerColor = Color(0xFF2D3748);
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: bgDark,
       appBar: AppBar(
-        backgroundColor: bgColor.withValues(alpha: 0.8),
+        backgroundColor: bgDark,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -171,183 +77,495 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         title: const Text(
           'Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        children: [
-          // Profile
-          sectionHeader('Profile'),
-          navRow(
-            title: 'Edit Profile',
-            subtitle: 'Jane Doe',
-            route: 'edit_profile',
-            trailing: CircleAvatar(
-              radius: 28,
-              backgroundImage: NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuBbVBqt3DYmnbVBx70158AbvCo840Z_4aZoEjpahYl3olS9kOMdyluu09smNvCsklZDlpMr7SwNMm5Dh9ZlgCFqzqyPPtU9vJSOyCI8DV_lTS_-l8H-zZ7NvSmPm4Dk3Mrdutby0hDxYEM-gHet_l_OAK7djeBihoVESUfmgnap070qYfhRyr9aAW2rl9_WtjvQ-R56yhlGiP4ypkTkrQNeZXidPyzOPU5ZSTM5GwT6Y-raFeeMmZn8e3QlxSuFwIqaQEBJzn8-0q4',
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Account Status Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF2D3748)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF22C55E), // Green
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Account Status: Active",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          "BhashaLens App Version 2.1.0",
+                          style: TextStyle(color: textGrey, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: primaryBlue,
+                      size: 28,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          Divider(color: dividerColor, height: 1),
+            const SizedBox(height: 24),
 
-          // Language & Dialect
-          sectionHeader('Language & Dialect'),
-          navRow(
-            title: 'App Language',
-            subtitle: 'English (US)',
-            route: 'app_language',
-          ),
-          Divider(color: dividerColor, height: 1),
-          navRow(
-            title: 'Default Language',
-            subtitle: 'English (US)',
-            route: 'default_language',
-          ),
-          Divider(color: dividerColor, height: 1),
-          navRow(
-            title: 'Offline Translation Models',
-            subtitle: 'Download models for offline use',
-            route: 'offline_models',
-          ),
-          Divider(color: dividerColor, height: 1),
-
-          // Accessibility
-          sectionHeader('Accessibility'),
-          navRow(title: 'Text Size', route: 'text_size'),
-          Divider(color: dividerColor, height: 1),
-          switchRow(
-            title: 'Dark Mode',
-            value: isDarkMode,
-            onChanged: (val) => setState(() => isDarkMode = val),
-          ),
-          Divider(color: dividerColor, height: 1),
-
-          // Notifications
-          sectionHeader('Notifications'),
-          switchRow(
-            title: 'Push Notifications',
-            value: pushNotifications,
-            onChanged: (val) => setState(() => pushNotifications = val),
-          ),
-          Divider(color: dividerColor, height: 1),
-          switchRow(
-            title: 'Email Notifications',
-            value: emailNotifications,
-            onChanged: (val) => setState(() => emailNotifications = val),
-          ),
-          Divider(color: dividerColor, height: 1),
-
-          // Privacy & Security
-          sectionHeader('Privacy & Security'),
-          navRow(title: 'Privacy Policy', route: 'privacy_policy'),
-          Divider(color: dividerColor, height: 1),
-          navRow(title: 'Security Settings', route: 'security_settings'),
-          Divider(color: dividerColor, height: 1),
-
-          // General
-          sectionHeader('General'),
-          navRow(title: 'About', route: 'about'),
-          Divider(color: dividerColor, height: 1),
-          ListTile(
-            title: Text(
-              'App Version',
-              style: TextStyle(color: textColor, fontSize: 16),
+            // ACCESSIBILITY CONTROLS
+            const Text(
+              "ACCESSIBILITY CONTROLS",
+              style: TextStyle(
+                color: textGrey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
             ),
-            trailing: Text(
-              '1.2.3',
-              style: TextStyle(color: subTextColor, fontSize: 16),
+            const SizedBox(height: 12),
+
+            // Text Size Slider
+            const Text(
+              "Text Size",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            tileColor: Colors.transparent,
-          ),
-          Divider(color: dividerColor, height: 1),
-
-          // Support & Feedback
-          sectionHeader('Support & Feedback'),
-          navRow(title: 'Help Center', route: 'help_center'),
-          Divider(color: dividerColor, height: 1),
-          navRow(title: 'Contact Us', route: 'contact_us'),
-          Divider(color: dividerColor, height: 1),
-          navRow(title: 'Send Feedback', route: 'send_feedback'),
-          Divider(color: dividerColor, height: 1),
-
-          // Legal
-          sectionHeader('Legal'),
-          navRow(title: 'Terms of Service', route: 'terms_of_service'),
-          Divider(color: dividerColor, height: 1),
-          navRow(title: 'Licenses', route: 'licenses'),
-          Divider(color: dividerColor, height: 1),
-
-          // Log Out & Delete Account
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Column(
+            const SizedBox(height: 8),
+            Row(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: sectionColor,
-                      foregroundColor: textColor,
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                const Text(
+                  "Tt",
+                  style: TextStyle(color: textGrey, fontSize: 14),
+                ),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: primaryBlue,
+                      inactiveTrackColor: const Color(0xFF334155),
+                      thumbColor: primaryBlue,
+                      overlayColor: primaryBlue.withValues(alpha: 0.2),
+                      trackHeight: 4,
                     ),
-                    onPressed: () => _navigateTo('logout'),
-                    child: const Text('Log Out'),
+                    child: Slider(
+                      value: accessibilityService.textSizeFactor,
+                      min: 0.8,
+                      max: 1.4,
+                      onChanged: (val) {
+                        accessibilityService.setTextSizeFactor(val);
+                      },
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () => _navigateTo('delete_account'),
-                    child: const Text('Delete Account'),
+                const Text(
+                  "Tt",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
+
+            const SizedBox(height: 16),
+            // Accessibility Toggles
+            Container(
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF2D3748)),
+              ),
+              child: Column(
+                children: [
+                  _buildSwitchTile(
+                    icon: Icons.contrast,
+                    iconColor: primaryBlue,
+                    title: "High Contrast Mode",
+                    value: _highContrast,
+                    onChanged: (val) => setState(() => _highContrast = val),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildSwitchTile(
+                    icon: Icons.visibility,
+                    iconColor: primaryBlue,
+                    title: "Simplified Interface",
+                    value: _simplifiedInterface,
+                    onChanged: (val) =>
+                        setState(() => _simplifiedInterface = val),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildSwitchTile(
+                    icon: Icons.record_voice_over,
+                    iconColor: primaryBlue,
+                    title: "Voice Guidance",
+                    value: _voiceGuidance,
+                    onChanged: (val) => setState(() => _voiceGuidance = val),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // LANGUAGES & TRANSLATION
+            const Text(
+              "LANGUAGES & TRANSLATION",
+              style: TextStyle(
+                color: textGrey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF2D3748)),
+              ),
+              child: Column(
+                children: [
+                  _buildNavTile(
+                    title: "App Language",
+                    subtitle: "English",
+                    onTap: () => _navigateTo("app_language"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildNavTile(
+                    title: "Default Translation",
+                    subtitle: "Hindi → English",
+                    onTap: () => _navigateTo("default_translation"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildSwitchTile(
+                    title: "Auto-detect Language",
+                    value: _autoDetectLanguage,
+                    onChanged: (val) =>
+                        setState(() => _autoDetectLanguage = val),
+                    hideIcon: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // AUDIO & OFFLINE
+            const Text(
+              "AUDIO & OFFLINE",
+              style: TextStyle(
+                color: textGrey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Speech Playback Speed
+            const Text(
+              "Speech Playback Speed",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.play_circle_outline,
+                  color: textGrey,
+                  size: 20,
+                ),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: primaryBlue,
+                      inactiveTrackColor: const Color(0xFF334155),
+                      thumbColor: primaryBlue,
+                      overlayColor: primaryBlue.withValues(alpha: 0.2),
+                      trackHeight: 4,
+                    ),
+                    child: Slider(
+                      value: 0.5, // Mock value
+                      onChanged: (val) {}, // Mock action
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.run_circle_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            Container(
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF2D3748)),
+              ),
+              child: Column(
+                children: [
+                  _buildSwitchTile(
+                    title: "Offline Mode",
+                    value: _offlineMode,
+                    onChanged: (val) => setState(() => _offlineMode = val),
+                    hideIcon: true,
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildNavTile(
+                    title: "Offline Language Packs",
+                    subtitle: "Manage downloads",
+                    onTap: () => _navigateTo("manage_packs"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildSwitchTile(
+                    title: "Wi-Fi Only Downloads",
+                    value: _wifiOnlyDownloads,
+                    onChanged: (val) =>
+                        setState(() => _wifiOnlyDownloads = val),
+                    hideIcon: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // DATA & SUPPORT
+            const Text(
+              "DATA & SUPPORT",
+              style: TextStyle(
+                color: textGrey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF2D3748)),
+              ),
+              child: Column(
+                children: [
+                  _buildNavTile(
+                    icon: Icons.help_outline,
+                    title: "Help & Support",
+                    onTap: () => _navigateTo("help_support"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildNavTile(
+                    icon: Icons.lock_outline,
+                    title: "Privacy & Permissions",
+                    onTap: () => _navigateTo("privacy_permissions"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildActionTile(
+                    icon: Icons.delete_sweep_outlined,
+                    iconColor: const Color(0xFFEF5350), // Red
+                    title: "Clear History",
+                    titleColor: const Color(0xFFEF5350),
+                    onTap: () => _navigateTo("clear_history"),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    IconData? icon,
+    Color? iconColor,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    bool hideIcon = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          if (!hideIcon) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (iconColor ?? Colors.white).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor ?? Colors.white, size: 20),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8), // textGrey
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            // activeColor: Colors.white, // Removed based on feedback
+            activeTrackColor: const Color(0xFF136DEC), // primaryBlue
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFF334155),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: sectionColor.withValues(alpha: 0.9),
-        selectedItemColor: primaryColor,
-        unselectedItemColor: subTextColor,
-        currentIndex: _selectedIndex,
-        onTap: _onNavTap,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.photo_camera),
-            label: 'Camera',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Saved'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+    );
+  }
+
+  Widget _buildNavTile({
+    IconData? icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF94A3B8).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF136DEC), // primaryBlue
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required Color titleColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: titleColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

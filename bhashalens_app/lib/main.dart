@@ -1,3 +1,4 @@
+import 'package:bhashalens_app/services/firestore_service.dart'; // Import FirestoreService
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -10,7 +11,6 @@ import 'package:bhashalens_app/pages/auth/signup_page.dart';
 import 'package:bhashalens_app/pages/auth/forgot_password_page.dart';
 import 'package:bhashalens_app/pages/home_page.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
-// import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/settings_page.dart';
 import 'package:bhashalens_app/pages/help_support_page.dart';
 import 'package:bhashalens_app/pages/emergency_page.dart';
@@ -28,6 +28,7 @@ import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/translation_mode_page.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/pages/assistant_mode_page.dart';
+import 'package:bhashalens_app/pages/history_saved_page.dart';
 import 'package:bhashalens_app/pages/splash_screen.dart';
 
 import 'package:bhashalens_app/firebase_options.dart';
@@ -39,6 +40,13 @@ void main() async {
   FirebaseAnalytics.instance;
 
   final localStorageService = LocalStorageService(); // Initialize service
+  // Initialize Auth Service to trigger anonymous login if needed
+  final authService = FirebaseAuthService();
+  if (authService.currentUser == null) {
+    // Try to sign in anonymously in background
+    authService.signInAnonymously();
+  }
+
   final isOnboardingCompleted = await localStorageService
       .isOnboardingCompleted();
 
@@ -46,7 +54,10 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AccessibilityService()),
-        Provider<FirebaseAuthService>(create: (_) => FirebaseAuthService()),
+        Provider<FirebaseAuthService>(create: (_) => authService),
+        Provider<FirestoreService>(
+          create: (_) => FirestoreService(),
+        ), // Inject FirestoreService
         Provider<LocalStorageService>.value(value: localStorageService),
         Provider<GeminiService>(
           create: (_) => GeminiService(
@@ -55,8 +66,10 @@ void main() async {
           ),
         ),
         ChangeNotifierProvider<VoiceTranslationService>(
-          create: (_) =>
-              VoiceTranslationService(localStorageService: localStorageService),
+          create: (_) => VoiceTranslationService(
+            localStorageService: localStorageService,
+            geminiApiKey: dotenv.env['GEMINI_API_KEY'],
+          ),
         ),
         ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
       ],
@@ -106,11 +119,17 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
               stream: FirebaseAuth.instance.authStateChanges(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
                 }
+                // If user is logged in (including anonymous), show HomePage
+                // If not, show Onboarding or Login (which should also allow skipping)
                 if (snapshot.hasData) {
                   return const HomePage();
                 }
+                // Even if not logged in yet (auth failure?), fallback to Onboarding/Login
+                // Ideally, signInAnonymously above should have handled it or is in progress.
                 return widget.isOnboardingCompleted
                     ? const LoginPage()
                     : const OnboardingPage();
@@ -125,6 +144,10 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/camera_translate': (context) => const CameraTranslatePage(),
         '/voice_translate': (context) => const VoiceTranslatePage(),
         '/saved_translations': (context) => const SavedTranslationsPage(),
+        '/history_saved': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return HistorySavedPage(initialIndex: args);
+        },
         '/settings': (context) => const SettingsPage(),
         '/help_support': (context) => const HelpSupportPage(),
         '/emergency': (context) => const EmergencyPage(),
