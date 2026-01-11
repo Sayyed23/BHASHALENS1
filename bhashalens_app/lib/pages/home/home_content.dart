@@ -12,7 +12,7 @@ class HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -27,7 +27,7 @@ class HomeContent extends StatelessWidget {
             _buildFeatureCards(context),
             const SizedBox(height: 24),
             _buildQuickAccessSection(context),
-            const SizedBox(height: 20),
+            const SizedBox(height: 100), // Bottom padding for scrolling
           ],
         ),
       ),
@@ -36,20 +36,15 @@ class HomeContent extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final firebaseAuthService = Provider.of<FirebaseAuthService>(context);
-    // Extract first name for a more personal greeting
-    String userName = 'User';
+    String userName = 'Rahul'; // Default name from mockup for demo, or User
     final user = firebaseAuthService.currentUser;
 
     if (user != null) {
       if (user.displayName != null && user.displayName!.isNotEmpty) {
-        // Use first name from display name
         userName = user.displayName!.split(' ')[0];
       } else if (user.email != null && user.email!.isNotEmpty) {
-        // Fallback to email username
         userName = user.email!.split('@')[0];
       }
-
-      // Capitalize first letter for typical names or email handles
       if (userName.isNotEmpty) {
         userName =
             userName[0].toUpperCase() + userName.substring(1).toLowerCase();
@@ -62,17 +57,18 @@ class HomeContent extends StatelessWidget {
         Text(
           'Namaste, $userName',
           style: const TextStyle(
-            fontSize: 28,
+            fontSize: 32,
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           'How can we help you communicate today?',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.7),
+            color: const Color(0xFF94A3B8), // Slate-400 equivalent
           ),
         ),
       ],
@@ -87,12 +83,17 @@ class HomeContent extends StatelessWidget {
           description: 'Translate text, voice, and signboards instantly',
           buttonText: 'Open Translation Mode',
           icon: Icons.camera_alt,
-          iconColor: Colors.blue,
-          // Using a gradient background to mimic the graphic
+          iconColor: const Color(0xFF0EA5E9), // Sky Blue
+          isPrimary: true,
+          // Deep Blue Wave Gradient
           backgroundGradient: const LinearGradient(
-            colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A), // Dark Slate
+              Color(0xFF1E3A8A), // Dark Blue
+              Color(0xFF1D4ED8), // Blue
+            ],
+            begin: Alignment.bottomRight,
+            end: Alignment.topLeft,
           ),
           onTap: () => Navigator.pushNamed(context, '/translation_mode'),
         ),
@@ -102,17 +103,16 @@ class HomeContent extends StatelessWidget {
               'Understand notices, bills, and messages in simple words',
           buttonText: 'Explain Something',
           icon: Icons.article,
-          iconColor: Colors.purple,
-          // Gradient for the second card
-          backgroundGradient: const LinearGradient(
-            colors: [Color(0xFF4B1248), Color(0xFFF0C27B)],
+          iconColor: const Color(0xFFA855F7), // Purple
+          // Soft Purple/Grey Gradient
+          backgroundGradient: LinearGradient(
+            colors: [
+              const Color(0xFF581C87).withValues(alpha: 0.2),
+              const Color(0xFFC084FC).withValues(alpha: 0.1),
+            ],
             begin: Alignment.bottomLeft,
             end: Alignment.topRight,
-            stops: [0.0, 1.0], // Dark purple to soft gold/white
           ),
-          // To make it look more like the mockup (grey/white image), we can tweak colors
-          // For now, using a solid distinctive look
-          backgroundColor: const Color(0xFF2D2D2D),
           onTap: () => Navigator.pushNamed(context, '/explain_mode'),
         ),
         FeatureCard(
@@ -121,12 +121,15 @@ class HomeContent extends StatelessWidget {
               'Speak confidently in offices, hospitals, and daily life',
           buttonText: 'Get Help Speaking',
           icon: Icons.chat_bubble,
-          iconColor: Colors.green,
-          // Gradient for the third card
-          backgroundGradient: const LinearGradient(
-            colors: [Color(0xFF134E5E), Color(0xFF71B280)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+          iconColor: const Color(0xFF22C55E), // Green
+          // Soft Green Gradient
+          backgroundGradient: LinearGradient(
+            colors: [
+              const Color(0xFF14532D).withValues(alpha: 0.3),
+              const Color(0xFF4ADE80).withValues(alpha: 0.1),
+            ],
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
           ),
           onTap: () => Navigator.pushNamed(context, '/assistant_mode'),
         ),
@@ -141,10 +144,10 @@ class HomeContent extends StatelessWidget {
         const Text(
           'QUICK ACCESS',
           style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
+            color: Color(0xFF94A3B8),
+            fontSize: 13,
             fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+            letterSpacing: 1.0,
           ),
         ),
         const SizedBox(height: 16),
@@ -152,13 +155,15 @@ class HomeContent extends StatelessWidget {
           children: [
             QuickAccessButton(
               label: 'SOS',
-              icon: Icons.light_mode, // Or dedicated SOS icon if available
-              color: const Color(0xFFE57373), // Red/Pink
+              icon: Icons.campaign, // Siren/Alert
+              color: const Color(0xFFEF4444), // Red-500
               onTap: () {
-                // TODO
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('SOS Clicked')),
+                  const SnackBar(
+                    content: Text('SOS Feature Coming Soon'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               },
             ),
@@ -166,28 +171,27 @@ class HomeContent extends StatelessWidget {
             QuickAccessButton(
               label: 'Offline Pack',
               icon: Icons.wifi_off,
-              color: const Color(0xFF64B5F6), // Blue
+              color: const Color(0xFF3B82F6), // Blue-500
               onTap: () => Navigator.pushNamed(context, '/offline_models'),
             ),
             const SizedBox(width: 12),
             QuickAccessButton(
               label: 'Saved Items',
               icon: Icons.bookmark,
-              color: const Color(0xFFFFD54F), // Amber/Yellow
-              onTap: () => Navigator.pushNamed(context, '/saved_translations'),
+              color: const Color(0xFFEAB308), // Yellow-500
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/history_saved',
+                arguments: 1,
+              ), // Index 1 for Saved
             ),
             const SizedBox(width: 12),
             QuickAccessButton(
               label: 'History',
               icon: Icons.history,
-              color: const Color(0xFFE0E0E0), // Grey
-              onTap: () {
-                // TODO
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('History Clicked')),
-                );
-              },
+              color: const Color(0xFF94A3B8), // Slate-400
+              onTap: () =>
+                  Navigator.pushNamed(context, '/history_saved', arguments: 0),
             ),
           ],
         ),

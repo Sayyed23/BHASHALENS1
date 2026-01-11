@@ -78,15 +78,20 @@ class VoiceTranslationService extends ChangeNotifier {
     'pa': 'Punjabi',
   };
 
-  VoiceTranslationService({required this.localStorageService}) {
+  VoiceTranslationService({
+    required this.localStorageService,
+    String? geminiApiKey,
+  }) : _geminiApiKey = geminiApiKey {
     _initializeServices();
   }
 
   Future<void> _initializeServices() async {
-    // Load API keys
-    _geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+    // API key is now injected, or fallback to dotenv if needed (but prefer injection)
+    _geminiApiKey ??= dotenv.env['GEMINI_API_KEY'];
+
+    // debugPrint with masked key
     debugPrint(
-      'VoiceTranslationService: Loaded GEMINI_API_KEY: \\$_geminiApiKey',
+      'VoiceTranslationService: Loaded GEMINI_API_KEY: ${_geminiApiKey != null ? "Present" : "Missing"}',
     );
 
     if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {

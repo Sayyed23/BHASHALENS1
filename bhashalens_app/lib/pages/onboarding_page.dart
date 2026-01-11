@@ -26,6 +26,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'caption': 'Speak and get real-time voice translations.',
     },
     {
+      'icon': Icons.article,
+      'caption': 'Simplify complex documents using Text, Voice, or Camera.',
+    },
+    {
+      'icon': Icons.chat_bubble,
+      'caption': 'Get help with daily conversations using Assistant Mode.',
+    },
+    {
       'icon': Icons.offline_bolt,
       'caption': 'Access essential features even without internet.',
     },
@@ -167,9 +175,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 15),
         _buildFeatureRow(
+          Icons.article,
+          'Explain & Simplify',
+          'Understand notices using Text, Voice, or Camera.',
+        ),
+        const SizedBox(height: 15),
+        _buildFeatureRow(
+          Icons.chat_bubble,
+          'Daily Assistant',
+          'Confidence in daily conversations.',
+        ),
+        const SizedBox(height: 15),
+        _buildFeatureRow(
           Icons.offline_bolt,
           'Offline Mode',
-          'Translate anytime, anywhere, without internet.',
+          'Translate anytime, anywhere.',
         ),
       ],
     );

@@ -16,6 +16,13 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
   // Track status of downloads: 'downloaded', 'downloading', 'not_downloaded'
   final Map<String, String> _modelStatus = {};
 
+  // Theme Colors
+  static const Color bgDark = Color(0xFF101822);
+  static const Color cardDark = Color(0xFF1C222B);
+  static const Color primaryBlue = Color(0xFF136DEC);
+  static const Color textGrey = Color(0xFF94A3B8);
+  static const Color dividerColor = Color(0xFF2D3748);
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +33,7 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
     final downloaded = await _mlKitService.getDownloadedModels();
     if (mounted) {
       setState(() {
-        // First reset all to not_downloaded or keep existing if downloading
+        // First reset all
         for (var lang in _supportedLanguages) {
           final code = lang['code']!;
           if (_modelStatus[code] != 'downloading') {
@@ -40,11 +47,9 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
       });
     }
 
-    // Individual checks for accuracy (re-verify)
+    // Verify individual (optional but safe)
     for (var lang in _supportedLanguages) {
       final code = lang['code']!;
-      // Skip if already confirmed downloaded by list to avoid redundant calls,
-      // but isModelDownloaded is cheap.
       final isDownloaded = await _mlKitService.isModelDownloaded(code);
       if (mounted) {
         setState(() {
@@ -71,6 +76,7 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
         SnackBar(
           content: Text(
             success ? 'Model downloaded successfully' : 'Download failed',
+            style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: success ? Colors.green : Colors.red,
         ),
@@ -80,7 +86,7 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
 
   Future<void> _deleteModel(String code) async {
     setState(() {
-      _modelStatus[code] = 'deleting'; // optional status
+      _modelStatus[code] = 'deleting';
     });
 
     final success = await _mlKitService.deleteModel(code);
@@ -90,32 +96,38 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
         _modelStatus[code] = success ? 'not_downloaded' : 'downloaded';
       });
       if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Model deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Model deleted',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.grey,
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: bgDark,
       appBar: AppBar(
-        title: const Text('Offline Models'),
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
+        title: const Text(
+          'Offline Models',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: bgDark,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: theme.colorScheme.onSurface,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         itemCount: _supportedLanguages.length,
         itemBuilder: (context, index) {
           final lang = _supportedLanguages[index];
@@ -123,38 +135,89 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
           final name = lang['name']!;
           final status = _modelStatus[code] ?? 'loading';
 
-          return ListTile(
-            title: Text(name),
-            subtitle: Text(code),
-            trailing: _buildTrailingWidget(code, status),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: dividerColor),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              title: Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: Text(
+                code.toUpperCase(), // Display code slightly cleaner
+                style: const TextStyle(color: textGrey, fontSize: 13),
+              ),
+              trailing: _buildActionAndStatus(code, status),
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildTrailingWidget(String code, String status) {
+  Widget _buildActionAndStatus(String code, String status) {
     if (status == 'loading' || status == 'deleting') {
       return const SizedBox(
         width: 24,
         height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2),
+        child: CircularProgressIndicator(strokeWidth: 2, color: primaryBlue),
       );
     } else if (status == 'downloading') {
-      return const SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text(
+            "Downloading...",
+            style: TextStyle(color: primaryBlue, fontSize: 12),
+          ),
+          SizedBox(width: 12),
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: primaryBlue,
+            ),
+          ),
+        ],
       );
     } else if (status == 'downloaded') {
-      return IconButton(
-        icon: const Icon(Icons.delete, color: Colors.grey),
-        onPressed: () => _deleteModel(code),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_circle,
+            color: Color(0xFF22C55E),
+            size: 20,
+          ), // Green check
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Color(0xFFEF5350),
+            ), // Red delete
+            onPressed: () => _deleteModel(code),
+            tooltip: "Delete Model",
+          ),
+        ],
       );
     } else {
       return IconButton(
-        icon: const Icon(Icons.download, color: Colors.blue),
+        icon: const Icon(Icons.download_rounded, color: primaryBlue, size: 26),
         onPressed: () => _downloadModel(code),
+        tooltip: "Download Model",
       );
     }
   }

@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:bhashalens_app/pages/explain_mode_page.dart'; // Import ExplainModePage
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
+import 'dart:ui' as ui; // Import for ImageFilter
 import 'package:share_plus/share_plus.dart';
 
 class CameraTranslatePage extends StatefulWidget {
@@ -174,8 +177,26 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       String detectedLang = _sourceLanguageCode;
 
       if (isOffline) {
+        if (_sourceLanguageCode == 'auto') {
+          throw Exception(
+            "Offline Mode: Please select a specific Source Language (Auto-detect not supported offline).",
+          );
+        }
+
         // ML Kit Offline Logic
         final mlKitService = MlKitTranslationService();
+
+        // Check if model is downloaded
+        final isModelDownloaded = await mlKitService.isModelDownloaded(
+          _targetLanguageCode,
+        );
+        if (!isModelDownloaded) {
+          // Ideally prompt to download, but for now show error
+          throw Exception(
+            "Offline Mode: Target language model ($_targetLanguageCode) not downloaded. Please download it in Offline settings.",
+          );
+        }
+
         // ML Kit Text Recognition often needs a file path or InputImage
         // Assuming we have _capturedImage path
         if (_capturedImage != null) {
@@ -187,15 +208,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         }
 
         if (extracted.isNotEmpty && !extracted.startsWith("Error")) {
-          // Heuristic: If auto, default to 'en' or try to guess?
-          // Offline translation usually requires explicit source.
-          String source = _sourceLanguageCode == 'auto'
-              ? 'en'
-              : _sourceLanguageCode;
-
           final result = await mlKitService.translate(
             text: extracted,
-            sourceLanguage: source,
+            sourceLanguage: _sourceLanguageCode,
             targetLanguage: _targetLanguageCode,
           );
           translated = result ?? "Translation failed (Offline)";
@@ -362,83 +377,98 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    // Back Button
-                    Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black45,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
+            child: Container(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 10,
+                bottom: 15,
+                left: 20,
+                right: 20,
+              ),
+              child: Row(
+                children: [
+                  // Back Button (Glassy)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    // Language Selector Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Row(
-                        children: [
-                          // Source
-                          GestureDetector(
-                            onTap: () {
-                              // Show source picker
-                              _showLanguagePicker(true);
-                            },
-                            child: Text(
-                              _displayLanguages[_sourceLanguageCode] ??
-                                  _sourceLanguageCode,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                  ),
+                  const Spacer(),
+                  // Language Selector Pill (Glassy)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _showLanguagePicker(true),
+                              child: Text(
+                                _displayLanguages[_sourceLanguageCode] ??
+                                    _sourceLanguageCode,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Icon(
-                              Icons.arrow_forward,
-                              color: Colors.white70,
-                              size: 16,
-                            ),
-                          ),
-                          // Target
-                          GestureDetector(
-                            onTap: () {
-                              // Show target picker
-                              _showLanguagePicker(false);
-                            },
-                            child: Text(
-                              _displayLanguages[_targetLanguageCode] ??
-                                  _targetLanguageCode,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white.withValues(alpha: 0.7),
+                                size: 16,
                               ),
                             ),
-                          ),
-                        ],
+                            GestureDetector(
+                              onTap: () => _showLanguagePicker(false),
+                              child: Text(
+                                _displayLanguages[_targetLanguageCode] ??
+                                    _targetLanguageCode,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    const SizedBox(width: 40), // Balance spacing
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  const SizedBox(width: 48), // Balance spacing
+                ],
               ),
             ),
           ),
@@ -448,19 +478,24 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                padding: const EdgeInsets.only(bottom: 40, top: 20),
-                color: Colors.transparent,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.8),
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.only(bottom: 50, top: 40),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Gallery
-                    IconButton(
-                      icon: const Icon(
-                        Icons.photo_library,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                      onPressed: _pickFromGallery,
+                    _buildGlassyButton(
+                      icon: Icons.photo_library_rounded,
+                      onTap: _pickFromGallery,
                     ),
 
                     // Shutter
@@ -471,27 +506,28 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          color: Colors.transparent,
-                        ),
-                        child: Container(
-                          margin: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            width: 8,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
                       ),
                     ),
 
                     // Flash
-                    IconButton(
-                      icon: Icon(
-                        _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                      onPressed: _toggleFlash,
+                    _buildGlassyButton(
+                      icon: _isFlashOn
+                          ? Icons.flash_on_rounded
+                          : Icons.flash_off_rounded,
+                      onTap: _toggleFlash,
                     ),
                   ],
                 ),
@@ -587,14 +623,27 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             style: TextStyle(
                               color: Colors.grey[400],
                               fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _extractedText,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: Text(
+                              _extractedText,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ],
@@ -609,6 +658,16 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             Icons.copy,
                             "Copy",
                             _copyTranslation,
+                          ),
+                          _buildActionButton(
+                            Icons.save,
+                            "Save",
+                            _saveTranslation,
+                          ),
+                          _buildActionButton(
+                            Icons.psychology,
+                            "Explain",
+                            _explainTranslation,
                           ),
                           _buildActionButton(
                             Icons.share,
@@ -663,22 +722,52 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF374151),
-              borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 80, // Fixed width for alignment
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF374151).withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 26),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassyButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+          child: IconButton(
+            icon: Icon(icon, color: Colors.white, size: 24),
+            onPressed: onTap,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -688,6 +777,46 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+  }
+
+  void _saveTranslation() async {
+    if (_extractedText.isEmpty || _translatedText.isEmpty) return;
+    try {
+      final localStorage = Provider.of<LocalStorageService>(
+        context,
+        listen: false,
+      );
+      await localStorage.insertTranslation({
+        'originalText': _extractedText,
+        'translatedText': _translatedText,
+        'sourceLanguage': _sourceLanguageCode,
+        'targetLanguage': _targetLanguageCode,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Translation Saved')));
+      }
+    } catch (e) {
+      debugPrint("Error saving: $e");
+    }
+  }
+
+  void _explainTranslation() {
+    if (_extractedText.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No text to explain')));
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExplainModePage(initialText: _extractedText),
+      ),
+    );
   }
 
   void _shareTranslation() {

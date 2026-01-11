@@ -2,6 +2,7 @@ import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/services/firestore_service.dart';
 
 class AssistantModePage extends StatefulWidget {
   const AssistantModePage({super.key});
@@ -566,6 +567,40 @@ class _AssistantModePageState extends State<AssistantModePage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // Save Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final firestore = Provider.of<FirestoreService>(
+                          context,
+                          listen: false,
+                        );
+                        final messenger = ScaffoldMessenger.of(context);
+                        final situation =
+                            _situations[_selectedSituationIndex]['label'];
+
+                        await firestore.saveAssistantPhrase(
+                          phrase: _currentScenario['user_lang_text'],
+                          intent: situation, // Context/Situation
+                          translatedPhrase: _currentScenario['translation'],
+                        );
+
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                              "Phrase saved to your collection",
+                            ),
+                            backgroundColor: primaryBlue,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.bookmark_border, size: 18),
+                      label: const Text("Save this phrase"),
+                      style: TextButton.styleFrom(foregroundColor: primaryBlue),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -583,6 +618,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                 children: [
                   Row(
                     children: [
+                      // ... rest of play button logic
                       // Play Button
                       GestureDetector(
                         onTap: () {

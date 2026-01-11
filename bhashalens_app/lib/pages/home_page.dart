@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/pages/home/home_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,18 +15,18 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    if (index == 1) {
+    if (index == 0) {
+      setState(() {
+        _selectedIndex = 0;
+      });
+    } else if (index == 1) {
       Navigator.pushNamed(context, '/translation_mode');
     } else if (index == 2) {
       Navigator.pushNamed(context, '/explain_mode');
     } else if (index == 3) {
-      Navigator.pushNamed(context, '/assistant_mode');
+      Navigator.pushNamed(context, '/history_saved', arguments: 0);
     } else if (index == 4) {
-      Navigator.pushNamed(context, '/settings');
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
+      Navigator.pushNamed(context, '/assistant_mode');
     }
   }
 
@@ -33,6 +34,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // ... (Keep existing AppBar code if I can't see it all, but I have viewed it)
+        // I will just return the modified BottomNavigationBar part to avoid replacing valid AppBar code blindly
+        // using replace_file_content on the bottom part.
         backgroundColor: const Color(0xFF0F172A), // Dark background
         elevation: 0,
         title: Row(
@@ -45,6 +49,45 @@ class _HomePageState extends State<HomePage> {
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
+            ),
+            const SizedBox(width: 8),
+            StreamBuilder<List<ConnectivityResult>>(
+              stream: Connectivity().onConnectivityChanged,
+              builder: (context, snapshot) {
+                final results = snapshot.data;
+                // Check if offline (basic check: contains none or empty)
+                final hasConnection =
+                    results != null &&
+                    (results.contains(ConnectivityResult.mobile) ||
+                        results.contains(ConnectivityResult.wifi) ||
+                        results.contains(ConnectivityResult.ethernet));
+
+                // If snapshot has data and NO connection, show offline
+                if (snapshot.hasData && !hasConnection) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[600]!),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.cloud_off, size: 12, color: Colors.grey),
+                        SizedBox(width: 4),
+                        Text(
+                          "Offline",
+                          style: TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
@@ -121,16 +164,13 @@ class _HomePageState extends State<HomePage> {
             label: 'Translate',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.article), // Changed to article for 'Explain'
+            icon: Icon(Icons.description),
             label: 'Explain',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Records'),
           BottomNavigationBarItem(
             icon: Icon(Icons.smart_toy),
             label: 'Assistant',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),
