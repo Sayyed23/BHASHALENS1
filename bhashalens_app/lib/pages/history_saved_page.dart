@@ -65,10 +65,11 @@ class _HistorySavedPageState extends State<HistorySavedPage>
       await _firestoreService.toggleSavedStatus(item.id!, !item.isStarred);
       // Stream updates automatically
     } catch (e) {
+      debugPrint('Failed to toggle saved status: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update saved status')),
+        );
       }
     }
   }
@@ -277,9 +278,16 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   );
                 }
 
-                List<SavedTranslation> items = snapshot.data!.docs.map((doc) {
-                  return SavedTranslation.fromFirestore(doc);
-                }).toList();
+                List<SavedTranslation> items = snapshot.data!.docs
+                    .map((doc) {
+                      try {
+                        return SavedTranslation.fromFirestore(doc);
+                      } catch (e) {
+                        return null;
+                      }
+                    })
+                    .whereType<SavedTranslation>()
+                    .toList();
 
                 List<SavedTranslation> filteredItems = _filterList(items);
 
@@ -541,9 +549,12 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   try {
                     await _firestoreService.deleteTranslation(item.id!);
                   } catch (e) {
+                    debugPrint('Failed to delete translation: $e');
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to delete: $e')),
+                        const SnackBar(
+                          content: Text('Failed to delete translation'),
+                        ),
                       );
                     }
                   }

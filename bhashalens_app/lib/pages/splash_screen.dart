@@ -44,6 +44,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    // Calculate responsive size: 60% of screen width, clamped between 200 and 300
+    final logoSize = (size.width * 0.6).clamp(200.0, 300.0);
+
     return Scaffold(
       backgroundColor: Colors.white, // Or app background color
       body: Center(
@@ -51,8 +55,8 @@ class _SplashScreenState extends State<SplashScreen>
           opacity: _animation,
           child: Image.asset(
             'assets/logo2.png',
-            width: 800, // Adjust size as needed
-            height: 800,
+            width: logoSize,
+            height: logoSize,
           ),
         ),
       ),

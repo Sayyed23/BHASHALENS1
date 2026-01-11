@@ -63,11 +63,7 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint('AccessibilityService not found: $e');
     }
 
-    if (accessibilityService == null) {
-      return const Scaffold(
-        body: Center(child: Text("Accessibility Service Unavailable")),
-      );
-    }
+    // AccessibilityService might be null, but we continue rendering other settings.
     final service = accessibilityService;
 
     // Theme Colors from Mockup
@@ -175,89 +171,107 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 12),
 
-            // Text Size Slider
-            const Text(
-              "Text Size",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+            if (service != null) ...[
+              // Text Size Slider
+              const Text(
+                "Text Size",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text(
-                  "Tt",
-                  style: TextStyle(color: textGrey, fontSize: 14),
-                ),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: primaryBlue,
-                      inactiveTrackColor: const Color(0xFF334155),
-                      thumbColor: primaryBlue,
-                      overlayColor: primaryBlue.withValues(alpha: 0.2),
-                      trackHeight: 4,
-                    ),
-                    child: Slider(
-                      value: service.textSizeFactor,
-                      min: 0.8,
-                      max: 1.4,
-                      onChanged: (val) {
-                        service.setTextSizeFactor(val);
-                      },
-                    ),
-                  ),
-                ),
-                const Text(
-                  "Tt",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            // Accessibility Toggles
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
-              ),
-              child: Column(
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  _buildSwitchTile(
-                    icon: Icons.contrast,
-                    iconColor: primaryBlue,
-                    title: "High Contrast Mode",
-                    value: _highContrast,
-                    onChanged: (val) => setState(() => _highContrast = val),
+                  const Text(
+                    "Tt",
+                    style: TextStyle(color: textGrey, fontSize: 14),
                   ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    icon: Icons.visibility,
-                    iconColor: primaryBlue,
-                    title: "Simplified Interface",
-                    value: _simplifiedInterface,
-                    onChanged: (val) =>
-                        setState(() => _simplifiedInterface = val),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: primaryBlue,
+                        inactiveTrackColor: const Color(0xFF334155),
+                        thumbColor: primaryBlue,
+                        overlayColor: primaryBlue.withValues(alpha: 0.2),
+                        trackHeight: 4,
+                      ),
+                      child: Slider(
+                        value: service.textSizeFactor,
+                        min: 0.8,
+                        max: 1.4,
+                        onChanged: (val) {
+                          service.setTextSizeFactor(val);
+                        },
+                      ),
+                    ),
                   ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    icon: Icons.record_voice_over,
-                    iconColor: primaryBlue,
-                    title: "Voice Guidance",
-                    value: _voiceGuidance,
-                    onChanged: (val) => setState(() => _voiceGuidance = val),
+                  const Text(
+                    "Tt",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
-            ),
+
+              const SizedBox(height: 16),
+              // Accessibility Toggles
+              Container(
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: Column(
+                  children: [
+                    _buildSwitchTile(
+                      icon: Icons.contrast,
+                      iconColor: primaryBlue,
+                      title: "High Contrast Mode",
+                      value: _highContrast,
+                      onChanged: (val) => setState(() => _highContrast = val),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      icon: Icons.visibility,
+                      iconColor: primaryBlue,
+                      title: "Simplified Interface",
+                      value: _simplifiedInterface,
+                      onChanged: (val) =>
+                          setState(() => _simplifiedInterface = val),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      icon: Icons.record_voice_over,
+                      iconColor: primaryBlue,
+                      title: "Voice Guidance",
+                      value: _voiceGuidance,
+                      onChanged: (val) => setState(() => _voiceGuidance = val),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Fallback when AccessibilityService is unavailable
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: const Text(
+                  "Accessibility controls unavailable",
+                  style: TextStyle(color: textGrey),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // LANGUAGES & TRANSLATION
