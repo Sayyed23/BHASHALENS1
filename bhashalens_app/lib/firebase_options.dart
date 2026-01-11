@@ -111,11 +111,13 @@ class DefaultFirebaseOptions {
         messagingSenderId == null ||
         projectId == null ||
         authDomain == null ||
-        storageBucket == null) {
+        storageBucket == null ||
+        measurementId == null) {
       throw StateError(
         'Missing Firebase Windows/Web credentials in .env file.',
       );
     }
+
     return FirebaseOptions(
       apiKey: apiKey,
       appId: appId,
