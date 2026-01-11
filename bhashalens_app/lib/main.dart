@@ -33,50 +33,56 @@ import 'package:bhashalens_app/pages/splash_screen.dart';
 
 import 'package:bhashalens_app/firebase_options.dart';
 
+import 'package:bhashalens_app/services/db_initializer.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  initializeDatabaseFactory();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("Warning: Failed to load .env file: $e");
+  }
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Warning: Failed to initialize Firebase: $e");
+  }
   FirebaseAnalytics.instance;
 
   final localStorageService = LocalStorageService(); // Initialize service
   // Initialize Auth Service to trigger anonymous login if needed
   final authService = FirebaseAuthService();
-  // Moved anonymous sign-in to BhashaLensApp to avoid blocking startup
-  final isOnboardingCompleted = await localStorageService
-      .isOnboardingCompleted();
-
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AccessibilityService()),
         Provider<FirebaseAuthService>(create: (_) => authService),
-        Provider<FirestoreService>(
-          create: (_) => FirestoreService(),
-        ), // Inject FirestoreService
+        Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<LocalStorageService>.value(value: localStorageService),
         Provider<GeminiService>(
           create: (_) => GeminiService(
-            apiKey: dotenv.env['GEMINI_API_KEY']!,
+            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
             localStorageService: localStorageService,
           ),
         ),
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(
             localStorageService: localStorageService,
-            geminiApiKey: dotenv.env['GEMINI_API_KEY']!,
+            geminiApiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
           ),
         ),
         ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
       ],
-      child: BhashaLensApp(isOnboardingCompleted: isOnboardingCompleted),
+      child: const BhashaLensApp(),
     ),
   );
 }
 
 class BhashaLensApp extends StatefulWidget {
-  final bool isOnboardingCompleted;
-  const BhashaLensApp({super.key, required this.isOnboardingCompleted});
+  const BhashaLensApp({super.key});
 
   @override
   State<BhashaLensApp> createState() => _BhashaLensAppState();
@@ -84,13 +90,35 @@ class BhashaLensApp extends StatefulWidget {
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
   bool _showSplash = true;
+  bool _isOnboardingCompleted = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAuth();
+      _initializeApp();
     });
+  }
+
+  Future<void> _initializeApp() async {
+    // 1. Check Auth (Async)
+    _checkAuth();
+
+    // 2. Check Onboarding (Async)
+    try {
+      final localStorage = Provider.of<LocalStorageService>(
+        context,
+        listen: false,
+      );
+      final completed = await localStorage.isOnboardingCompleted();
+      if (mounted) {
+        setState(() {
+          _isOnboardingCompleted = completed;
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to check onboarding status: $e");
+    }
   }
 
   Future<void> _checkAuth() async {
@@ -148,7 +176,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                 }
                 // Even if not logged in yet (auth failure?), fallback to Onboarding/Login
                 // Ideally, signInAnonymously above should have handled it or is in progress.
-                return widget.isOnboardingCompleted
+                return _isOnboardingCompleted
                     ? const LoginPage()
                     : const OnboardingPage();
               },

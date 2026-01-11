@@ -71,7 +71,26 @@ BhashaLens is a cutting-edge accessibility and translation application designed 
 - **Backend & Auth:**
   - [Firebase Auth](https://firebase.google.com/docs/auth) (Email/Password & Google Sign-In)
 - **State Management:** [Provider](https://pub.dev/packages/provider)
-- **Local Storage:** [SQLite](https://pub.dev/packages/sqflite) & [Flutter Secure Storage](https://pub.dev/packages/flutter_secure_storage)
+- **Local Storage:** [SQLite](https://pub.dev/packages/sqflite) (Mobile) & [Flutter Secure Storage](https://pub.dev/packages/flutter_secure_storage)
+
+## 📂 Project Structure
+
+```
+lib/
+├── models/          # Data models (SavedTranslation, etc.)
+├── pages/           # UI Screens (Home, Camera, Voice, Settings)
+│   ├── auth/        # Login, Signup, Forgot Password
+│   ├── home/        # Home screen widgets
+│   └── ...
+├── services/        # Business Logic & External APIs
+│   ├── accessibility_service.dart
+│   ├── firestore_service.dart
+│   ├── gemini_service.dart
+│   ├── local_storage_service.dart
+│   └── ...
+├── theme/           # App styling and themes
+└── main.dart        # Entry point and initialization
+```
 
 ## 🏁 Getting Started
 
@@ -118,7 +137,17 @@ BhashaLens is a cutting-edge accessibility and translation application designed 
 
 - **Android:** Fully supported.
 - **iOS:** Fully supported (requires valid code signing).
-- **Web:** (Experimental/Beta)
+- **Web:** Beta Support.
+  - *Note:* Ensure your `.env` file contains `FIREBASE_WEB_...` keys.
+  - *Note:* SQLite is not supported on Web; the app uses a fallback (no-op) implementation for `LocalStorageService` to prevent crashes.
+
+## 🐛 Troubleshooting
+
+### App Stuck on Splash Screen (Android)
+If the app hangs at the logo, ensure you are not running blocking synchronous `await` calls in `main()`. The app initialization has been prioritized to `initState` to prevent this.
+
+### White Screen on Web
+This is often caused by missing `.env` configuration or incompatible packages (like `tflite_flutter` or `sqflite`). We have implemented guards for these, but check your console logs if issues persist.
 
 ## 📄 Documentation
 

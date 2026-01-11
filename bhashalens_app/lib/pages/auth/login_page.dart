@@ -280,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: Text(
+                    child: const Text(
                       "Sign Up",
                       style: TextStyle(
                         color: primaryTeal,
@@ -293,7 +293,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: _signInAsGuest,
-                child: Text(
+                child: const Text(
                   'Continue as Guest',
                   style: TextStyle(color: textGrey),
                 ),

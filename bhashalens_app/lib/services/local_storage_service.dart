@@ -2,12 +2,16 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LocalStorageService {
   static Database? _database;
   static SharedPreferences? _preferences;
 
   Future<Database> get database async {
+    if (kIsWeb) {
+      throw UnsupportedError('SQLite is not supported on the web');
+    }
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
@@ -127,6 +131,7 @@ class LocalStorageService {
 
   // SQLite methods for translations
   Future<int> insertTranslation(Map<String, dynamic> translation) async {
+    if (kIsWeb) return 0; // No-op on web
     final db = await database;
     return await db.insert(
       'translations',
@@ -136,12 +141,14 @@ class LocalStorageService {
   }
 
   Future<List<Map<String, dynamic>>> getTranslations() async {
+    if (kIsWeb) return []; // Return empty list on web
     final db = await database;
     // Get all (History)
     return await db.query('translations', orderBy: 'timestamp DESC');
   }
 
   Future<List<Map<String, dynamic>>> getSavedTranslations() async {
+    if (kIsWeb) return []; // Return empty list on web
     final db = await database;
     return await db.query(
       'translations',
@@ -151,23 +158,30 @@ class LocalStorageService {
     );
   }
 
-  Future<int> updateTranslationStatus(int id, bool isStarred) async {
+  Future<int> updateTranslationStatus(String id, bool isStarred) async {
+    if (kIsWeb) return 0;
+    final intId = int.tryParse(id);
+    if (intId == null) return 0;
     final db = await database;
     return await db.update(
       'translations',
       {'isStarred': isStarred ? 1 : 0},
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: [intId],
     );
   }
 
-  Future<int> deleteTranslation(int id) async {
+  Future<int> deleteTranslation(String id) async {
+    if (kIsWeb) return 0;
+    final intId = int.tryParse(id);
+    if (intId == null) return 0;
     final db = await database;
-    return await db.delete('translations', where: 'id = ?', whereArgs: [id]);
+    return await db.delete('translations', where: 'id = ?', whereArgs: [intId]);
   }
 
   // SQLite methods for language packs
   Future<int> insertLanguagePack(Map<String, dynamic> languagePack) async {
+    if (kIsWeb) return 0;
     final db = await database;
     return await db.insert(
       'languagePacks',
@@ -177,6 +191,7 @@ class LocalStorageService {
   }
 
   Future<Map<String, dynamic>?> getLanguagePack(String languageCode) async {
+    if (kIsWeb) return null;
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(
       'languagePacks',

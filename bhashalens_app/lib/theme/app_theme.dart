@@ -147,7 +147,7 @@ class AppTheme {
       ),
 
       // Text Theme
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         displayLarge: TextStyle(
           color: AppColors.text,
           fontSize: 32,
@@ -371,7 +371,7 @@ class AppTheme {
       ),
 
       // Text Theme (Dark)
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         displayLarge: TextStyle(
           color: AppColors.textDark,
           fontSize: 32,

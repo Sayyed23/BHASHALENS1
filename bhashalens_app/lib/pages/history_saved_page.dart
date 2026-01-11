@@ -1,7 +1,8 @@
 import 'package:bhashalens_app/models/saved_translation.dart';
-import 'package:bhashalens_app/services/firestore_service.dart';
+import 'package:bhashalens_app/services/local_storage_service.dart';
+
 import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +20,7 @@ class HistorySavedPage extends StatefulWidget {
 class _HistorySavedPageState extends State<HistorySavedPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late FirestoreService _firestoreService;
+  late LocalStorageService _localStorageService;
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
@@ -44,7 +45,10 @@ class _HistorySavedPageState extends State<HistorySavedPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    _localStorageService = Provider.of<LocalStorageService>(
+      context,
+      listen: false,
+    );
   }
 
   @override
@@ -62,8 +66,11 @@ class _HistorySavedPageState extends State<HistorySavedPage>
   Future<void> _toggleStar(SavedTranslation item) async {
     if (item.id == null) return;
     try {
-      await _firestoreService.toggleSavedStatus(item.id!, !item.isStarred);
-      // Stream updates automatically
+      await _localStorageService.updateTranslationStatus(
+        item.id!,
+        !item.isStarred,
+      );
+      setState(() {}); // Trigger rebuild
     } catch (e) {
       debugPrint('Failed to toggle saved status: $e');
       if (mounted) {
@@ -83,7 +90,6 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           item.translatedText.toLowerCase().contains(
             _searchQuery.toLowerCase(),
           );
-      // Filter logic: Check category (assuming simple string match or default)
       final matchesFilter =
           _selectedFilter == 'All' || item.category == _selectedFilter;
       return matchesSearch && matchesFilter;
@@ -92,7 +98,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
 
   @override
   Widget build(BuildContext context) {
-    const bgDark = Color(0xFF0F172A); // Matches Home Page
+    const bgDark = Color(0xFF0F172A);
     const cardColor = Color(0xFF1E293B);
 
     return Scaffold(
@@ -122,9 +128,9 @@ class _HistorySavedPageState extends State<HistorySavedPage>
             ),
             child: TabBar(
               controller: _tabController,
-              indicator: BoxDecoration(
-                color: const Color(0xFF1E293B), // Same as bg to hide standard
-                border: const Border(
+              indicator: const BoxDecoration(
+                color: Color(0xFF1E293B),
+                border: Border(
                   bottom: BorderSide(color: Color(0xFF136DEC), width: 2),
                 ),
               ),
@@ -183,7 +189,6 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   child: IconButton(
                     icon: const Icon(Icons.tune, color: Colors.white, size: 20),
                     onPressed: () {
-                      // TODO: Implement advanced filter UI
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text("Advanced filters coming soon!"),
@@ -250,10 +255,8 @@ class _HistorySavedPageState extends State<HistorySavedPage>
 
           // List Content
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _tabController.index == 0
-                  ? _firestoreService.getHistoryStream()
-                  : _firestoreService.getSavedStream(),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _localStorageService.getSavedTranslations(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -267,7 +270,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   );
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(
                     child: Text(
                       "No items found",
@@ -278,21 +281,14 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   );
                 }
 
-                List<SavedTranslation> items = snapshot.data!.docs
-                    .map((doc) {
-                      try {
-                        return SavedTranslation.fromFirestore(doc);
-                      } on StateError catch (e) {
-                        debugPrint('Skipping invalid document: $e');
-                        return null;
-                      } catch (e) {
-                        // Fallback for other errors
-                        debugPrint('Error parsing document: $e');
-                        return null;
-                      }
-                    })
-                    .whereType<SavedTranslation>()
+                List<SavedTranslation> items = snapshot.data!
+                    .map((map) => SavedTranslation.fromMap(map))
                     .toList();
+
+                // Filter by tab: History (all) vs Saved (isStarred)
+                if (_tabController.index == 1) {
+                  items = items.where((item) => item.isStarred).toList();
+                }
 
                 List<SavedTranslation> filteredItems = _filterList(items);
 
@@ -552,7 +548,8 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 Navigator.pop(ctx);
                 if (item.id != null) {
                   try {
-                    await _firestoreService.deleteTranslation(item.id!);
+                    await _localStorageService.deleteTranslation(item.id!);
+                    setState(() {}); // Trigger rebuild
                   } catch (e) {
                     debugPrint('Failed to delete translation: $e');
                     if (mounted) {

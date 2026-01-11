@@ -335,7 +335,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         "FROM",
                         style: TextStyle(
                           color: textGrey,
@@ -359,7 +359,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Icon(
+                          const Icon(
                             Icons.keyboard_arrow_down,
                             size: 16,
                             color: textGrey,
@@ -398,7 +398,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
+                      const Text(
                         "TO",
                         style: TextStyle(
                           color: textGrey,
@@ -423,7 +423,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Icon(
+                          const Icon(
                             Icons.keyboard_arrow_down,
                             size: 16,
                             color: textGrey,
@@ -910,7 +910,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                             children: [
                               Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.lightbulb_outline,
                                     color: primaryBlue,
                                     size: 20,
@@ -1010,7 +1010,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                             children: [
                               Row(
                                 children: [
-                                  Text(
+                                  const Text(
                                     "Situational Context",
                                     style: TextStyle(
                                       color: textGrey,
@@ -1033,7 +1033,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                                         ),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Icon(
+                                      child: const Icon(
                                         Icons.volume_up_rounded,
                                         size: 18,
                                         color: textGrey,
@@ -1042,11 +1042,11 @@ class _ExplainModePageState extends State<ExplainModePage>
                                   ),
                                 ],
                               ),
-                              Row(
+                              const Row(
                                 children: [
                                   Icon(Icons.info_outline, color: textGrey),
-                                  const SizedBox(width: 8),
-                                  const Text(
+                                  SizedBox(width: 8),
+                                  Text(
                                     "Situational Context",
                                     style: TextStyle(
                                       color: Colors.white,
@@ -1067,8 +1067,8 @@ class _ExplainModePageState extends State<ExplainModePage>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
+                                          const Padding(
+                                            padding: EdgeInsets.only(
                                               top: 6,
                                             ),
                                             child: Icon(
@@ -1081,7 +1081,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                                           Expanded(
                                             child: Text(
                                               item.toString(),
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 color: textGrey,
                                                 fontSize: 14,
                                                 height: 1.5,
@@ -1133,7 +1133,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                                   Text(
                                     _contextData!['cultural_insight'] ??
                                         'No specific cultural insight.',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: textGrey,
                                       fontSize: 14,
                                       height: 1.5,
@@ -1163,13 +1163,13 @@ class _ExplainModePageState extends State<ExplainModePage>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                const Row(
                                   children: [
                                     Icon(
                                       Icons.warning_amber_rounded,
                                       color: accentDanger,
                                     ),
-                                    const SizedBox(width: 8),
+                                    SizedBox(width: 8),
                                     Text(
                                       "Safety Note",
                                       style: TextStyle(
@@ -1183,7 +1183,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                                 const SizedBox(height: 8),
                                 Text(
                                   _contextData!['safety_note'] ?? '',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: textGrey,
                                     fontSize: 14,
                                     height: 1.5,

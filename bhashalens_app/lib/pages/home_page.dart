@@ -101,8 +101,8 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[600]!),
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(Icons.cloud_off, size: 12, color: Colors.grey),
                         SizedBox(width: 4),
                         Text(
