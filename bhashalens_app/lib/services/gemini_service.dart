@@ -316,7 +316,7 @@ class GeminiService {
           '{'
           '"translation": "String - The text translated to $targetLanguage", '
           '"analysis": "String - A brief contextual summary (1-2 sentences). Who is speaking? What is the main topic?", '
-          '"meaning": "String - A very simple, jargon-free explanation of what this means. Imagine explaining to a child (EL15). Use clear, short sentences.", '
+          '"meaning": "String - A very simple, jargon-free explanation of what this means. Imagine explaining to a child (ELI5). Use clear, short sentences.", '
           '"suggested_questions": ["String", "String"] - A list of 2-3 relevant follow-up questions", '
           '"when_to_use": "String - Recommendation on when to use this", '
           '"tone": "String - The tone (e.g., Formal, Casual, Urgent)", '

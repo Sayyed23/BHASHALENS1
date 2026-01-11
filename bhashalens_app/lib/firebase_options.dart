@@ -71,12 +71,6 @@ class DefaultFirebaseOptions {
       );
     }
 
-    if (projectId != 'chicha123') {
-      throw StateError(
-        'Invalid Firebase Project ID: $projectId. Expected: chicha123',
-      );
-    }
-
     return FirebaseOptions(
       apiKey: apiKey,
       appId: appId,

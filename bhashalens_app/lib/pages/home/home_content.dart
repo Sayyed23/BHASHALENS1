@@ -36,7 +36,8 @@ class HomeContent extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final firebaseAuthService = Provider.of<FirebaseAuthService>(context);
-    String userName = 'Rahul'; // Default name from mockup for demo, or User
+    String userName =
+        'User'; // Default fallback name    
     final user = firebaseAuthService.currentUser;
 
     if (user != null) {

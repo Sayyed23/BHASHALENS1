@@ -22,16 +22,24 @@ class SavedTranslation {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = {
       'originalText': originalText,
       'translatedText': translatedText,
       'sourceLanguage': fromLanguage,
       'targetLanguage': toLanguage,
       'timestamp': dateTime.millisecondsSinceEpoch,
-      'isStarred': isStarred ? 1 : 0,
+      'isStarred': isStarred,
       'category': category,
     };
+    // Only include id if it exists (for updates, not for new documents)
+    // Removed 'id' to prevent conflicts with local SQLite AUTOINCREMENT
+    // and redundancy in Firestore.
+    /*
+    if (id != null) {
+      map['id'] = id;
+    }
+    */
+    return map;
   }
 
   factory SavedTranslation.fromMap(Map<String, dynamic> map) {
@@ -50,7 +58,19 @@ class SavedTranslation {
   }
 
   factory SavedTranslation.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      // Handle the case where the document exists but has no data,
+      // or return a default object.
+      return SavedTranslation(
+        id: doc.id,
+        originalText: '',
+        translatedText: '',
+        fromLanguage: '',
+        toLanguage: '',
+        dateTime: DateTime.now(),
+      );
+    }
     return SavedTranslation(
       id: doc.id,
       originalText: data['originalText'] ?? '',
@@ -59,10 +79,8 @@ class SavedTranslation {
       toLanguage: data['targetLanguage'] ?? '',
       dateTime: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isStarred: data['isStarred'] ?? false,
-      category:
-          data['context'] ??
-          'General', // Adapting context to category if needed
-      // 'context' field in Firestore map = 'category' here? Or should add category to Firestore
+      // Prefer 'category' key, fallback to 'context' key, default 'General'
+      category: data['category'] ?? data['context'] ?? 'General',
     );
   }
 }
