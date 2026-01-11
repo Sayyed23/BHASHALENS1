@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class SavedTranslation {
   final String? id; // Changed to String to support Firestore IDs
@@ -60,16 +61,9 @@ class SavedTranslation {
   factory SavedTranslation.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>?;
     if (data == null) {
-      // Handle the case where the document exists but has no data,
-      // or return a default object.
-      return SavedTranslation(
-        id: doc.id,
-        originalText: '',
-        translatedText: '',
-        fromLanguage: '',
-        toLanguage: '',
-        dateTime: DateTime.now(),
-      );
+      // Log warning and throw exception as requested
+      debugPrint('Warning: Document ${doc.id} has null data.');
+      throw StateError('Document ${doc.id} has null data.');
     }
     return SavedTranslation(
       id: doc.id,

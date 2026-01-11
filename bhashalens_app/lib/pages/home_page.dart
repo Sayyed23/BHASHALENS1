@@ -21,26 +21,40 @@ class _HomePageState extends State<HomePage> {
         _selectedIndex = 0;
       });
     } else if (index == 1) {
-      setState(() {
-        _selectedIndex = 0;
+      Navigator.pushNamed(context, '/translation_mode').then((_) {
+        // Reset to Home index after returning
+        if (mounted) {
+          setState(() => _selectedIndex = 0);
+        }
       });
-      Navigator.pushNamed(context, '/translation_mode');
     } else if (index == 2) {
-      setState(() {
-        _selectedIndex = 0;
+      Navigator.pushNamed(context, '/explain_mode').then((_) {
+        // Reset to Home index after returning
+        if (mounted) {
+          setState(() => _selectedIndex = 0);
+        }
       });
-      Navigator.pushNamed(context, '/explain_mode');
     } else if (index == 3) {
-      setState(() {
-        _selectedIndex = 0;
+      Navigator.pushNamed(context, '/history_saved', arguments: 0).then((_) {
+        // Reset to Home index after returning
+        if (mounted) {
+          setState(() => _selectedIndex = 0);
+        }
       });
-      Navigator.pushNamed(context, '/history_saved', arguments: 0);
     } else if (index == 4) {
-      setState(() {
-        _selectedIndex = 0;
+      Navigator.pushNamed(context, '/assistant_mode').then((_) {
+        // Reset to Home index after returning
+        if (mounted) {
+          setState(() => _selectedIndex = 0);
+        }
       });
-      Navigator.pushNamed(context, '/assistant_mode');
     }
+  }
+
+  @override
+  void dispose() {
+    // StreamBuilder handles the subscription, but good practice to clean up if we had manual listeners.
+    super.dispose();
   }
 
   @override
