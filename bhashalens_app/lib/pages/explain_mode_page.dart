@@ -889,26 +889,9 @@ class _ExplainModePageState extends State<ExplainModePage>
                           cardDark,
                           primaryBlue,
                           textGrey,
-                          onPlayAudio: () {
-                            final geminiService = Provider.of<GeminiService>(
-                              context,
-                              listen: false,
-                            );
-                            final langCode = geminiService
-                                .getSupportedLanguages()
-                                .firstWhere(
-                                  (l) => l['name'] == _selectedOutputLanguage,
-                                  orElse: () => {'code': 'en'},
-                                )['code'];
-
-                            Provider.of<VoiceTranslationService>(
-                              context,
-                              listen: false,
-                            ).speakText(
-                              _contextData!['translation'] ?? '',
-                              langCode!,
-                            );
-                          },
+                          onPlayAudio: () => _speakInOutputLanguage(
+                            _contextData!['translation'],
+                          ),
                         ),
                         const SizedBox(height: 16),
 
@@ -943,29 +926,9 @@ class _ExplainModePageState extends State<ExplainModePage>
                                   ),
                                   const Spacer(),
                                   InkWell(
-                                    onTap: () {
-                                      final geminiService =
-                                          Provider.of<GeminiService>(
-                                            context,
-                                            listen: false,
-                                          );
-                                      final langCode = geminiService
-                                          .getSupportedLanguages()
-                                          .firstWhere(
-                                            (l) =>
-                                                l['name'] ==
-                                                _selectedOutputLanguage,
-                                            orElse: () => {'code': 'en'},
-                                          )['code'];
-
-                                      Provider.of<VoiceTranslationService>(
-                                        context,
-                                        listen: false,
-                                      ).speakText(
-                                        _contextData!['meaning'] ?? '',
-                                        langCode!,
-                                      );
-                                    },
+                                    onTap: () => _speakInOutputLanguage(
+                                      _contextData!['meaning'],
+                                    ),
                                     borderRadius: BorderRadius.circular(20),
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
@@ -1010,29 +973,9 @@ class _ExplainModePageState extends State<ExplainModePage>
                                 primaryBlue,
                                 textGrey,
                                 isAccent: true,
-                                onPlayAudio: () {
-                                  final geminiService =
-                                      Provider.of<GeminiService>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  final langCode = geminiService
-                                      .getSupportedLanguages()
-                                      .firstWhere(
-                                        (l) =>
-                                            l['name'] ==
-                                            _selectedOutputLanguage,
-                                        orElse: () => {'code': 'en'},
-                                      )['code'];
-
-                                  Provider.of<VoiceTranslationService>(
-                                    context,
-                                    listen: false,
-                                  ).speakText(
-                                    _contextData!['when_to_use'] ?? '',
-                                    langCode!,
-                                  );
-                                },
+                                onPlayAudio: () => _speakInOutputLanguage(
+                                  _contextData!['when_to_use'],
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1045,29 +988,9 @@ class _ExplainModePageState extends State<ExplainModePage>
                                 accentWarning,
                                 textGrey,
                                 isAccent: false,
-                                onPlayAudio: () {
-                                  final geminiService =
-                                      Provider.of<GeminiService>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  final langCode = geminiService
-                                      .getSupportedLanguages()
-                                      .firstWhere(
-                                        (l) =>
-                                            l['name'] ==
-                                            _selectedOutputLanguage,
-                                        orElse: () => {'code': 'en'},
-                                      )['code'];
-
-                                  Provider.of<VoiceTranslationService>(
-                                    context,
-                                    listen: false,
-                                  ).speakText(
-                                    _contextData!['tone'] ?? '',
-                                    langCode!,
-                                  );
-                                },
+                                onPlayAudio: () => _speakInOutputLanguage(
+                                  _contextData!['tone'],
+                                ),
                               ),
                             ),
                           ],
@@ -1098,29 +1021,9 @@ class _ExplainModePageState extends State<ExplainModePage>
                                   ),
                                   const Spacer(),
                                   InkWell(
-                                    onTap: () {
-                                      final geminiService =
-                                          Provider.of<GeminiService>(
-                                            context,
-                                            listen: false,
-                                          );
-                                      final langCode = geminiService
-                                          .getSupportedLanguages()
-                                          .firstWhere(
-                                            (l) =>
-                                                l['name'] ==
-                                                _selectedOutputLanguage,
-                                            orElse: () => {'code': 'en'},
-                                          )['code'];
-
-                                      Provider.of<VoiceTranslationService>(
-                                        context,
-                                        listen: false,
-                                      ).speakText(
-                                        _contextData!['cultural_insight'] ?? '',
-                                        langCode!,
-                                      );
-                                    },
+                                    onTap: () => _speakInOutputLanguage(
+                                      _contextData!['cultural_insight'],
+                                    ),
                                     borderRadius: BorderRadius.circular(20),
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
@@ -1245,6 +1148,7 @@ class _ExplainModePageState extends State<ExplainModePage>
 
                         // Safety Note (Conditional)
                         if (_contextData!['safety_note'] != null &&
+                            _contextData!['safety_note'] is String &&
                             (_contextData!['safety_note'] as String)
                                 .isNotEmpty) ...[
                           Container(
@@ -1675,5 +1579,21 @@ class _ExplainModePageState extends State<ExplainModePage>
         ),
       ),
     );
+  }
+
+  void _speakInOutputLanguage(String? text) {
+    if (text == null || text.isEmpty) return;
+
+    final geminiService = Provider.of<GeminiService>(context, listen: false);
+    final langEntry = geminiService.getSupportedLanguages().firstWhere(
+      (l) => l['name'] == _selectedOutputLanguage,
+      orElse: () => {'code': 'en'},
+    );
+    final langCode = langEntry['code'] ?? 'en';
+
+    Provider.of<VoiceTranslationService>(
+      context,
+      listen: false,
+    ).speakText(text, langCode);
   }
 }

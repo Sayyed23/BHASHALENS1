@@ -189,7 +189,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _buildFeatureRow(
           Icons.offline_bolt,
           'Offline Mode',
-          'Translate anytime, anywhere.',
+          'Access essential features even without internet.',
         ),
       ],
     );

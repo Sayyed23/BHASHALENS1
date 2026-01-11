@@ -13,6 +13,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  final _connectivity = Connectivity();
 
   void _onItemTapped(int index) {
     if (index == 0) {
@@ -20,12 +21,24 @@ class _HomePageState extends State<HomePage> {
         _selectedIndex = 0;
       });
     } else if (index == 1) {
+      setState(() {
+        _selectedIndex = 0;
+      });
       Navigator.pushNamed(context, '/translation_mode');
     } else if (index == 2) {
+      setState(() {
+        _selectedIndex = 0;
+      });
       Navigator.pushNamed(context, '/explain_mode');
     } else if (index == 3) {
+      setState(() {
+        _selectedIndex = 0;
+      });
       Navigator.pushNamed(context, '/history_saved', arguments: 0);
     } else if (index == 4) {
+      setState(() {
+        _selectedIndex = 0;
+      });
       Navigator.pushNamed(context, '/assistant_mode');
     }
   }
@@ -52,7 +65,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(width: 8),
             StreamBuilder<List<ConnectivityResult>>(
-              stream: Connectivity().onConnectivityChanged,
+              stream: _connectivity.onConnectivityChanged,
               builder: (context, snapshot) {
                 final results = snapshot.data;
                 // Check if offline (basic check: contains none or empty)

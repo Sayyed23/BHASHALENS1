@@ -3,6 +3,7 @@ import 'package:bhashalens_app/services/firestore_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -60,8 +61,16 @@ class _HistorySavedPageState extends State<HistorySavedPage>
 
   Future<void> _toggleStar(SavedTranslation item) async {
     if (item.id == null) return;
-    await _firestoreService.toggleSavedStatus(item.id!, !item.isStarred);
-    // Stream updates automatically
+    try {
+      await _firestoreService.toggleSavedStatus(item.id!, !item.isStarred);
+      // Stream updates automatically
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      }
+    }
   }
 
   List<SavedTranslation> _filterList(List<SavedTranslation> source) {
@@ -170,7 +179,18 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                     color: const Color(0xFF1E293B),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                  child: IconButton(
+                    icon: const Icon(Icons.tune, color: Colors.white, size: 20),
+                    onPressed: () {
+                      // TODO: Implement advanced filter UI
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Advanced filters coming soon!"),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -319,7 +339,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      "${item.fromLanguage.substring(0, 2).toUpperCase()} \u2192 ${item.toLanguage.substring(0, 2).toUpperCase()}", // EN -> HI
+                      "${item.fromLanguage.length >= 2 ? item.fromLanguage.substring(0, 2).toUpperCase() : item.fromLanguage.toUpperCase()} \u2192 ${item.toLanguage.length >= 2 ? item.toLanguage.substring(0, 2).toUpperCase() : item.toLanguage.toUpperCase()}",
                       style: const TextStyle(
                         color: Color(0xFF3B82F6),
                         fontSize: 10,
@@ -358,9 +378,9 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(
-                Icons.local_hospital, // Dynamic based on category
-                color: Color(0xFF22C55E),
+              Icon(
+                _getCategoryIcon(item.category),
+                color: const Color(0xFF22C55E),
                 size: 14,
               ),
               const SizedBox(width: 4),
@@ -488,8 +508,14 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
+                Clipboard.setData(ClipboardData(text: item.translatedText));
                 Navigator.pop(ctx);
-                // Clipboard logic
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Translation copied to clipboard'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -512,8 +538,15 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               onTap: () async {
                 Navigator.pop(ctx);
                 if (item.id != null) {
-                  await _firestoreService.deleteTranslation(item.id!);
-                  // Stream updates automatically
+                  try {
+                    await _firestoreService.deleteTranslation(item.id!);
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to delete: $e')),
+                      );
+                    }
+                  }
                 }
               },
             ),
@@ -521,5 +554,18 @@ class _HistorySavedPageState extends State<HistorySavedPage>
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'medical':
+        return Icons.local_hospital;
+      case 'travel':
+        return Icons.flight;
+      case 'business':
+        return Icons.business_center;
+      default:
+        return Icons.category;
+    }
   }
 }

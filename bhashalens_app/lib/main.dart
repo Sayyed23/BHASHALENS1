@@ -42,11 +42,7 @@ void main() async {
   final localStorageService = LocalStorageService(); // Initialize service
   // Initialize Auth Service to trigger anonymous login if needed
   final authService = FirebaseAuthService();
-  if (authService.currentUser == null) {
-    // Try to sign in anonymously in background
-    authService.signInAnonymously();
-  }
-
+  // Moved anonymous sign-in to BhashaLensApp to avoid blocking startup
   final isOnboardingCompleted = await localStorageService
       .isOnboardingCompleted();
 
@@ -68,7 +64,7 @@ void main() async {
         ChangeNotifierProvider<VoiceTranslationService>(
           create: (_) => VoiceTranslationService(
             localStorageService: localStorageService,
-            geminiApiKey: dotenv.env['GEMINI_API_KEY'],
+            geminiApiKey: dotenv.env['GEMINI_API_KEY']!,
           ),
         ),
         ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
@@ -88,6 +84,28 @@ class BhashaLensApp extends StatefulWidget {
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
   bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
+  }
+
+  Future<void> _checkAuth() async {
+    final authService = Provider.of<FirebaseAuthService>(
+      context,
+      listen: false,
+    );
+    if (authService.currentUser == null) {
+      try {
+        await authService.signInAnonymously();
+      } catch (e) {
+        debugPrint('Failed to sign in anonymously: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

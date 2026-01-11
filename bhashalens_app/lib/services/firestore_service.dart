@@ -111,16 +111,20 @@ class FirestoreService {
     final uid = _userId;
     if (uid == null) return;
 
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('assistant_phrases')
-        .add({
-          'phrase': phrase,
-          'intent': intent,
-          'translatedPhrase': translatedPhrase,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('assistant_phrases')
+          .add({
+            'phrase': phrase,
+            'intent': intent,
+            'translatedPhrase': translatedPhrase,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      debugPrint("Error saving assistant phrase: $e");
+    }
   }
 
   Stream<QuerySnapshot> getAssistantPhrasesStream() {

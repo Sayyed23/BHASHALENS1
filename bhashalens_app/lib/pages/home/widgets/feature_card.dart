@@ -113,31 +113,33 @@ class FeatureCard extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         height: 36,
-                        child: ElevatedButton(
-                          onPressed: onTap,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isPrimary
-                                ? const Color(0xFF136DEC) // Primary Blue
-                                : Colors.white.withValues(alpha: 0.08),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: !isPrimary
-                                  ? BorderSide(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                    )
-                                  : BorderSide.none,
+                        child: IgnorePointer(
+                          child: ElevatedButton(
+                            onPressed: onTap,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isPrimary
+                                  ? const Color(0xFF136DEC) // Primary Blue
+                                  : Colors.white.withValues(alpha: 0.08),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: !isPrimary
+                                    ? BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      )
+                                    : BorderSide.none,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            buttonText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            child: Text(
+                              buttonText,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),

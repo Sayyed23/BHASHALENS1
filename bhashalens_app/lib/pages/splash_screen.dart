@@ -51,8 +51,8 @@ class _SplashScreenState extends State<SplashScreen>
           opacity: _animation,
           child: Image.asset(
             'assets/logo2.png',
-            width: 200, // Adjust size as needed
-            height: 200,
+            width: 800, // Adjust size as needed
+            height: 800,
           ),
         ),
       ),

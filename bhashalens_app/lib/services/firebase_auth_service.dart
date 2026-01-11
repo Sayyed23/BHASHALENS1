@@ -83,9 +83,8 @@ class FirebaseAuthService {
       UserCredential result = await _auth.signInAnonymously();
       return result.user;
     } catch (e) {
-      debugPrint("Anonymous Auth Error: ${e.toString()}");
-      // Don't rethrow, return null so app can decide what to do (retry or show offline mode)
-      return null;
+      debugPrint(e.toString());
+      rethrow;
     }
   }
 

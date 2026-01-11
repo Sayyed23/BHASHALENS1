@@ -56,7 +56,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final accessibilityService = Provider.of<AccessibilityService>(context);
+    AccessibilityService? accessibilityService;
+    try {
+      accessibilityService = Provider.of<AccessibilityService>(context);
+    } catch (e) {
+      debugPrint('AccessibilityService not found: $e');
+    }
+
+    if (accessibilityService == null) {
+      return const Scaffold(
+        body: Center(child: Text("Accessibility Service Unavailable")),
+      );
+    }
+    final service = accessibilityService;
 
     // Theme Colors from Mockup
     const Color bgDark = Color(0xFF101822);
@@ -189,11 +201,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       trackHeight: 4,
                     ),
                     child: Slider(
-                      value: accessibilityService.textSizeFactor,
+                      value: service.textSizeFactor,
                       min: 0.8,
                       max: 1.4,
                       onChanged: (val) {
-                        accessibilityService.setTextSizeFactor(val);
+                        service.setTextSizeFactor(val);
                       },
                     ),
                   ),
