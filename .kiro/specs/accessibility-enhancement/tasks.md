@@ -70,8 +70,8 @@ The implementation follows a layered approach: first establishing the core acces
     - **Property 4: Voice Command Error Handling**
     - **Validates: Requirements 1.9**
 
-- [ ] 3. Implement audio feedback system
-  - [ ] 3.1 Create TTS engine wrapper
+- [x] 3. Implement audio feedback system
+  - [x] 3.1 Create TTS engine wrapper
     - Create `lib/services/audio_feedback/tts_engine.dart`
     - Implement flutter_tts integration with error handling
     - Add speech rate, pitch, and voice selection
@@ -82,7 +82,7 @@ The implementation follows a layered approach: first establishing the core acces
     - **Property 10: TTS Settings and Controls**
     - **Validates: Requirements 2.6, 2.7, 2.8, 2.9**
 
-  - [ ] 3.3 Create audio feedback manager
+  - [x] 3.3 Create audio feedback manager
     - Create `lib/services/audio_feedback/audio_feedback_service.dart`
     - Implement automatic UI element announcements
     - Add page change and button action announcements
@@ -93,7 +93,7 @@ The implementation follows a layered approach: first establishing the core acces
     - **Property 7: Automatic TTS for UI Elements and Translations**
     - **Validates: Requirements 2.1, 2.2, 2.4**
 
-  - [ ] 3.5 Implement audio cue system
+  - [x] 3.5 Implement audio cue system
     - Create distinct audio cues for different interaction types
     - Add background TTS notification support
     - Implement audio feedback coordination with voice navigation
@@ -103,8 +103,12 @@ The implementation follows a layered approach: first establishing the core acces
     - **Property 9: System Message Audio Announcements**
     - **Validates: Requirements 2.5**
 
-- [ ] 4. Checkpoint - Core accessibility services functional
-  - Ensure all tests pass, ask the user if questions arise.
+- [ ] 4. Checkpoint - Core accessibility services functional (Sections 1–3 implementation complete)
+  - Verify voice navigation system works end-to-end
+  - Verify audio feedback system provides TTS announcements
+  - Verify accessibility settings persistence and loading
+  - Ensure all implementation tasks (non-property tests) pass
+  - Ask the user if questions arise before proceeding to visual accessibility
 
 - [ ] 5. Implement visual accessibility system
   - [ ] 5.1 Create high contrast theme system

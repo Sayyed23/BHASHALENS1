@@ -136,11 +136,11 @@ class CommandProcessor {
   static const double _confidenceThreshold = 0.6;
 
   /// Process spoken text and return a voice command if recognized
-  VoiceCommand? processSpokenText(String spokenText) {
+  VoiceCommand? processSpokenText(String spokenText, {String? currentPage}) {
     if (spokenText.trim().isEmpty) return null;
 
     final normalizedText = _normalizeText(spokenText);
-    final bestMatch = _findBestMatch(normalizedText);
+    final bestMatch = _findBestMatch(normalizedText, currentPage: currentPage);
 
     if (bestMatch == null || bestMatch.confidence < _confidenceThreshold) {
       return null;
@@ -207,16 +207,56 @@ class CommandProcessor {
   }
 
   /// Check if a command is valid for the current page context
-  bool isValidForContext(String commandKey, String currentPage) {
+  /// This method now consistently handles both command keys and command text
+  bool isValidForContext(String input, String currentPage) {
+    final normalizedInput = _normalizeText(input);
+    
+    // Check global command variations (both by key and by text)
+    for (final entry in _commandVariations.entries) {
+      // Check if input matches the command key
+      if (_normalizeText(entry.key) == normalizedInput) {
+        return true;
+      }
+      // Check if input matches any variation text
+      if (entry.value.any((variation) => 
+          _normalizeText(variation) == normalizedInput)) {
+        return true;
+      }
+    }
+
+    // Check page-specific commands (text-based only)
+    final pageCommands = _pageSpecificCommands[currentPage] ?? [];
+    return pageCommands.any((cmd) => 
+        _normalizeText(cmd) == normalizedInput);
+  }
+
+  /// Check if a command key is valid for the current page context (key-based validation)
+  bool isValidKeyForContext(String commandKey, String currentPage) {
     // Global commands are always valid
     if (_commandVariations.containsKey(commandKey)) {
       return true;
     }
 
+    // Page-specific commands don't have explicit keys, so this only works for global commands
+    return false;
+  }
+
+  /// Check if a command text is valid for the current page context (text-based validation)
+  bool isValidTextForContext(String commandText, String currentPage) {
+    final normalizedInput = _normalizeText(commandText);
+    
+    // Check global command variations
+    for (final variations in _commandVariations.values) {
+      if (variations.any((variation) => 
+          _normalizeText(variation) == normalizedInput)) {
+        return true;
+      }
+    }
+
     // Check page-specific commands
     final pageCommands = _pageSpecificCommands[currentPage] ?? [];
     return pageCommands.any((cmd) => 
-        _normalizeText(cmd) == _normalizeText(commandKey));
+        _normalizeText(cmd) == normalizedInput);
   }
 
   /// Normalize text for better matching
@@ -229,10 +269,11 @@ class CommandProcessor {
   }
 
   /// Find the best matching command for the input text
-  _CommandMatch? _findBestMatch(String normalizedText) {
+  _CommandMatch? _findBestMatch(String normalizedText, {String? currentPage}) {
     _CommandMatch? bestMatch;
     double highestConfidence = 0.0;
 
+    // Check global command variations
     for (final entry in _commandVariations.entries) {
       for (final variation in entry.value) {
         final confidence = _calculateSimilarity(normalizedText, variation);
@@ -241,6 +282,22 @@ class CommandProcessor {
           bestMatch = _CommandMatch(
             commandKey: entry.key,
             matchedText: variation,
+            confidence: confidence,
+          );
+        }
+      }
+    }
+
+    // Check page-specific commands if currentPage is provided
+    if (currentPage != null) {
+      final pageCommands = _pageSpecificCommands[currentPage] ?? [];
+      for (final command in pageCommands) {
+        final confidence = _calculateSimilarity(normalizedText, command);
+        if (confidence > highestConfidence) {
+          highestConfidence = confidence;
+          bestMatch = _CommandMatch(
+            commandKey: 'page_specific_${_normalizeText(command).replaceAll(' ', '_')}',
+            matchedText: command,
             confidence: confidence,
           );
         }

@@ -60,8 +60,20 @@ This document specifies the requirements for implementing three key accessibilit
 8. WHEN multiple voice options are available, THE TTS_Engine SHALL let users choose their preferred voice
 9. WHEN audio is playing, THE TTS_Engine SHALL allow users to pause, resume, or stop the speech using simple voice commands or screen taps
 10. WHEN content is in different languages, THE TTS_Engine SHALL automatically use the appropriate language voice for reading
-11. WHEN the app is minimized or in background, THE TTS_Engine SHALL still provide audio notifications for completed translations
-12. WHEN audio feedback is active, THE Audio_Feedback_System SHALL use different sounds or tones to indicate different types of actions (success sounds, error sounds, navigation sounds)
+11. WHEN the app is minimized or in background, THE TTS_Engine SHALL provide audio notifications for completed translations with platform-specific limitations and fallbacks:
+    - **Essential notifications**: Translation completion alerts (high priority for accessibility)
+    - **Optional notifications**: General UI feedback and non-critical announcements
+    - **iOS restrictions**: Background audio requires "Audio, AirPlay, and Picture in Picture" capability; fallback to local notifications with sound when background audio unavailable
+    - **Android restrictions**: Background audio limited by battery optimization and Do Not Disturb settings; fallback to notification sounds and vibration
+    - **Permission strategy**: Request background audio permissions only when user explicitly enables background translation notifications, with clear accessibility justification for App Store review
+    - **Battery mitigation**: Implement audio session management to minimize battery drain; automatically disable background audio after 30 minutes of inactivity
+    - **Thermal mitigation**: Monitor device thermal state and reduce background audio quality or disable when device overheating detected
+12. WHEN audio feedback is active, THE Audio_Feedback_System SHALL use different sounds or tones to indicate different types of actions (success sounds, error sounds, navigation sounds) with platform-aware implementation:
+    - **Essential audio cues**: Translation completion, critical errors, navigation confirmations
+    - **Optional audio cues**: Button taps, page transitions, non-critical feedback
+    - **iOS considerations**: Respect Silent Mode switch and Focus modes; provide haptic feedback alternatives when audio restricted
+    - **Android considerations**: Honor system volume settings and notification policies; integrate with accessibility services volume controls
+    - **Fallback strategy**: When audio unavailable, provide visual indicators and haptic feedback for essential notifications
 
 ### Requirement 3: Enhanced Visual Accessibility
 
@@ -95,7 +107,38 @@ This document specifies the requirements for implementing three key accessibilit
 5. WHEN users need help, THE Accessibility_Service SHALL provide an easily accessible help section with common questions and troubleshooting
 6. WHEN accessibility settings are being configured, THE Accessibility_Service SHALL allow users to reset to default settings if they get confused
 7. WHEN multiple accessibility features are enabled, THE Accessibility_Service SHALL ensure they work well together without conflicts
-8. WHEN users want to share settings, THE Accessibility_Service SHALL allow exporting and importing accessibility preferences for easy setup on multiple devices
+8. WHEN users want to share settings, THE Accessibility_Service SHALL allow exporting and importing accessibility preferences for easy setup on multiple devices with comprehensive validation and security:
+
+   **Export Functionality:**
+   - SHALL include preferences version field (semantic versioning format) in exported data
+   - SHALL exclude sensitive fields (device-specific identifiers, temporary tokens) from export payload
+   - SHALL require explicit user consent before export with clear data disclosure
+   - SHALL optionally encrypt exported data using user-provided password
+   - SHALL generate integrity checksum for exported file validation
+
+   **Import Validation:**
+   - SHALL validate imported payload against defined JSON schema before processing
+   - SHALL verify all preference values are within allowable ranges (e.g., text scale 0.5-3.0, speech rate 0.1-2.0)
+   - SHALL reject imports with invalid data types or missing required fields
+   - SHALL provide specific error codes for validation failures: INVALID_SCHEMA (001), VALUE_OUT_OF_RANGE (002), MISSING_REQUIRED_FIELD (003)
+
+   **Version Compatibility:**
+   - SHALL support backward compatibility for preferences from previous app versions
+   - SHALL migrate older preference formats to current schema automatically when possible
+   - SHALL provide clear error message "Preferences from newer app version (v2.1) not supported. Please update app to import." for unsupported future versions
+   - SHALL log migration actions for debugging and user transparency
+
+   **Error Handling:**
+   - SHALL verify file integrity using checksum validation before import
+   - SHALL detect corrupted files and display user-friendly error: "Import file appears corrupted. Please re-export from source device."
+   - SHALL provide retry guidance: "Try re-downloading the file or export again from the original device"
+   - SHALL offer partial import option when some preferences are valid but others fail validation
+
+   **Privacy and Security:**
+   - SHALL identify and exclude sensitive fields: device ID, authentication tokens, location data, usage analytics
+   - SHALL require user confirmation before importing with clear list of settings that will be changed
+   - SHALL recommend password protection for exports containing personalized voice training data
+   - SHALL provide option to export "public-safe" subset excluding any potentially identifying information
 
 ### Requirement 5: Seamless Integration with Existing App
 
@@ -119,7 +162,10 @@ This document specifies the requirements for implementing three key accessibilit
 #### Acceptance Criteria
 
 1. WHEN accessibility features are turned off, THE Accessibility_Service SHALL have no impact on app speed, battery usage, or memory consumption
-2. WHEN voice commands are spoken, THE Voice_Command_Processor SHALL respond within 2 seconds and provide immediate feedback
+2. WHEN voice commands are spoken, THE Voice_Command_Processor SHALL respond with tiered performance requirements:
+   - **Typical commands** (navigation, settings): SHALL respond within 1 second
+   - **Complex operations** (help requests, multi-step actions): MAY take up to 1.5 seconds
+   - **Extended operations** (translation initiation, file operations): MUST provide immediate interim feedback (within 500ms) when processing will exceed 1.5 seconds, followed by completion notification
 3. WHEN audio feedback is playing, THE TTS_Engine SHALL not interfere with other app functions like taking photos or recording voice translations
 4. WHEN visual accessibility mode is enabled, THE Visual_Accessibility_Controller SHALL maintain smooth animations and quick response times
 5. WHEN accessibility features encounter problems, THE Accessibility_Service SHALL handle errors gracefully and keep the main translation features working

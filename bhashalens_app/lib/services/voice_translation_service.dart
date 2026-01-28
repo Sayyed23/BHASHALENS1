@@ -253,16 +253,20 @@ class VoiceTranslationService extends ChangeNotifier {
         if (mlKitResult != null && mlKitResult.isNotEmpty) {
           return mlKitResult;
         } else {
-          // Check if models are available
-          final sourceModelReady = await _mlKitService.isModelDownloaded(
+          // Check what models are missing for better error message
+          final missingModels = await _mlKitService.getMissingModelsForTranslation(
             actualSourceLanguage,
-          );
-          final targetModelReady = await _mlKitService.isModelDownloaded(
             toLanguage,
           );
 
-          if (!sourceModelReady || !targetModelReady) {
-            return 'Offline translation unavailable. Please download language models in Settings → Offline Models.';
+          if (missingModels.isNotEmpty) {
+            final languageNames = missingModels.map((code) {
+              final lang = _mlKitService.getSupportedLanguages()
+                  .firstWhere((l) => l['code'] == code, orElse: () => {'name': code});
+              return lang['name'] ?? code;
+            }).join(', ');
+            
+            return 'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
           }
           return 'Translation failed. Please try again.';
         }

@@ -19,6 +19,8 @@ class MlKitTranslationService {
 
   /// Translates text from source language to target language.
   /// Returns null if translation fails.
+  /// Note: ML Kit models are primarily designed for translation TO English.
+  /// For non-English to non-English translation, we use a two-step process via English.
   Future<String?> translate({
     required String text,
     required String sourceLanguage, // e.g., 'en', 'hi'
@@ -29,17 +31,66 @@ class MlKitTranslationService {
       final targetLang = _getTranslateLanguage(targetLanguage);
 
       if (sourceLang == null || targetLang == null) {
+        debugPrint('Unsupported language: $sourceLanguage -> $targetLanguage');
         return null; // Unsupported language
       }
 
-      final onDeviceTranslator = OnDeviceTranslator(
+      // If source and target are the same, return original text
+      if (sourceLang == targetLang) {
+        return text;
+      }
+
+      // Check if both models are available
+      final sourceModelAvailable = await isModelDownloaded(sourceLanguage);
+      final targetModelAvailable = await isModelDownloaded(targetLanguage);
+
+      // Direct translation (works best when one language is English)
+      if (sourceLang == TranslateLanguage.english || targetLang == TranslateLanguage.english) {
+        final onDeviceTranslator = OnDeviceTranslator(
+          sourceLanguage: sourceLang,
+          targetLanguage: targetLang,
+        );
+
+        final String response = await onDeviceTranslator.translateText(text);
+        await onDeviceTranslator.close();
+        return response;
+      }
+
+      // For non-English to non-English translation, use two-step process via English
+      // Step 1: Source language -> English
+      if (!sourceModelAvailable) {
+        debugPrint('Source language model not available: $sourceLanguage');
+        return null;
+      }
+
+      final toEnglishTranslator = OnDeviceTranslator(
         sourceLanguage: sourceLang,
+        targetLanguage: TranslateLanguage.english,
+      );
+
+      final englishText = await toEnglishTranslator.translateText(text);
+      await toEnglishTranslator.close();
+
+      if (englishText.isEmpty) {
+        debugPrint('Failed to translate to English: $sourceLanguage -> en');
+        return null;
+      }
+
+      // Step 2: English -> Target language
+      if (!targetModelAvailable) {
+        debugPrint('Target language model not available: $targetLanguage');
+        return null;
+      }
+
+      final fromEnglishTranslator = OnDeviceTranslator(
+        sourceLanguage: TranslateLanguage.english,
         targetLanguage: targetLang,
       );
 
-      final String response = await onDeviceTranslator.translateText(text);
-      await onDeviceTranslator.close();
-      return response;
+      final finalResult = await fromEnglishTranslator.translateText(englishText);
+      await fromEnglishTranslator.close();
+
+      return finalResult;
     } catch (e) {
       debugPrint('Error translating with ML Kit: $e');
       return null;
@@ -59,12 +110,29 @@ class MlKitTranslationService {
   }
 
   /// Downloads the translation model for the given language code.
+  /// Also ensures English model is available for bidirectional translation.
   Future<bool> downloadModel(String languageCode) async {
     try {
       final lang = _getTranslateLanguage(languageCode);
       if (lang == null) return false;
 
-      return await _modelManager.downloadModel(_getBcp47Code(lang));
+      // Always ensure English model is available for two-step translation
+      if (lang != TranslateLanguage.english) {
+        final englishAvailable = await isModelDownloaded('en');
+        if (!englishAvailable) {
+          debugPrint('Downloading English model for bidirectional translation');
+          await _modelManager.downloadModel('en');
+        }
+      }
+
+      final success = await _modelManager.downloadModel(_getBcp47Code(lang));
+      if (success) {
+        debugPrint('Successfully downloaded model for $languageCode');
+      } else {
+        debugPrint('Failed to download model for $languageCode');
+      }
+      
+      return success;
     } catch (e) {
       debugPrint('Error downloading model for $languageCode: $e');
       return false;
@@ -84,7 +152,69 @@ class MlKitTranslationService {
     }
   }
 
-  /// Checks if the model for the given language code is downloaded.
+  /// Checks if bidirectional translation is possible between two languages.
+  Future<bool> canTranslateBidirectionally(String sourceLanguage, String targetLanguage) async {
+    try {
+      final sourceLang = _getTranslateLanguage(sourceLanguage);
+      final targetLang = _getTranslateLanguage(targetLanguage);
+
+      if (sourceLang == null || targetLang == null) {
+        return false;
+      }
+
+      // If either language is English, only need one model
+      if (sourceLang == TranslateLanguage.english || targetLang == TranslateLanguage.english) {
+        final nonEnglishLang = sourceLang == TranslateLanguage.english ? targetLanguage : sourceLanguage;
+        return await isModelDownloaded(nonEnglishLang);
+      }
+
+      // For non-English to non-English, need both models plus English
+      final sourceAvailable = await isModelDownloaded(sourceLanguage);
+      final targetAvailable = await isModelDownloaded(targetLanguage);
+      final englishAvailable = await isModelDownloaded('en');
+
+      return sourceAvailable && targetAvailable && englishAvailable;
+    } catch (e) {
+      debugPrint('Error checking bidirectional translation capability: $e');
+      return false;
+    }
+  }
+
+  /// Gets missing models required for bidirectional translation.
+  Future<List<String>> getMissingModelsForTranslation(String sourceLanguage, String targetLanguage) async {
+    final missingModels = <String>[];
+
+    try {
+      final sourceLang = _getTranslateLanguage(sourceLanguage);
+      final targetLang = _getTranslateLanguage(targetLanguage);
+
+      if (sourceLang == null || targetLang == null) {
+        return missingModels;
+      }
+
+      // Check source model
+      if (!(await isModelDownloaded(sourceLanguage))) {
+        missingModels.add(sourceLanguage);
+      }
+
+      // Check target model
+      if (!(await isModelDownloaded(targetLanguage))) {
+        missingModels.add(targetLanguage);
+      }
+
+      // For non-English to non-English translation, English is required
+      if (sourceLang != TranslateLanguage.english && 
+          targetLang != TranslateLanguage.english && 
+          !(await isModelDownloaded('en'))) {
+        missingModels.add('en');
+      }
+
+      return missingModels;
+    } catch (e) {
+      debugPrint('Error getting missing models: $e');
+      return missingModels;
+    }
+  }
   Future<bool> isModelDownloaded(String languageCode) async {
     try {
       final lang = _getTranslateLanguage(languageCode);

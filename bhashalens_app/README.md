@@ -123,25 +123,15 @@ lib/
     ```
 
 2.  **Install dependencies:**
-    ```bash
     flutter pub get
     ```
 
-3.  **Environment Setup:**
-    Create a `.env` file in the root directory and add your Gemini API Key:
-    ```env
     GEMINI_API_KEY=your_gemini_api_key_here
-    # Optional: OPENAI_API_KEY=your_openai_api_key_here
-    ```
-
-4.  **Firebase Setup:**
-    - **Android:** Place your `google-services.json` file in `android/app/`.
-    - **iOS:** Place your `GoogleService-Info.plist` file in `ios/Runner/`.
+    
 
 5.  **Run the app:**
-    ```bash
     flutter run
-    ```
+    
 
 ## 🔐 Credentials & Security
 

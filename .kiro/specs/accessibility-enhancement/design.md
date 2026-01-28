@@ -283,6 +283,10 @@ class AccessibilitySettings {
   final bool reducedMotionEnabled;
   final double touchTargetSize;
   
+  // Sync and conflict resolution
+  final DateTime lastUpdated;
+  final String deviceId;
+  
   AccessibilitySettings({
     this.voiceNavigationEnabled = false,
     this.voiceNavigationLanguage = 'en-US',
@@ -301,11 +305,111 @@ class AccessibilitySettings {
     this.colorBlindSupportEnabled = false,
     this.reducedMotionEnabled = false,
     this.touchTargetSize = 48.0,
-  });
+    DateTime? lastUpdated,
+    String? deviceId,
+  }) : lastUpdated = lastUpdated ?? DateTime.now(),
+       deviceId = deviceId ?? _generateDeviceId();
+  
+  // Create updated copy with new timestamp
+  AccessibilitySettings copyWith({
+    bool? voiceNavigationEnabled,
+    String? voiceNavigationLanguage,
+    double? voiceCommandTimeout,
+    bool? audioFeedbackEnabled,
+    double? speechRate,
+    double? speechPitch,
+    String? preferredVoice,
+    bool? autoReadTranslations,
+    bool? autoReadErrors,
+    bool? highContrastEnabled,
+    double? textScale,
+    bool? boldTextEnabled,
+    bool? simplifiedUIEnabled,
+    bool? focusIndicatorsEnabled,
+    bool? colorBlindSupportEnabled,
+    bool? reducedMotionEnabled,
+    double? touchTargetSize,
+    DateTime? lastUpdated,
+    String? deviceId,
+  }) {
+    return AccessibilitySettings(
+      voiceNavigationEnabled: voiceNavigationEnabled ?? this.voiceNavigationEnabled,
+      voiceNavigationLanguage: voiceNavigationLanguage ?? this.voiceNavigationLanguage,
+      voiceCommandTimeout: voiceCommandTimeout ?? this.voiceCommandTimeout,
+      audioFeedbackEnabled: audioFeedbackEnabled ?? this.audioFeedbackEnabled,
+      speechRate: speechRate ?? this.speechRate,
+      speechPitch: speechPitch ?? this.speechPitch,
+      preferredVoice: preferredVoice ?? this.preferredVoice,
+      autoReadTranslations: autoReadTranslations ?? this.autoReadTranslations,
+      autoReadErrors: autoReadErrors ?? this.autoReadErrors,
+      highContrastEnabled: highContrastEnabled ?? this.highContrastEnabled,
+      textScale: textScale ?? this.textScale,
+      boldTextEnabled: boldTextEnabled ?? this.boldTextEnabled,
+      simplifiedUIEnabled: simplifiedUIEnabled ?? this.simplifiedUIEnabled,
+      focusIndicatorsEnabled: focusIndicatorsEnabled ?? this.focusIndicatorsEnabled,
+      colorBlindSupportEnabled: colorBlindSupportEnabled ?? this.colorBlindSupportEnabled,
+      reducedMotionEnabled: reducedMotionEnabled ?? this.reducedMotionEnabled,
+      touchTargetSize: touchTargetSize ?? this.touchTargetSize,
+      lastUpdated: lastUpdated ?? DateTime.now(),
+      deviceId: deviceId ?? this.deviceId,
+    );
+  }
   
   // Serialization methods for persistence
-  Map<String, dynamic> toJson();
-  factory AccessibilitySettings.fromJson(Map<String, dynamic> json);
+  Map<String, dynamic> toJson() {
+    return {
+      'voiceNavigationEnabled': voiceNavigationEnabled,
+      'voiceNavigationLanguage': voiceNavigationLanguage,
+      'voiceCommandTimeout': voiceCommandTimeout,
+      'audioFeedbackEnabled': audioFeedbackEnabled,
+      'speechRate': speechRate,
+      'speechPitch': speechPitch,
+      'preferredVoice': preferredVoice,
+      'autoReadTranslations': autoReadTranslations,
+      'autoReadErrors': autoReadErrors,
+      'highContrastEnabled': highContrastEnabled,
+      'textScale': textScale,
+      'boldTextEnabled': boldTextEnabled,
+      'simplifiedUIEnabled': simplifiedUIEnabled,
+      'focusIndicatorsEnabled': focusIndicatorsEnabled,
+      'colorBlindSupportEnabled': colorBlindSupportEnabled,
+      'reducedMotionEnabled': reducedMotionEnabled,
+      'touchTargetSize': touchTargetSize,
+      'lastUpdated': lastUpdated.millisecondsSinceEpoch,
+      'deviceId': deviceId,
+    };
+  }
+  
+  factory AccessibilitySettings.fromJson(Map<String, dynamic> json) {
+    return AccessibilitySettings(
+      voiceNavigationEnabled: json['voiceNavigationEnabled'] ?? false,
+      voiceNavigationLanguage: json['voiceNavigationLanguage'] ?? 'en-US',
+      voiceCommandTimeout: (json['voiceCommandTimeout'] ?? 3.0).toDouble(),
+      audioFeedbackEnabled: json['audioFeedbackEnabled'] ?? false,
+      speechRate: (json['speechRate'] ?? 1.0).toDouble(),
+      speechPitch: (json['speechPitch'] ?? 1.0).toDouble(),
+      preferredVoice: json['preferredVoice'] ?? 'default',
+      autoReadTranslations: json['autoReadTranslations'] ?? true,
+      autoReadErrors: json['autoReadErrors'] ?? true,
+      highContrastEnabled: json['highContrastEnabled'] ?? false,
+      textScale: (json['textScale'] ?? 1.0).toDouble(),
+      boldTextEnabled: json['boldTextEnabled'] ?? false,
+      simplifiedUIEnabled: json['simplifiedUIEnabled'] ?? false,
+      focusIndicatorsEnabled: json['focusIndicatorsEnabled'] ?? false,
+      colorBlindSupportEnabled: json['colorBlindSupportEnabled'] ?? false,
+      reducedMotionEnabled: json['reducedMotionEnabled'] ?? false,
+      touchTargetSize: (json['touchTargetSize'] ?? 48.0).toDouble(),
+      lastUpdated: json['lastUpdated'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(json['lastUpdated'])
+          : DateTime.now(),
+      deviceId: json['deviceId'] ?? _generateDeviceId(),
+    );
+  }
+  
+  static String _generateDeviceId() {
+    // Generate a unique device identifier
+    return DateTime.now().millisecondsSinceEpoch.toString();
+  }
 }
 ```
 
@@ -405,49 +509,235 @@ class AccessibilityProvider extends ChangeNotifier {
 ### 3. Firebase Integration
 
 ```dart
+enum SyncStatus {
+  synced,
+  syncing,
+  failed,
+  offline,
+}
+
 class AccessibilityFirebaseIntegration {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final SharedPreferences _prefs;
   
+  static const String _cacheKey = 'accessibility_settings_cache';
+  static const String _lastSyncKey = 'accessibility_last_sync';
+  static const int _maxRetries = 3;
+  static const Duration _baseRetryDelay = Duration(seconds: 2);
+  
+  final StreamController<SyncStatus> _syncStatusController = StreamController<SyncStatus>.broadcast();
+  Stream<SyncStatus> get syncStatus => _syncStatusController.stream;
+  
+  SyncStatus _currentStatus = SyncStatus.synced;
+  
+  AccessibilityFirebaseIntegration({
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+    required SharedPreferences prefs,
+  }) : _firestore = firestore,
+       _auth = auth,
+       _prefs = prefs;
+  
+  /// Sync settings to Firestore with offline support and conflict resolution
   Future<void> syncAccessibilitySettings(AccessibilitySettings settings) async {
-    if (_auth.currentUser != null) {
+    // Always save to local cache first for immediate UX
+    await _saveToCache(settings);
+    
+    if (_auth.currentUser == null) {
+      _updateSyncStatus(SyncStatus.offline);
+      return;
+    }
+    
+    _updateSyncStatus(SyncStatus.syncing);
+    
+    try {
+      // Check for remote conflicts before syncing
+      final remoteSettings = await _loadFromFirestore();
+      final resolvedSettings = _resolveConflicts(settings, remoteSettings);
+      
+      await _syncToFirestoreWithRetry(resolvedSettings);
+      await _prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
+      _updateSyncStatus(SyncStatus.synced);
+      
+    } catch (e) {
+      debugPrint('Failed to sync accessibility settings: $e');
+      _updateSyncStatus(SyncStatus.failed);
+      
+      // Schedule background retry
+      _scheduleRetry(() => syncAccessibilitySettings(settings));
+    }
+  }
+  
+  /// Load settings with offline-first approach and conflict resolution
+  Future<AccessibilitySettings?> loadAccessibilitySettings() async {
+    // Always load from cache first for immediate UX
+    final cachedSettings = await _loadFromCache();
+    
+    if (_auth.currentUser == null) {
+      _updateSyncStatus(SyncStatus.offline);
+      return cachedSettings;
+    }
+    
+    try {
+      _updateSyncStatus(SyncStatus.syncing);
+      
+      // Try to load from Firestore
+      final remoteSettings = await _loadFromFirestore();
+      
+      if (remoteSettings != null && cachedSettings != null) {
+        // Resolve conflicts between cached and remote
+        final resolvedSettings = _resolveConflicts(cachedSettings, remoteSettings);
+        
+        // Update cache with resolved settings
+        await _saveToCache(resolvedSettings);
+        _updateSyncStatus(SyncStatus.synced);
+        return resolvedSettings;
+        
+      } else if (remoteSettings != null) {
+        // No local cache, use remote
+        await _saveToCache(remoteSettings);
+        _updateSyncStatus(SyncStatus.synced);
+        return remoteSettings;
+        
+      } else {
+        // No remote data, use cached
+        _updateSyncStatus(cachedSettings != null ? SyncStatus.synced : SyncStatus.offline);
+        return cachedSettings;
+      }
+      
+    } catch (e) {
+      debugPrint('Failed to load remote accessibility settings: $e');
+      _updateSyncStatus(SyncStatus.failed);
+      
+      // Fall back to cached settings
+      return cachedSettings;
+    }
+  }
+  
+  /// Sync to Firestore with exponential backoff retry
+  Future<void> _syncToFirestoreWithRetry(AccessibilitySettings settings, [int retryCount = 0]) async {
+    try {
       await _firestore
           .collection('users')
           .doc(_auth.currentUser!.uid)
           .collection('accessibility')
           .doc('settings')
           .set(settings.toJson());
+          
+    } catch (e) {
+      if (retryCount < _maxRetries) {
+        final delay = _baseRetryDelay * (1 << retryCount); // Exponential backoff
+        debugPrint('Firestore sync failed, retrying in ${delay.inSeconds}s (attempt ${retryCount + 1}/$_maxRetries): $e');
+        
+        await Future.delayed(delay);
+        return _syncToFirestoreWithRetry(settings, retryCount + 1);
+      } else {
+        throw Exception('Failed to sync after $_maxRetries attempts: $e');
+      }
     }
   }
   
-  Future<AccessibilitySettings?> loadAccessibilitySettings() async {
-    if (_auth.currentUser != null) {
-      final doc = await _firestore
-          .collection('users')
-          .doc(_auth.currentUser!.uid)
-          .collection('accessibility')
-          .doc('settings')
-          .get();
-      
-      if (doc.exists) {
-        return AccessibilitySettings.fromJson(doc.data()!);
+  /// Load settings from Firestore
+  Future<AccessibilitySettings?> _loadFromFirestore() async {
+    final doc = await _firestore
+        .collection('users')
+        .doc(_auth.currentUser!.uid)
+        .collection('accessibility')
+        .doc('settings')
+        .get();
+    
+    if (doc.exists && doc.data() != null) {
+      return AccessibilitySettings.fromJson(doc.data()!);
+    }
+    return null;
+  }
+  
+  /// Save settings to local cache
+  Future<void> _saveToCache(AccessibilitySettings settings) async {
+    final json = jsonEncode(settings.toJson());
+    await _prefs.setString(_cacheKey, json);
+  }
+  
+  /// Load settings from local cache
+  Future<AccessibilitySettings?> _loadFromCache() async {
+    final json = _prefs.getString(_cacheKey);
+    if (json != null) {
+      try {
+        final data = jsonDecode(json) as Map<String, dynamic>;
+        return AccessibilitySettings.fromJson(data);
+      } catch (e) {
+        debugPrint('Failed to parse cached accessibility settings: $e');
+        // Clear corrupted cache
+        await _prefs.remove(_cacheKey);
       }
     }
     return null;
   }
+  
+  /// Resolve conflicts between local and remote settings using last-write-wins
+  AccessibilitySettings _resolveConflicts(
+    AccessibilitySettings local, 
+    AccessibilitySettings? remote
+  ) {
+    if (remote == null) return local;
+    
+    // Last-write-wins based on timestamp
+    if (local.lastUpdated.isAfter(remote.lastUpdated)) {
+      debugPrint('Local settings are newer, keeping local changes');
+      return local;
+    } else if (remote.lastUpdated.isAfter(local.lastUpdated)) {
+      debugPrint('Remote settings are newer, using remote changes');
+      return remote;
+    } else {
+      // Same timestamp, prefer local device's changes
+      debugPrint('Same timestamp, preferring local changes');
+      return local;
+    }
+  }
+  
+  /// Update sync status and notify listeners
+  void _updateSyncStatus(SyncStatus status) {
+    _currentStatus = status;
+    _syncStatusController.add(status);
+  }
+  
+  /// Schedule a retry operation with exponential backoff
+  void _scheduleRetry(VoidCallback operation) {
+    Timer(const Duration(minutes: 1), () {
+      if (_currentStatus == SyncStatus.failed) {
+        operation();
+      }
+    });
+  }
+  
+  /// Get current sync status
+  SyncStatus get currentSyncStatus => _currentStatus;
+  
+  /// Force a full sync (useful for manual refresh)
+  Future<void> forcSync() async {
+    final settings = await _loadFromCache();
+    if (settings != null) {
+      await syncAccessibilitySettings(settings);
+    }
+  }
+  
+  /// Clear local cache (useful for logout)
+  Future<void> clearCache() async {
+    await _prefs.remove(_cacheKey);
+    await _prefs.remove(_lastSyncKey);
+    _updateSyncStatus(SyncStatus.offline);
+  }
+  
+  void dispose() {
+    _syncStatusController.close();
+  }
 }
 ```
 
-Now I need to use the prework tool to analyze the acceptance criteria before writing the correctness properties:
-
-<function_calls>
-<invoke name="prework">
-<parameter name="featureName">accessibility-enhancement
 ## Correctness Properties
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
-
-Based on the prework analysis, I've identified the testable acceptance criteria and consolidated redundant properties. The following properties provide comprehensive validation coverage while avoiding duplication:
 
 ### Property 1: Voice Navigation Activation and Deactivation
 *For any* voice navigation activation method (voice command or button tap), the Voice_Navigation_System should activate successfully and provide audio confirmation, and for any deactivation command, it should deactivate successfully
@@ -623,6 +913,8 @@ Based on the prework analysis, I've identified the testable acceptance criteria 
 
 ## Testing Strategy
 
+## Testing Strategy
+
 ### Dual Testing Approach
 
 The accessibility enhancement features require both unit testing and property-based testing to ensure comprehensive coverage:
@@ -634,7 +926,7 @@ The accessibility enhancement features require both unit testing and property-ba
 - Test error conditions with controlled failure scenarios
 - Test integration points between accessibility features and existing services
 
-**Property-Based Tests**: Verify universal properties across all inputs using fast-check library
+**Property-Based Tests**: Verify universal properties across all inputs using the `glados` library
 - Generate random voice commands and verify recognition patterns
 - Generate random UI elements and verify accessibility compliance
 - Generate random settings combinations and verify compatibility
@@ -643,26 +935,61 @@ The accessibility enhancement features require both unit testing and property-ba
 
 ### Property-Based Testing Configuration
 
-**Library**: fast-check for TypeScript/JavaScript property-based testing
+**Library**: `glados` - A property-based testing library for Dart inspired by QuickCheck
 **Configuration**: Minimum 100 iterations per property test
 **Tagging**: Each property test references its design document property
 
-Example property test structure:
-```typescript
+Example property test structure for Dart/Flutter:
+```dart
+import 'package:glados/glados.dart';
+
 // Feature: accessibility-enhancement, Property 2: Voice Command Recognition and Execution
-fc.assert(fc.property(
-  fc.oneof(
-    fc.constant("go to camera"),
-    fc.constant("camera translation"),
-    fc.constant("open camera")
-  ),
-  (command) => {
-    const result = voiceNavigationService.processCommand(command);
-    expect(result.action).toBe(NavigationAction.cameraTranslation);
-    expect(result.executionTime).toBeLessThan(2000);
-  }
-), { numRuns: 100 });
+testAll('voice command recognition handles all valid camera commands', 
+  () {
+    // Generator for camera navigation commands
+    final cameraCommandGen = any.of([
+      'go to camera',
+      'camera translation', 
+      'open camera',
+      'navigate to camera',
+      'switch to camera',
+      'camera mode'
+    ]);
+    
+    return cameraCommandGen;
+  },
+  (String command) {
+    final result = voiceNavigationService.processCommand(command);
+    
+    expect(result.action, equals(NavigationAction.cameraTranslation));
+    expect(result.executionTime, lessThan(Duration(milliseconds: 2000)));
+  },
+  maxExamples: 100,
+);
+
+// Alternative using custom generator for more complex scenarios
+testAll('voice commands work across different contexts',
+  () {
+    final contextGen = any.of(['/camera', '/voice', '/text', '/settings']);
+    final commandGen = any.of([
+      'go back', 'help', 'settings', 'home'
+    ]);
+    
+    return any.tuple2(contextGen, commandGen);
+  },
+  ((String, String) data) {
+    final (context, command) = data;
+    voiceNavigationService.setCurrentPage(context);
+    final result = voiceNavigationService.processCommand(command);
+    
+    expect(result, isNotNull);
+    expect(result.executionTime, lessThan(Duration(milliseconds: 2000)));
+  },
+  maxExamples: 100,
+);
 ```
+
+**Installation**: Add `glados: ^0.4.0` to `dev_dependencies` in `pubspec.yaml`
 
 ### Accessibility-Specific Testing
 

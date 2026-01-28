@@ -25,9 +25,9 @@ class LocalStorageService {
       );
       return _preferences!;
     } catch (e) {
-      // If SharedPreferences fails, create a mock instance
+      // If SharedPreferences fails, throw a descriptive exception
       throw Exception('Failed to initialize SharedPreferences: $e');
-    }
+    }    }
   }
 
   Future<Database> _initDatabase() async {
@@ -86,7 +86,7 @@ class LocalStorageService {
 
   Future<bool> isOnboardingCompleted() async {
     try {
-      final prefs = await preferences.timeout(const Duration(seconds: 2));
+      final prefs = await preferences;
       return prefs.getBool('onboarding_completed') ?? false;
     } catch (e) {
       // If SharedPreferences fails, assume onboarding not completed
@@ -100,7 +100,7 @@ class LocalStorageService {
     return prefs.getInt('api_usage_count') ?? 0;
   }
 
-  static Future<void> _incrementLock = Future.value();
+  Future<void> _incrementLock = Future.value();
   Future<void> incrementApiUsageCount() async {
     final previousLock = _incrementLock;
     final completer = Completer<void>();

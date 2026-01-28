@@ -126,43 +126,94 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        itemCount: _supportedLanguages.length,
-        itemBuilder: (context, index) {
-          final lang = _supportedLanguages[index];
-          final code = lang['code']!;
-          final name = lang['name']!;
-          final status = _modelStatus[code] ?? 'loading';
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
+      body: Column(
+        children: [
+          // Info card about bidirectional translation
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: cardDark,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: dividerColor),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: primaryBlue.withOpacity(0.3)),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 8,
-              ),
-              title: Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: primaryBlue, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Bidirectional Translation',
+                      style: TextStyle(
+                        color: primaryBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              subtitle: Text(
-                code.toUpperCase(), // Display code slightly cleaner
-                style: const TextStyle(color: textGrey, fontSize: 13),
-              ),
-              trailing: _buildActionAndStatus(code, status),
+                SizedBox(height: 8),
+                Text(
+                  'For translation between non-English languages, both language models plus English are required. English acts as an intermediate language.',
+                  style: TextStyle(color: textGrey, fontSize: 12),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          // Language models list
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _supportedLanguages.length,
+              itemBuilder: (context, index) {
+                final lang = _supportedLanguages[index];
+                final code = lang['code']!;
+                final name = lang['name']!;
+                final status = _modelStatus[code] ?? 'loading';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: cardDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    title: Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          code.toUpperCase(),
+                          style: const TextStyle(color: textGrey, fontSize: 13),
+                        ),
+                        if (code == 'en')
+                          const Text(
+                            'Required for non-English to non-English translation',
+                            style: TextStyle(color: primaryBlue, fontSize: 11),
+                          ),
+                      ],
+                    ),
+                    trailing: _buildActionAndStatus(code, status),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

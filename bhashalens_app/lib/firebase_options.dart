@@ -137,31 +137,19 @@ class DefaultFirebaseOptions {
     final projectId = dotenv.env['FIREBASE_ANDROID_PROJECT_ID'];
     final storageBucket = dotenv.env['FIREBASE_ANDROID_STORAGE_BUCKET'];
 
-    // If .env variables are missing, use fallback values from google-services.json
+    // Throw StateError if credentials are missing (consistent with web/windows)
     if (apiKey == null ||
         appId == null ||
         messagingSenderId == null ||
         projectId == null ||
         storageBucket == null) {
-      debugPrint('Using fallback Firebase configuration for Android');
-      return const FirebaseOptions(
-        apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
-        appId: '1:705407154234:android:2825d6e1c7db6fb4915d03',
-        messagingSenderId: '705407154234',
-        projectId: 'chicha123',
-        storageBucket: 'chicha123.firebasestorage.app',
-      );
+      throw StateError('Missing Firebase Android credentials in .env file.');
     }
 
     // Validation to ensure projectId matches the intended app
     if (projectId != 'chicha123') {
-      debugPrint('Invalid Firebase Project ID: $projectId. Using fallback.');
-      return const FirebaseOptions(
-        apiKey: 'AIzaSyDphzCwAF7zkNAUcLLPbakHvytLp25r6oU',
-        appId: '1:705407154234:android:2825d6e1c7db6fb4915d03',
-        messagingSenderId: '705407154234',
-        projectId: 'chicha123',
-        storageBucket: 'chicha123.firebasestorage.app',
+      throw StateError(
+        'Invalid Firebase Project ID: $projectId. Expected: chicha123',
       );
     }
 
