@@ -119,6 +119,20 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       }
     } catch (e) {
       debugPrint('Error initializing camera: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initialize camera: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _initializeCamera,
+            ),
+          ),
+        );
+      }
     }
   }
 

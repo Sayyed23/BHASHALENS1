@@ -35,21 +35,27 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final firebaseAuthService = Provider.of<FirebaseAuthService>(context);
-    String userName =
-        'User'; // Default fallback name    
-    final user = firebaseAuthService.currentUser;
+    String userName = 'User'; // Default fallback name
 
-    if (user != null) {
-      if (user.displayName != null && user.displayName!.isNotEmpty) {
-        userName = user.displayName!.split(' ')[0];
-      } else if (user.email != null && user.email!.isNotEmpty) {
-        userName = user.email!.split('@')[0];
+    try {
+      final firebaseAuthService = Provider.of<FirebaseAuthService?>(context);
+      if (firebaseAuthService != null) {
+        final user = firebaseAuthService.currentUser;
+        if (user != null) {
+          if (user.displayName != null && user.displayName!.isNotEmpty) {
+            userName = user.displayName!.split(' ')[0];
+          } else if (user.email != null && user.email!.isNotEmpty) {
+            userName = user.email!.split('@')[0];
+          }
+          if (userName.isNotEmpty) {
+            userName =
+                userName[0].toUpperCase() + userName.substring(1).toLowerCase();
+          }
+        }
       }
-      if (userName.isNotEmpty) {
-        userName =
-            userName[0].toUpperCase() + userName.substring(1).toLowerCase();
-      }
+    } catch (e) {
+      // Auth service not available, stick to default 'User'
+      debugPrint('Auth service access error: $e');
     }
 
     return Column(
