@@ -113,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Navigate to login/onboarding page
           if (mounted) {
             Navigator.of(context).pushNamedAndRemoveUntil(
-              '/onboarding',
+              '/login',
               (route) => false,
             );
           }

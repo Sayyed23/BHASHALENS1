@@ -55,13 +55,23 @@ void main() async {
   // Initialize Firebase with error handling (non-blocking)
   bool firebaseInitialized = false;
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseInitialized = true;
-    debugPrint("Firebase initialized successfully");
+    try {
+      // First try with generated options (requires complete .env)
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      firebaseInitialized = true;
+      debugPrint("Firebase initialized successfully with options");
+    } catch (e) {
+      // Fallback: try without options (uses google-services.json on Android)
+      debugPrint("Warning: Failed to initialize Firebase with options: $e");
+      debugPrint("Attempting fallback initialization...");
+      await Firebase.initializeApp();
+      firebaseInitialized = true;
+      debugPrint("Firebase initialized successfully via fallback");
+    }
   } catch (e) {
-    debugPrint("Warning: Failed to initialize Firebase: $e");
+    debugPrint("Warning: Failed to initialize Firebase (Final): $e");
     // Continue without Firebase - app should still work in offline mode
   }
 
