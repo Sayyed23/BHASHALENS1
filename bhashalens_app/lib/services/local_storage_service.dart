@@ -19,8 +19,15 @@ class LocalStorageService {
 
   Future<SharedPreferences> get preferences async {
     if (_preferences != null) return _preferences!;
-    _preferences = await SharedPreferences.getInstance();
-    return _preferences!;
+    try {
+      _preferences = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 3),
+      );
+      return _preferences!;
+    } catch (e) {
+      // If SharedPreferences fails, create a mock instance
+      throw Exception('Failed to initialize SharedPreferences: $e');
+    }
   }
 
   Future<Database> _initDatabase() async {
@@ -78,9 +85,13 @@ class LocalStorageService {
   }
 
   Future<bool> isOnboardingCompleted() async {
-    final prefs = await preferences;
-    return prefs.getBool('onboarding_completed') ??
-        false; // Default to false if not set
+    try {
+      final prefs = await preferences.timeout(const Duration(seconds: 2));
+      return prefs.getBool('onboarding_completed') ?? false;
+    } catch (e) {
+      // If SharedPreferences fails, assume onboarding not completed
+      return false;
+    }
   }
 
   // API Usage Tracking

@@ -15,6 +15,7 @@ import 'package:bhashalens_app/pages/settings_page.dart';
 import 'package:bhashalens_app/pages/help_support_page.dart';
 import 'package:bhashalens_app/pages/emergency_page.dart';
 import 'package:bhashalens_app/pages/offline_models_page.dart';
+import 'package:bhashalens_app/pages/error_fallback_page.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
 import 'package:bhashalens_app/services/gemini_service.dart';
@@ -22,6 +23,7 @@ import 'package:bhashalens_app/services/voice_translation_service.dart'; // Impo
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/text_translate_page.dart';
@@ -37,24 +39,33 @@ import 'package:bhashalens_app/services/db_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize database factory
   initializeDatabaseFactory();
+  
+  // Load environment variables with error handling (non-blocking)
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("Warning: Failed to load .env file: $e");
+    // Continue without .env - app should still work with google-services.json
   }
+  
+  // Initialize Firebase with error handling (non-blocking)
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    debugPrint("Firebase initialized successfully");
   } catch (e) {
     debugPrint("Warning: Failed to initialize Firebase: $e");
+    // Continue without Firebase - app should still work in offline mode
   }
-  FirebaseAnalytics.instance;
 
-  final localStorageService = LocalStorageService(); // Initialize service
-  // Initialize Auth Service to trigger anonymous login if needed
+  // Initialize services
+  final localStorageService = LocalStorageService();
   final authService = FirebaseAuthService();
+  
   runApp(
     MultiProvider(
       providers: [
@@ -91,47 +102,89 @@ class BhashaLensApp extends StatefulWidget {
 class _BhashaLensAppState extends State<BhashaLensApp> {
   bool _showSplash = true;
   bool _isOnboardingCompleted = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeApp();
-    });
+    _initializeApp();
   }
 
   Future<void> _initializeApp() async {
-    // 1. Check Auth (Async)
-    _checkAuth();
-
-    // 2. Check Onboarding (Async)
     try {
+      // Set a maximum timeout for the entire initialization
+      await Future.any([
+        _performInitialization(),
+        Future.delayed(const Duration(seconds: 3)).then((_) => throw TimeoutException('Initialization timeout')),
+      ]);
+    } catch (e) {
+      debugPrint("Initialization failed or timed out: $e");
+      // Continue with defaults
+      if (mounted) {
+        setState(() {
+          _isOnboardingCompleted = false;
+          _isInitialized = true;
+        });
+        
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          setState(() {
+            _showSplash = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _performInitialization() async {
+    // Quick initialization without blocking
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    bool completed = false;
+    try {
+      // Try to check onboarding status with timeout
       final localStorage = Provider.of<LocalStorageService>(
         context,
         listen: false,
       );
-      final completed = await localStorage.isOnboardingCompleted();
+      completed = await localStorage.isOnboardingCompleted();
+    } catch (e) {
+      debugPrint("Failed to check onboarding: $e");
+      completed = false;
+    }
+    
+    // Initialize auth in background (don't wait for it)
+    _checkAuth();
+    
+    if (mounted) {
+      setState(() {
+        _isOnboardingCompleted = completed;
+        _isInitialized = true;
+      });
+      
+      // Hide splash after short delay
+      await Future.delayed(const Duration(milliseconds: 800));
       if (mounted) {
         setState(() {
-          _isOnboardingCompleted = completed;
+          _showSplash = false;
         });
       }
-    } catch (e) {
-      debugPrint("Failed to check onboarding status: $e");
     }
   }
 
   Future<void> _checkAuth() async {
-    final authService = Provider.of<FirebaseAuthService>(
-      context,
-      listen: false,
-    );
-    if (authService.currentUser == null) {
-      try {
-        await authService.signInAnonymously();
-      } catch (e) {
-        debugPrint('Failed to sign in anonymously: $e');
+    try {
+      final authService = Provider.of<FirebaseAuthService>(
+        context,
+        listen: false,
+      );
+      if (authService.currentUser == null) {
+        await authService.signInAnonymously().timeout(
+          const Duration(seconds: 3),
+        );
       }
+    } catch (e) {
+      debugPrint('Failed to sign in anonymously: $e');
     }
   }
 
@@ -156,31 +209,51 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       home: _showSplash
           ? SplashScreen(
               onComplete: () {
-                setState(() {
-                  _showSplash = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _showSplash = false;
+                  });
+                }
               },
             )
-          : StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                // If user is logged in (including anonymous), show HomePage
-                // If not, show Onboarding or Login (which should also allow skipping)
-                if (snapshot.hasData) {
-                  return const HomePage();
-                }
-                // Even if not logged in yet (auth failure?), fallback to Onboarding/Login
-                // Ideally, signInAnonymously above should have handled it or is in progress.
-                return _isOnboardingCompleted
-                    ? const LoginPage()
-                    : const OnboardingPage();
-              },
-            ),
+          : !_isInitialized
+              ? const Scaffold(
+                  backgroundColor: Color(0xFFFFF8F5),
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
+                    ),
+                  ),
+                )
+              : StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  builder: (context, snapshot) {
+                    // Don't wait for auth - show app immediately
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return _isOnboardingCompleted
+                          ? const HomePage()
+                          : const OnboardingPage();
+                    }
+                    
+                    // Handle errors gracefully
+                    if (snapshot.hasError) {
+                      debugPrint('Auth stream error: ${snapshot.error}');
+                      return _isOnboardingCompleted
+                          ? const HomePage()
+                          : const OnboardingPage();
+                    }
+                    
+                    // If user is logged in, show HomePage
+                    if (snapshot.hasData) {
+                      return const HomePage();
+                    }
+                    
+                    // Fallback to onboarding or home
+                    return _isOnboardingCompleted
+                        ? const HomePage()
+                        : const OnboardingPage();
+                  },
+                ),
       routes: {
         '/onboarding': (context) => const OnboardingPage(),
         '/login': (context) => const LoginPage(),
@@ -202,6 +275,10 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/explain_mode': (context) => const ExplainModePage(),
         '/assistant_mode': (context) => const AssistantModePage(),
         '/text_translate': (context) => const TextTranslatePage(),
+        '/error': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as String? ?? 'Unknown error';
+          return ErrorFallbackPage(error: args);
+        },
       },
     );
   }

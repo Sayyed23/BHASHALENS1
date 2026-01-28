@@ -61,6 +61,17 @@ BhashaLens is a cutting-edge accessibility and translation application designed 
 - **Saved Translations:** Bookmark important translations for quick access later.
 - **Secure Storage:** API keys and sensitive data are stored securely using `flutter_secure_storage`.
 
+### 📸 Screenshots
+
+| Home Dashboard | Voice Translation | Camera Translation |
+|:---:|:---:|:---:|
+| ![Home Dashboard](../image2.jpg) | ![Voice Translation](../image1.jpg) | ![Camera Translation](../image3.jpg) |
+| *Personalized Greeting & Quick Access* | *Real-time Bi-directional Translation* | *Instant OCR & Explain Mode* |
+
+### 🌐 Supported Languages
+- **Primary:** English, Spanish, French, German, Italian, Portuguese, Russian, Japanese, Korean, Chinese, Arabic.
+- **Indian Regional:** Hindi, Bengali, Tamil, Telugu, Malayalam, Kannada, Gujarati, Marathi, Punjabi.
+
 ## 🛠️ Tech Stack
 
 - **Framework:** [Flutter](https://flutter.dev/)
@@ -68,6 +79,8 @@ BhashaLens is a cutting-edge accessibility and translation application designed 
 - **AI & ML:**
   - [Google Gemini AI](https://deepmind.google/technologies/gemini/) (Generative AI for explanations and advanced translation)
   - [Google ML Kit](https://developers.google.com/ml-kit) (On-device Text Recognition & Translation)
+  - [Speech-to-Text](https://pub.dev/packages/speech_to_text) (Real-time speech recognition)
+  - [Flutter TTS](https://pub.dev/packages/flutter_tts) (Text-to-speech synthesis)
 - **Backend & Auth:**
   - [Firebase Auth](https://firebase.google.com/docs/auth) (Email/Password & Google Sign-In)
 - **State Management:** [Provider](https://pub.dev/packages/provider)
@@ -87,6 +100,7 @@ lib/
 │   ├── firestore_service.dart
 │   ├── gemini_service.dart
 │   ├── local_storage_service.dart
+│   ├── voice_translation_service.dart
 │   └── ...
 ├── theme/           # App styling and themes
 └── main.dart        # Entry point and initialization
@@ -117,6 +131,7 @@ lib/
     Create a `.env` file in the root directory and add your Gemini API Key:
     ```env
     GEMINI_API_KEY=your_gemini_api_key_here
+    # Optional: OPENAI_API_KEY=your_openai_api_key_here
     ```
 
 4.  **Firebase Setup:**
@@ -143,11 +158,30 @@ lib/
 
 ## 🐛 Troubleshooting
 
-### App Stuck on Splash Screen (Android)
-If the app hangs at the logo, ensure you are not running blocking synchronous `await` calls in `main()`. The app initialization has been prioritized to `initState` to prevent this.
+### Common Issues
 
-### White Screen on Web
-This is often caused by missing `.env` configuration or incompatible packages (like `tflite_flutter` or `sqflite`). We have implemented guards for these, but check your console logs if issues persist.
+1. **App Stuck on Splash Screen (Android)**
+   - Check if you have blocking `await` calls in `main()`. Initialization should be in `initState`.
+
+2. **White Screen on Web**
+   - Verify `.env` configuration.
+   - Check for incompatible packages like `tflite_flutter` or `sqflite` in the web build.
+
+3. **"Service Not Ready" / Translation Not Working**
+   - Check if your API Key is correctly set in `.env` and loaded in Settings.
+   - Verify internet connection.
+   - Ensure the API key has quota available.
+
+4. **Speech Recognition Fails**
+   - Ensure microphone permissions are granted.
+   - Try speaking more clearly or closer to the microphone.
+
+5. **"No Text Detected" in Camera Mode**
+   - Ensure good lighting and clear text.
+   - Try re-orienting the camera.
+
+### Debugging
+- Check the debug console for logs. We use `debugPrint` for essential logs regarding API responses and initialization errors.
 
 ## 📄 Documentation
 

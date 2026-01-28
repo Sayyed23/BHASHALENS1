@@ -1,0 +1,129 @@
+flutter pub get
+flutter devices
+flutter build
+flutter run
+flutter clean; flutter pub get; flutter build windows --release
+flutter pub remove pdfx flutter_inappwebview_windows; flutter clean; flutter pub get; flutter config --enable-windows-desktop; flutter build windows --release
+Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue; flutter clean; flutter pub get; flutter build windows --debug
+flutter pub get;
+flutter build windows --release
+cd d:\Orion && flutter build windows
+flutter build windows
+cd D:\Orion; Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue; flutter clean; flutter pub get; flutter build windows --debug
+flutter --version`
+flutter config --enable-web`
+flutter devices`
+flutter create .`
+flutter run -d chrome`
+flutter build web`
+flutter pub add supabase_flutter
+flutter doctor
+flutter clean
+flutter run -d windows
+flutter analyze
+flutter create truth_guardai
+cd truth_guardai && flutter clean
+cd truth_guardai; flutter clean
+cd truth_guardai; flutter build windows
+Remove-Item -Recurse -Force build; flutter build windows
+flutter config
+flutter config --list
+flutter build windows -v
+flutter build windows -v > build_log.txt 2>&1
+flutter doctor -v > doctor_log.txt 2>&1
+flutter run -d chrome
+flutter build window
+flutter build apk
+flutter build apk -- debug
+flutter build apk -- verbose
+flutter build apk --verbose
+flutter pub get && dart run flutter_launcher_icons
+dart run flutter_launcher_icons
+cd truth_guard_ai; Remove-Item -Recurse -Force build; flutter clean; flutter pub get; flutter run -v
+cd truth_guard_ai; flutter run -v -d windows 2>&1 | Select-String "cmake.exe" -A 5 | head -20
+flutter build windows -v 2>&1 | Out-String | Select-String "Visual Studio" -A 2 -B 2
+$output = flutter build windows -v 2>&1; $output | Select-String "cmake.exe.*Visual Studio" | Select-Object -First 1
+flutter build windows --cmake-generator="Ninja" -v 2>&1 | Select-String "Error|Success|Building Windows|CMake Error" | Select-Object -First 5
+flutter build windows --cmake-generator "Ninja" 2>&1 | tail -30
+flutter build windows --cmake-generator "Ninja" 2>&1 | Select-Object -Last 30
+flutter build windows -h | Select-String "cmake" -A 2
+Remove-Item -Recurse -Force build\windows; flutter build windows 2>&1 | Select-Object -Last 50
+cmake -S windows -B build\windows\x64 -G "Visual Studio 17 2022" -A x64 -DFLUTTER_TARGET_PLATFORM=windows-x64 2>&1 | Select-Object -Last 20
+Remove-Item -Recurse -Force build\windows\x64\CMakeFiles, build\windows\x64\CMakeCache.txt; cmake -S windows -B build\windows\x64 -G "Visual Studio 17 2022" -A x64 -DFLUTTER_TARGET_PLATFORM=windows-x64 2>&1 | Select-Object -Last 30
+Remove-Item -Recurse -Force build\windows\x64\CMakeFiles, build\windows\x64\CMakeCache.txt; cmake -S windows -B build\windows\x64 -G "Visual Studio 18 2026" -A x64 -DFLUTTER_TARGET_PLATFORM=windows-x64 2>&1 | Select-Object -Last 30
+Remove-Item -Recurse -Force build; flutter clean; flutter pub get
+flutter config --help | Select-String "windows\|cmake\|visual"
+where flutter; $flutterPath = (Get-Command flutter).Source; $flutterDir = Split-Path -Parent $flutterPath; Get-ChildItem $flutterDir -Recurse -Filter "*.dart" | Select-String "Visual Studio 16" -l | Select-Object -First 3
+flutter upgrade 2>&1 | Select-Object -Last 20
+flutter run -d windows 2>&1 | Select-Object -Last 80
+flutter build web --release
+flutter clean,flutter pub get,flutter run -d windows
+flutter clean; flutter pub get
+cd D:\BHASHALENS1\bhashalens_app; flutter clean
+$env:CMAKE_GENERATOR_INSTANCE = 'D:\Visual Studio\Microsoft Visual Studio\18\Insiders'; flutter run -d windows
+$env:CMAKE_GENERATOR = 'Visual Studio 18 2026'; $env:CMAKE_GENERATOR_INSTANCE = 'D:\Visual Studio\Microsoft Visual Studio\18\Insiders'; flutter run -d windows
+$env:PATH += ";$PWD"; $env:CMAKE_GENERATOR = 'Visual Studio 18 2026'; $env:CMAKE_GENERATOR_INSTANCE = 'D:\Visual Studio\Microsoft Visual Studio\18\Insiders'; flutter run -d windows
+$env:PATH += ";$PWD"; $env:CMAKE_GENERATOR = 'Visual Studio 18 2026'; $env:CMAKE_GENERATOR_INSTANCE = 'D:\Visual Studio\Microsoft Visual Studio\18\Insiders'; flutter build windows
+cd D:\BHASHALENS1\bhashalens_app ; flutter pub get
+mkdir -p flutter\ephemeral\.plugin_symlinks\flutter_tts\windows
+$env:Path = "D:\BHASHALENS1\bhashalens_app;" + $env:Path; flutter run -d windows
+cd bhashalens_app ; flutter pub get
+flutter build apk --release
+cd bhashalens_app && flutter pub get
+flutter analyze lib/services/tesseract_service.dart
+flutter pub deps google_mlkit_text_recognition --style=tree
+flutter pub deps
+flutter pub upgrade google_mlkit_text_recognition
+flutter analyze lib/pages/home_content.dart lib/services/supabase_auth_service.dart lib/pages/camera_translate_page.dart
+flutter pub add google_mlkit_translation
+flutter build apk --debug
+flutter build apk --release --split-per-abi
+Get-ChildItem -Path d:\BHASHALENS1\bhashalens_app\build\app\outputs\flutter-apk\ | Select-Object Name, Length
+$env:Path += ";d:\BHASHALENS1\bhashalens_app"; flutter run -d windows
+flutter clean && flutter pub get
+flutter clean; flutter pub get; flutter build apk --release
+flutter run -d windows -v
+flutter pub add url_launcher
+flutter pub add http
+flutter doctor -v
+flutter build apk --release --stacktrace
+flutter clean; flutter build apk --release
+./gradlew --stop 2>$null; flutter clean; flutter build apk --release
+$env:JAVA_TOOL_OPTIONS="-Xmx2G"; flutter build apk --release
+flutter analyze d:\BHASHALENS1\bhashalens_app\lib\services\firebase_auth_service.dart
+flutter analyze lib/services/firebase_auth_service.dart
+flutter clean && flutter pub get && flutter build windows --debug
+flutter build windows --debug
+flutter pub get && flutter run -d windows
+flutter pub add video_player
+flutter --version
+flutter analyze lib/pages/explain_mode_page.dart
+flutter pub add video_player_windows
+flutter analyze lib/pages/assistant_mode_page.dart
+flutter analyze lib/pages/home_page.dart
+flutter analyze lib/pages/text_translate_page.dart lib/pages/assistant_mode_page.dart lib/main.dart
+flutter analyze lib/pages/assistant_mode_page.dart lib/pages/text_translate_page.dart lib/services/gemini_service.dart
+flutter analyze lib/pages/assistant_mode_page.dart lib/services/voice_translation_service.dart
+flutter analyze lib/pages/auth/login_page.dart lib/pages/auth/signup_page.dart
+flutter analyze lib/services/gemini_service.dart
+flutter analyze lib/services/voice_translation_service.dart
+flutter analyze lib/pages/auth/login_page.dart
+flutter analyze lib/services/local_storage_service.dart
+flutter analyze lib/pages/text_translate_page.dart
+flutter analyze lib/services/gemini_service.dart lib/pages/assistant_mode_page.dart
+flutter analyze lib/firebase_options.dart
+flutter analyze lib/pages/camera_translate_page.dart
+flutter analyze lib/pages/camera_translate_page.dart lib/pages/explain_mode_page.dart
+flutter pub add cloud_firestore
+flutter pub add connectivity_plus
+flutter analyze lib/pages/history_saved_page.dart
+flutter analyze lib/pages/history_saved_page.dart lib/services/local_storage_service.dart
+flutter pub add sqflite_common_ffi
+flutter analyze > analysis.txt
+flutter build apk --split-per-abi
+Get-Content 'C:\Users\Ismail Sayyed\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt' | Where-Object { $_ -match 'flutter' } | Select-Object -Unique | Set-Content 'd:\BHASHALENS1\flutter_commands_history.txt'
+
+
+
+
+flutter build apk --split-per-abi

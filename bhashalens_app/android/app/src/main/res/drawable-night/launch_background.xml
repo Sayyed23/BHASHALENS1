@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch splash screen for dark theme -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background color for dark theme -->
+    <item android:drawable="@color/background_dark" />
+    
+    <!-- App logo centered -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@mipmap/launcher_icon" />
+    </item>
+</layer-list>
