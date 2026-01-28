@@ -34,25 +34,28 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   String _sourceLanguageCode = 'auto'; // 'auto' means detect
   String _targetLanguageCode = 'en'; // Default target
 
-  // Mapping for display (Simplified for now, can be expanded)
+  // Mapping for display
   final Map<String, String> _displayLanguages = {
     'auto': 'Detect Language',
-    'en': 'English',
-    'es': 'Spanish',
-    'fr': 'French',
-    'de': 'German',
-    'hi': 'Hindi',
-    'ja': 'Japanese',
-    'ko': 'Korean',
-    'zh': 'Chinese',
-    'mr': 'Marathi', // Added based on context
   };
+
+  final _mlKitService = MlKitTranslationService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadLanguages();
     _initializeCamera();
+  }
+
+  void _loadLanguages() {
+    final languages = _mlKitService.getSupportedLanguages();
+    setState(() {
+      for (var lang in languages) {
+        _displayLanguages[lang['code']!] = lang['name']!;
+      }
+    });
   }
 
   @override
@@ -183,24 +186,34 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           );
         }
 
-        // ML Kit Offline Logic
-        final mlKitService = MlKitTranslationService();
-
-        // Check if model is downloaded
-        final isModelDownloaded = await mlKitService.isModelDownloaded(
-          _targetLanguageCode,
-        );
-        if (!isModelDownloaded) {
-          // Ideally prompt to download, but for now show error
-          throw Exception(
-            "Offline Mode: Target language model ($_targetLanguageCode) not downloaded. Please download it in Offline settings.",
+        // Check if Source model is downloaded
+        if (_sourceLanguageCode != 'en') {
+          final isSourceDownloaded = await _mlKitService.isModelDownloaded(
+            _sourceLanguageCode,
           );
+          if (!isSourceDownloaded) {
+            throw Exception(
+              "Offline Mode: Source language model (${_displayLanguages[_sourceLanguageCode]}) not downloaded.",
+            );
+          }
+        }
+
+        // Check if Target model is downloaded
+        if (_targetLanguageCode != 'en') {
+          final isTargetDownloaded = await _mlKitService.isModelDownloaded(
+            _targetLanguageCode,
+          );
+          if (!isTargetDownloaded) {
+            throw Exception(
+              "Offline Mode: Target language model (${_displayLanguages[_targetLanguageCode]}) not downloaded.",
+            );
+          }
         }
 
         // ML Kit Text Recognition often needs a file path or InputImage
         // Assuming we have _capturedImage path
         if (_capturedImage != null) {
-          extracted = await mlKitService.extractTextFromFile(
+          extracted = await _mlKitService.extractTextFromFile(
             File(_capturedImage!.path),
           );
         } else {
@@ -208,7 +221,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         }
 
         if (extracted.isNotEmpty && !extracted.startsWith("Error")) {
-          final result = await mlKitService.translate(
+          final result = await _mlKitService.translate(
             text: extracted,
             sourceLanguage: _sourceLanguageCode,
             targetLanguage: _targetLanguageCode,
@@ -831,6 +844,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         return ListView(
           padding: const EdgeInsets.all(16),
           children: _displayLanguages.entries.map((e) {
+            // Filter "auto" if offline and isSource
+            // But we don't have easy access to 'isOffline' state here without checking connectivity again or passing it.
+            // For now show all.
             return ListTile(
               title: Text(e.value, style: const TextStyle(color: Colors.white)),
               onTap: () {
