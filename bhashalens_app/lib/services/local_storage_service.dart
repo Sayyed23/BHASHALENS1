@@ -27,9 +27,8 @@ class LocalStorageService {
     } catch (e) {
       // If SharedPreferences fails, throw a descriptive exception
       throw Exception('Failed to initialize SharedPreferences: $e');
-    }    }
+    }
   }
-
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'bhashalens.db');
     return openDatabase(

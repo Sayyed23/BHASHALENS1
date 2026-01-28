@@ -268,6 +268,7 @@ class AccessibilityServiceContainer {
 
     // Start creation process
     _accessibilityControllerCompleter = Completer<AccessibilityController>();
+    final completer = _accessibilityControllerCompleter!;
 
     try {
       final preferences = await SharedPreferences.getInstance();
@@ -279,14 +280,13 @@ class AccessibilityServiceContainer {
       );
 
       _accessibilityController = controller;
-      _accessibilityControllerCompleter!.complete(controller);
+      completer.complete(controller);
       return controller;
     } catch (error) {
-      _accessibilityControllerCompleter!.completeError(error);
+      completer.completeError(error);
       _accessibilityControllerCompleter = null;
       rethrow;
-    }
-  }
+    }  }
 
   /// Clear all registered services (for testing)
   void clear() {

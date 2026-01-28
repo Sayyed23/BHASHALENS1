@@ -152,10 +152,11 @@ class VoiceNavigationController extends ChangeNotifier
         onResult: _handleSpeechResult,
         listenFor: Duration(seconds: _timeoutDuration.toInt()),
         pauseFor: Duration(seconds: (_timeoutDuration / 2).toInt()),
-        partialResults: false,
+        listenOptions: SpeechListenOptions(
+            partialResults: false,
+            cancelOnError: true,
+            listenMode: ListenMode.confirmation),
         localeId: _currentLanguage,
-        cancelOnError: true,
-        listenMode: ListenMode.confirmation,
       );
 
       if (_speechToText.isListening) {
@@ -346,7 +347,8 @@ class VoiceNavigationController extends ChangeNotifier
     debugPrint('Speech recognized: $spokenText');
 
     // Process the command
-    final command = _commandProcessor.processSpokenText(spokenText, currentPage: _currentPage);
+    final command = _commandProcessor.processSpokenText(spokenText,
+        currentPage: _currentPage);
 
     if (command != null) {
       _commandStreamController.add(command);
@@ -444,11 +446,18 @@ class VoiceNavigationController extends ChangeNotifier
 
   /// Handle control commands
   Future<void> _handleControlCommand(VoiceCommand command) async {
-    final action = command.parameters['action'] as String;
+    final raw = command.parameters['action'];
+    if (raw == null) {
+      // No action parameter provided, log and return
+      debugPrint('Control command missing action parameter');
+      return;
+    }
 
+    final action = raw.toString();
     if (action == 'stop_voice_control') {
       await disableVoiceNavigation();
     }
+    // For other actions or invalid actions, we do nothing (no-op)
   }
 
   /// Handle page-specific commands with context awareness

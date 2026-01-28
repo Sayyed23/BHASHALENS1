@@ -243,28 +243,29 @@ class ContextAwareCommandManager {
     final pageCommands = _pageCommands[page];
     if (pageCommands != null) {
       final suggestions = <String>[];
-      
+
       for (final variations in pageCommands.values) {
         for (final variation in variations) {
-          if (_calculateSimilarity(_normalizeText(spokenText), _normalizeText(variation)) > 0.4) {
+          if (_calculateSimilarity(
+                  _normalizeText(spokenText), _normalizeText(variation)) >
+              0.4) {
             suggestions.add(variation);
           }
         }
       }
-      
+
       if (suggestions.isNotEmpty) {
         return suggestions.take(3).toList();
       }
     }
-    
+
     // Fall back to general error suggestions based on page type
     final errorType = _getErrorType(page);
-    return _errorSuggestions[errorType] ?? ['Say "help" to hear available commands'];
-  }
-    return bestMatch;
+    return _errorSuggestions[errorType] ??
+        ['Say "help" to hear available commands'];
   }
 
-  /// Generate contextual help message for a page
+  /// Generate helpful message listing available commands
   String generateHelpMessage(String page) {
     final pageCommands = _pageCommands[page];
     final descriptions = _commandDescriptions[page];
@@ -292,31 +293,36 @@ class ContextAwareCommandManager {
     return buffer.toString();
   }
 
-  /// Get error suggestions for unrecognized commands
-  List<String> getErrorSuggestions(String page, String spokenText) {
-    // First, try to find similar commands on the current page
-    final pageCommands = _pageCommands[page];
-    if (pageCommands != null) {
-      final suggestions = <String>[];
+  /// Find a matching page command
+  PageCommandMatch? findPageCommand(String page, String spokenText) {
+    if (!_pageCommands.containsKey(page)) return null;
 
-      for (final variations in pageCommands.values) {
-        for (final variation in variations) {
-          if (_calculateSimilarity(_normalizeText(spokenText), variation) >
-              0.4) {
-            suggestions.add(variation);
-          }
+    final normalizedSpoken = _normalizeText(spokenText);
+    PageCommandMatch? bestMatch;
+    double maxConfidence = 0.0;
+
+    final categories = _pageCommands[page]!;
+    for (var entry in categories.entries) {
+      final key = entry.key;
+      final variations = entry.value;
+
+      for (var variation in variations) {
+        final normalizedVariation = _normalizeText(variation);
+        final similarity =
+            _calculateSimilarity(normalizedSpoken, normalizedVariation);
+
+        if (similarity > maxConfidence) {
+          maxConfidence = similarity;
+          bestMatch = PageCommandMatch(
+              commandKey: key,
+              matchedVariation: variation,
+              confidence: similarity,
+              page: page);
         }
-      }
-
-      if (suggestions.isNotEmpty) {
-        return suggestions.take(3).toList();
       }
     }
 
-    // Fall back to general error suggestions based on page type
-    final errorType = _getErrorType(page);
-    return _errorSuggestions[errorType] ??
-        ['Say "help" to hear available commands'];
+    return bestMatch;
   }
 
   /// Create a voice command from page-specific input

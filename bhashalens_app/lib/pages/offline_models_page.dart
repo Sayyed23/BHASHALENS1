@@ -135,7 +135,7 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
             decoration: BoxDecoration(
               color: cardDark,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primaryBlue.withOpacity(0.3)),
+              border: Border.all(color: primaryBlue.withValues(alpha: 0.3)),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,

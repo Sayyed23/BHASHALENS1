@@ -141,15 +141,12 @@ class AudioFeedbackConfig {
     
     return <String, String>{};
   }
-  }
-
   /// Convert to JSON string
   String toJson() => json.encode(toMap());
 
   /// Create from JSON string
-  AudioFeedbackConfig.fromJson(String source) =>
+  factory AudioFeedbackConfig.fromJson(String source) =>
       AudioFeedbackConfig.fromMap(json.decode(source));
-
   /// Get page announcement for a route
   String? getPageAnnouncement(String route) {
     return pageAnnouncements[route];
@@ -194,14 +191,18 @@ class AudioFeedbackConfig {
   @override
   int get hashCode {
     return Object.hash(
-      Object.hashAll(
-          pageAnnouncements.entries.map((e) => Object.hash(e.key, e.value))),
-      Object.hashAll(
-          buttonDescriptions.entries.map((e) => Object.hash(e.key, e.value))),
-      Object.hashAll(
-          errorMessages.entries.map((e) => Object.hash(e.key, e.value))),
-      Object.hashAll(
-          successMessages.entries.map((e) => Object.hash(e.key, e.value))),
+      _getStableMapHash(pageAnnouncements),
+      _getStableMapHash(buttonDescriptions),
+      _getStableMapHash(errorMessages),
+      _getStableMapHash(successMessages),
+    );
+  }
+
+  /// Helper method to get a stable hash for a map regardless of insertion order
+  int _getStableMapHash(Map<String, String> map) {
+    final sortedKeys = map.keys.toList()..sort();
+    return Object.hashAll(
+      sortedKeys.map((key) => Object.hash(key, map[key])),
     );
   }
 

@@ -295,8 +295,10 @@ class CommandProcessor {
         final confidence = _calculateSimilarity(normalizedText, command);
         if (confidence > highestConfidence) {
           highestConfidence = confidence;
+          // Use action_ prefix for page-specific commands so _getCommandType can classify them properly
+          final actionKey = 'action_${currentPage.replaceAll('/', '')}_${_normalizeText(command).replaceAll(' ', '_')}';
           bestMatch = _CommandMatch(
-            commandKey: 'page_specific_${_normalizeText(command).replaceAll(' ', '_')}',
+            commandKey: actionKey,
             matchedText: command,
             confidence: confidence,
           );
@@ -388,6 +390,17 @@ class CommandProcessor {
       return CommandType.navigation;
     } else if (commandKey.startsWith('start_')) {
       return CommandType.translation;
+    } else if (commandKey.startsWith('action_')) {
+      // Handle page-specific action commands
+      if (commandKey.contains('_camera_') || commandKey.contains('_voice_')) {
+        return CommandType.translation;
+      } else if (commandKey.contains('_settings_')) {
+        return CommandType.settings;
+      } else if (commandKey.contains('_text_')) {
+        return CommandType.control;
+      } else {
+        return CommandType.control; // Default for other action commands
+      }
     } else if (commandKey.contains('settings')) {
       return CommandType.settings;
     } else if (commandKey.contains('help')) {

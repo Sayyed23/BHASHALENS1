@@ -15,6 +15,7 @@ class MlKitTranslationService {
   MlKitTranslationService._internal();
 
   final _modelManager = OnDeviceTranslatorModelManager();
+
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
   /// Translates text from source language to target language.
@@ -45,7 +46,17 @@ class MlKitTranslationService {
       final targetModelAvailable = await isModelDownloaded(targetLanguage);
 
       // Direct translation (works best when one language is English)
-      if (sourceLang == TranslateLanguage.english || targetLang == TranslateLanguage.english) {
+      if (sourceLang == TranslateLanguage.english ||
+          targetLang == TranslateLanguage.english) {
+        // Check if the non-English model is available
+        final nonEnglishLang = sourceLang == TranslateLanguage.english
+            ? targetLanguage
+            : sourceLanguage;
+        if (!(await isModelDownloaded(nonEnglishLang))) {
+          debugPrint('Required model not available: $nonEnglishLang');
+          return null;
+        }
+
         final onDeviceTranslator = OnDeviceTranslator(
           sourceLanguage: sourceLang,
           targetLanguage: targetLang,
@@ -55,7 +66,6 @@ class MlKitTranslationService {
         await onDeviceTranslator.close();
         return response;
       }
-
       // For non-English to non-English translation, use two-step process via English
       // Step 1: Source language -> English
       if (!sourceModelAvailable) {
@@ -87,7 +97,8 @@ class MlKitTranslationService {
         targetLanguage: targetLang,
       );
 
-      final finalResult = await fromEnglishTranslator.translateText(englishText);
+      final finalResult =
+          await fromEnglishTranslator.translateText(englishText);
       await fromEnglishTranslator.close();
 
       return finalResult;
@@ -98,15 +109,23 @@ class MlKitTranslationService {
   }
 
   /// Extracts text from image file using ML Kit Text Recognition.
-  Future<String> extractTextFromFile(File file) async {
+  Future<String> extractTextFromFile(File file,
+      {String languageCode = 'en'}) async {
     try {
       final inputImage = InputImage.fromFile(file);
+      // Note: Currently limited to Latin script offline due to dependency issues.
+      // Ideally we would select script based on languageCode.
       final recognizedText = await _textRecognizer.processImage(inputImage);
       return recognizedText.text.trim();
     } catch (e) {
       debugPrint('Error extracting text from file: $e');
       return 'Error extracting text';
     }
+  }
+
+  /// Release resources
+  Future<void> dispose() async {
+    await _textRecognizer.close();
   }
 
   /// Downloads the translation model for the given language code.
@@ -131,7 +150,7 @@ class MlKitTranslationService {
       } else {
         debugPrint('Failed to download model for $languageCode');
       }
-      
+
       return success;
     } catch (e) {
       debugPrint('Error downloading model for $languageCode: $e');
@@ -153,7 +172,8 @@ class MlKitTranslationService {
   }
 
   /// Checks if bidirectional translation is possible between two languages.
-  Future<bool> canTranslateBidirectionally(String sourceLanguage, String targetLanguage) async {
+  Future<bool> canTranslateBidirectionally(
+      String sourceLanguage, String targetLanguage) async {
     try {
       final sourceLang = _getTranslateLanguage(sourceLanguage);
       final targetLang = _getTranslateLanguage(targetLanguage);
@@ -163,8 +183,11 @@ class MlKitTranslationService {
       }
 
       // If either language is English, only need one model
-      if (sourceLang == TranslateLanguage.english || targetLang == TranslateLanguage.english) {
-        final nonEnglishLang = sourceLang == TranslateLanguage.english ? targetLanguage : sourceLanguage;
+      if (sourceLang == TranslateLanguage.english ||
+          targetLang == TranslateLanguage.english) {
+        final nonEnglishLang = sourceLang == TranslateLanguage.english
+            ? targetLanguage
+            : sourceLanguage;
         return await isModelDownloaded(nonEnglishLang);
       }
 
@@ -181,7 +204,8 @@ class MlKitTranslationService {
   }
 
   /// Gets missing models required for bidirectional translation.
-  Future<List<String>> getMissingModelsForTranslation(String sourceLanguage, String targetLanguage) async {
+  Future<List<String>> getMissingModelsForTranslation(
+      String sourceLanguage, String targetLanguage) async {
     final missingModels = <String>[];
 
     try {
@@ -197,15 +221,17 @@ class MlKitTranslationService {
         missingModels.add(sourceLanguage);
       }
 
-      // Check target model
-      if (!(await isModelDownloaded(targetLanguage))) {
+      // Check target model (skip if same as source to avoid duplicates)
+      if (sourceLanguage != targetLanguage &&
+          !(await isModelDownloaded(targetLanguage))) {
         missingModels.add(targetLanguage);
       }
 
       // For non-English to non-English translation, English is required
-      if (sourceLang != TranslateLanguage.english && 
-          targetLang != TranslateLanguage.english && 
-          !(await isModelDownloaded('en'))) {
+      if (sourceLang != TranslateLanguage.english &&
+          targetLang != TranslateLanguage.english &&
+          !(await isModelDownloaded('en')) &&
+          !missingModels.contains('en')) {
         missingModels.add('en');
       }
 
@@ -215,6 +241,7 @@ class MlKitTranslationService {
       return missingModels;
     }
   }
+
   Future<bool> isModelDownloaded(String languageCode) async {
     try {
       final lang = _getTranslateLanguage(languageCode);

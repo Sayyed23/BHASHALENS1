@@ -119,8 +119,7 @@ lib/
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/your-actual-username/bhashalens.git
-    cd bhashalens    ```
-
+cd bhashalens
 2.  **Install dependencies:**
     ```bash
     flutter pub get
