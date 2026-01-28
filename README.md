@@ -118,9 +118,8 @@ lib/
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/yourusername/bhashalens.git
-    cd bhashalens_app
-    ```
+    git clone https://github.com/your-actual-username/bhashalens.git
+    cd bhashalens    ```
 
 2.  **Install dependencies:**
     ```bash

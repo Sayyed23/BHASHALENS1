@@ -8,22 +8,49 @@ class ContextAwareCommandManager {
       'quick_camera': ['quick camera', 'fast camera', 'camera now'],
       'quick_voice': ['quick voice', 'fast voice', 'voice now'],
       'quick_text': ['quick text', 'fast text', 'text now'],
-      'recent_translations': ['recent translations', 'history', 'my translations'],
+      'recent_translations': [
+        'recent translations',
+        'history',
+        'my translations'
+      ],
       'emergency_phrases': ['emergency', 'emergency phrases', 'help phrases'],
     },
     '/camera': {
       'take_photo': ['take photo', 'capture', 'snap', 'take picture', 'shoot'],
-      'switch_camera': ['switch camera', 'flip camera', 'front camera', 'back camera'],
-      'flash_toggle': ['flash on', 'flash off', 'toggle flash', 'turn on flash'],
+      'switch_camera': [
+        'switch camera',
+        'flip camera',
+        'front camera',
+        'back camera'
+      ],
+      'flash_toggle': [
+        'flash on',
+        'flash off',
+        'toggle flash',
+        'turn on flash'
+      ],
       'gallery': ['gallery', 'photo gallery', 'saved photos'],
       'retake': ['retake', 'take again', 'retry photo'],
       'translate_photo': ['translate this', 'translate photo', 'read this'],
     },
     '/voice': {
-      'start_recording': ['start recording', 'begin recording', 'record now', 'listen'],
+      'start_recording': [
+        'start recording',
+        'begin recording',
+        'record now',
+        'listen'
+      ],
       'stop_recording': ['stop recording', 'stop', 'finish recording'],
-      'play_translation': ['play translation', 'read translation', 'speak translation'],
-      'change_language': ['change language', 'switch language', 'different language'],
+      'play_translation': [
+        'play translation',
+        'read translation',
+        'speak translation'
+      ],
+      'change_language': [
+        'change language',
+        'switch language',
+        'different language'
+      ],
       'clear_recording': ['clear', 'delete', 'start over', 'clear recording'],
       'save_translation': ['save this', 'save translation', 'keep this'],
     },
@@ -36,22 +63,51 @@ class ContextAwareCommandManager {
       'save_translation': ['save', 'save this', 'keep translation'],
     },
     '/settings': {
-      'accessibility_settings': ['accessibility', 'accessibility settings', 'voice settings'],
-      'language_settings': ['language settings', 'translation languages', 'languages'],
+      'accessibility_settings': [
+        'accessibility',
+        'accessibility settings',
+        'voice settings'
+      ],
+      'language_settings': [
+        'language settings',
+        'translation languages',
+        'languages'
+      ],
       'theme_settings': ['theme', 'dark mode', 'light mode', 'appearance'],
       'audio_settings': ['audio settings', 'sound settings', 'voice settings'],
-      'reset_settings': ['reset settings', 'default settings', 'restore defaults'],
-      'export_settings': ['export settings', 'backup settings', 'save settings'],
+      'reset_settings': [
+        'reset settings',
+        'default settings',
+        'restore defaults'
+      ],
+      'export_settings': [
+        'export settings',
+        'backup settings',
+        'save settings'
+      ],
     },
     '/history': {
       'clear_history': ['clear history', 'delete history', 'remove all'],
       'search_history': ['search', 'find translation', 'search history'],
-      'export_history': ['export history', 'backup translations', 'save history'],
+      'export_history': [
+        'export history',
+        'backup translations',
+        'save history'
+      ],
       'favorite_translation': ['favorite', 'star this', 'mark favorite'],
-      'delete_translation': ['delete this', 'remove this', 'delete translation'],
+      'delete_translation': [
+        'delete this',
+        'remove this',
+        'delete translation'
+      ],
     },
     '/emergency': {
-      'medical_help': ['medical help', 'doctor', 'hospital', 'emergency medical'],
+      'medical_help': [
+        'medical help',
+        'doctor',
+        'hospital',
+        'emergency medical'
+      ],
       'police_help': ['police', 'call police', 'emergency police'],
       'fire_help': ['fire department', 'fire emergency', 'call fire'],
       'location_help': ['where am I', 'my location', 'address'],
@@ -144,10 +200,8 @@ class ContextAwareCommandManager {
   List<String> getPageCommands(String page) {
     final pageCommands = _pageCommands[page];
     if (pageCommands == null) return [];
-    
-    return pageCommands.values
-        .expand((variations) => variations)
-        .toList();
+
+    return pageCommands.values.expand((variations) => variations).toList();
   }
 
   /// Get command categories for a specific page
@@ -169,9 +223,9 @@ class ContextAwareCommandManager {
   bool isValidPageCommand(String page, String spokenText) {
     final pageCommands = _pageCommands[page];
     if (pageCommands == null) return false;
-    
+
     final normalizedText = _normalizeText(spokenText);
-    
+
     for (final variations in pageCommands.values) {
       for (final variation in variations) {
         if (_normalizeText(variation) == normalizedText) {
@@ -179,62 +233,8 @@ class ContextAwareCommandManager {
         }
       }
     }
-    
+
     return false;
-  }
-
-  /// Find the best matching page command
-  PageCommandMatch? findPageCommand(String page, String spokenText) {
-    final pageCommands = _pageCommands[page];
-    if (pageCommands == null) return null;
-    
-    final normalizedText = _normalizeText(spokenText);
-    PageCommandMatch? bestMatch;
-    double highestConfidence = 0.0;
-    
-    for (final entry in pageCommands.entries) {
-      for (final variation in entry.value) {
-        final confidence = _calculateSimilarity(normalizedText, variation);
-        if (confidence > highestConfidence) {
-          highestConfidence = confidence;
-          bestMatch = PageCommandMatch(
-            commandKey: entry.key,
-            matchedVariation: variation,
-            confidence: confidence,
-            page: page,
-          );
-        }
-      }
-    }
-    
-    return bestMatch;
-  }
-
-  /// Generate contextual help message for a page
-  String generateHelpMessage(String page) {
-    final pageCommands = _pageCommands[page];
-    final descriptions = _commandDescriptions[page];
-    
-    if (pageCommands == null || descriptions == null) {
-      return 'No specific commands available for this page. Use general navigation commands.';
-    }
-    
-    final buffer = StringBuffer();
-    buffer.writeln('Available commands for this page:');
-    
-    for (final entry in pageCommands.entries) {
-      final commandKey = entry.key;
-      final variations = entry.value;
-      final description = descriptions[commandKey];
-      
-      if (description != null && variations.isNotEmpty) {
-        buffer.writeln('• ${variations.first}: $description');
-      }
-    }
-    
-    buffer.writeln('\nYou can also use general navigation commands like "go back" or "go home".');
-    
-    return buffer.toString();
   }
 
   /// Get error suggestions for unrecognized commands
@@ -246,7 +246,7 @@ class ContextAwareCommandManager {
       
       for (final variations in pageCommands.values) {
         for (final variation in variations) {
-          if (_calculateSimilarity(_normalizeText(spokenText), variation) > 0.4) {
+          if (_calculateSimilarity(_normalizeText(spokenText), _normalizeText(variation)) > 0.4) {
             suggestions.add(variation);
           }
         }
@@ -261,12 +261,69 @@ class ContextAwareCommandManager {
     final errorType = _getErrorType(page);
     return _errorSuggestions[errorType] ?? ['Say "help" to hear available commands'];
   }
+    return bestMatch;
+  }
+
+  /// Generate contextual help message for a page
+  String generateHelpMessage(String page) {
+    final pageCommands = _pageCommands[page];
+    final descriptions = _commandDescriptions[page];
+
+    if (pageCommands == null || descriptions == null) {
+      return 'No specific commands available for this page. Use general navigation commands.';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('Available commands for this page:');
+
+    for (final entry in pageCommands.entries) {
+      final commandKey = entry.key;
+      final variations = entry.value;
+      final description = descriptions[commandKey];
+
+      if (description != null && variations.isNotEmpty) {
+        buffer.writeln('• ${variations.first}: $description');
+      }
+    }
+
+    buffer.writeln(
+        '\nYou can also use general navigation commands like "go back" or "go home".');
+
+    return buffer.toString();
+  }
+
+  /// Get error suggestions for unrecognized commands
+  List<String> getErrorSuggestions(String page, String spokenText) {
+    // First, try to find similar commands on the current page
+    final pageCommands = _pageCommands[page];
+    if (pageCommands != null) {
+      final suggestions = <String>[];
+
+      for (final variations in pageCommands.values) {
+        for (final variation in variations) {
+          if (_calculateSimilarity(_normalizeText(spokenText), variation) >
+              0.4) {
+            suggestions.add(variation);
+          }
+        }
+      }
+
+      if (suggestions.isNotEmpty) {
+        return suggestions.take(3).toList();
+      }
+    }
+
+    // Fall back to general error suggestions based on page type
+    final errorType = _getErrorType(page);
+    return _errorSuggestions[errorType] ??
+        ['Say "help" to hear available commands'];
+  }
 
   /// Create a voice command from page-specific input
   VoiceCommand? createPageCommand(String page, String spokenText) {
     final match = findPageCommand(page, spokenText);
     if (match == null || match.confidence < 0.6) return null;
-    
+
     return VoiceCommand(
       originalText: spokenText,
       type: CommandType.control, // Page commands are control type
@@ -309,32 +366,34 @@ class ContextAwareCommandManager {
   double _calculateSimilarity(String text1, String text2) {
     if (text1 == text2) return 1.0;
     if (text1.isEmpty || text2.isEmpty) return 0.0;
-    
+
     // Exact match
     if (text1 == text2) return 1.0;
-    
+
     // Contains match
     if (text1.contains(text2) || text2.contains(text1)) {
       final shorter = text1.length < text2.length ? text1 : text2;
       final longer = text1.length >= text2.length ? text1 : text2;
       return shorter.length / longer.length * 0.9;
     }
-    
+
     // Word-based matching
     final words1 = text1.split(' ');
     final words2 = text2.split(' ');
-    
+
     int matchingWords = 0;
     for (final word1 in words1) {
       if (words2.contains(word1)) {
         matchingWords++;
       }
     }
-    
+
     if (matchingWords > 0) {
-      return matchingWords / (words1.length > words2.length ? words1.length : words2.length) * 0.8;
+      return matchingWords /
+          (words1.length > words2.length ? words1.length : words2.length) *
+          0.8;
     }
-    
+
     return 0.0;
   }
 
@@ -359,14 +418,14 @@ class PageCommandMatch {
   final String matchedVariation;
   final double confidence;
   final String page;
-  
+
   const PageCommandMatch({
     required this.commandKey,
     required this.matchedVariation,
     required this.confidence,
     required this.page,
   });
-  
+
   @override
   String toString() {
     return 'PageCommandMatch(commandKey: $commandKey, matchedVariation: $matchedVariation, confidence: $confidence, page: $page)';
@@ -375,42 +434,42 @@ class PageCommandMatch {
 
 /// Help system for voice commands
 class VoiceCommandHelpSystem {
-  final ContextAwareCommandManager _commandManager = ContextAwareCommandManager();
-  
+  final ContextAwareCommandManager _commandManager =
+      ContextAwareCommandManager();
+
   /// Generate comprehensive help for a page
   String generatePageHelp(String page) {
     return _commandManager.generateHelpMessage(page);
   }
-  
+
   /// Generate quick help with most common commands
   String generateQuickHelp(String page) {
     final pageCommands = _commandManager.getPageCommandCategories(page);
-    
+
     if (pageCommands.isEmpty) {
       return 'Say "go to camera", "go to voice", or "go to text" to start translating.';
     }
-    
+
     final topCommands = pageCommands.entries.take(3);
-    final commandList = topCommands
-        .map((entry) => entry.value.first)
-        .join(', ');
-    
+    final commandList =
+        topCommands.map((entry) => entry.value.first).join(', ');
+
     return 'Quick commands: $commandList. Say "help" for more options.';
   }
-  
+
   /// Generate tutorial for new users
   String generateTutorial(String page) {
     return _commandManager.getTutorialMessage(page);
   }
-  
+
   /// Generate error help with suggestions
   String generateErrorHelp(String page, String spokenText) {
     final suggestions = _commandManager.getErrorSuggestions(page, spokenText);
-    
+
     if (suggestions.isEmpty) {
       return 'Command not recognized. Say "help" to hear available commands.';
     }
-    
+
     return 'Command not recognized. ${suggestions.join(' ')}';
   }
 }

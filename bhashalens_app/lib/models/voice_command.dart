@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:collection/collection.dart';
 
 /// Enumeration of voice command types
 enum CommandType {
@@ -92,7 +93,7 @@ class VoiceCommand {
     return other is VoiceCommand &&
         other.originalText == originalText &&
         other.type == type &&
-        _mapEquals(other.parameters, parameters) &&
+        const DeepCollectionEquality().equals(other.parameters, parameters) &&
         other.confidence == confidence &&
         other.timestamp == timestamp;
   }
@@ -101,18 +102,9 @@ class VoiceCommand {
   int get hashCode {
     return originalText.hashCode ^
         type.hashCode ^
-        parameters.hashCode ^
+        const DeepCollectionEquality().hash(parameters) ^
         confidence.hashCode ^
         timestamp.hashCode;
-  }
-  
-  /// Helper method to compare maps
-  bool _mapEquals(Map<String, dynamic> a, Map<String, dynamic> b) {
-    if (a.length != b.length) return false;
-    for (final key in a.keys) {
-      if (!b.containsKey(key) || a[key] != b[key]) return false;
-    }
-    return true;
   }
 }
 

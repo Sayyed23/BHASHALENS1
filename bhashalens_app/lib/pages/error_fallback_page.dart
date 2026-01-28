@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class ErrorFallbackPage extends StatelessWidget {
   final String error;
@@ -62,11 +63,11 @@ class ErrorFallbackPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Error: $error',
+                    'Error: ${_sanitizeError(error)}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[700],
-                      fontFamily: 'monospace',
+                      fontFamilyFallback: const ['monospace', 'Courier New', 'Courier'],
                     ),
                   ),
                 ),
@@ -112,5 +113,28 @@ class ErrorFallbackPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Sanitize error message for display
+  String _sanitizeError(String error) {
+    if (kDebugMode) {
+      // In debug mode, show full error but still limit length for UI
+      return error.length > 500 ? '${error.substring(0, 500)}...' : error;
+    } else {
+      // In release mode, sanitize and limit error details
+      String sanitized = error
+          .replaceAll(RegExp(r'file:///[^\s]*'), '[file path]') // Remove file paths
+          .replaceAll(RegExp(r'package:[^\s]*'), '[package]') // Remove package paths
+          .replaceAll(RegExp(r'#\d+\s+[^\n]*'), '') // Remove stack trace lines
+          .replaceAll(RegExp(r'\s+'), ' ') // Normalize whitespace
+          .trim();
+      
+      // Limit length and provide generic message if too long
+      if (sanitized.length > 200) {
+        return 'An unexpected error occurred. Please try again.';
+      }
+      
+      return sanitized.isEmpty ? 'An error occurred' : sanitized;
+    }
   }
 }

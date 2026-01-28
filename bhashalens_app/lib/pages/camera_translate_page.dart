@@ -226,7 +226,28 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             sourceLanguage: _sourceLanguageCode,
             targetLanguage: _targetLanguageCode,
           );
-          translated = result ?? "Translation failed (Offline)";
+          
+          if (result != null && result.isNotEmpty) {
+            translated = result;
+          } else {
+            // Check what models are missing for better error message
+            final missingModels = await _mlKitService.getMissingModelsForTranslation(
+              _sourceLanguageCode,
+              _targetLanguageCode,
+            );
+
+            if (missingModels.isNotEmpty) {
+              final languageNames = missingModels.map((code) {
+                final lang = _mlKitService.getSupportedLanguages()
+                    .firstWhere((l) => l['code'] == code, orElse: () => {'name': code});
+                return lang['name'] ?? code;
+              }).join(', ');
+              
+              translated = 'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
+            } else {
+              translated = "Translation failed (Offline)";
+            }
+          }
         }
       } else {
         // Gemini Online Logic

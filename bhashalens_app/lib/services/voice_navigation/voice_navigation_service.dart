@@ -11,23 +11,24 @@ abstract class VoiceNavigationService {
   Stream<VoiceCommand> get commandStream;
   bool get isListening;
   bool get isEnabled;
-  
+
   // Voice navigation control
   Future<void> startListening();
   Future<void> stopListening();
   Future<void> enableVoiceNavigation();
   Future<void> disableVoiceNavigation();
-  
+
   // Navigation commands
   Future<VoiceCommandResult> executeNavigationCommand(VoiceCommand command);
-  Future<VoiceCommandResult> executePageSpecificCommand(VoiceCommand command, String currentPage);
-  
+  Future<VoiceCommandResult> executePageSpecificCommand(
+      VoiceCommand command, String currentPage);
+
   // Command feedback and help
   Future<void> provideCommandFeedback(String message);
   Future<void> listAvailableCommands(String context);
   List<String> getContextualCommands(String currentPage);
   List<String> suggestSimilarCommands(String spokenText);
-  
+
   // Settings and configuration
   Future<void> setLanguage(String languageCode);
   Future<void> setTimeout(double timeoutSeconds);
@@ -36,19 +37,22 @@ abstract class VoiceNavigationService {
 }
 
 /// Voice navigation service implementation
-class VoiceNavigationController extends ChangeNotifier implements VoiceNavigationService {
+class VoiceNavigationController extends ChangeNotifier
+    implements VoiceNavigationService {
   final SpeechToText _speechToText = SpeechToText();
   final CommandProcessor _commandProcessor = CommandProcessor();
-  final ContextAwareCommandManager _contextManager = ContextAwareCommandManager();
+  final ContextAwareCommandManager _contextManager =
+      ContextAwareCommandManager();
   final VoiceCommandHelpSystem _helpSystem = VoiceCommandHelpSystem();
-  final StreamController<VoiceCommand> _commandStreamController = StreamController<VoiceCommand>.broadcast();
-  
+  final StreamController<VoiceCommand> _commandStreamController =
+      StreamController<VoiceCommand>.broadcast();
+
   // Navigation callback - will be set by the app
   Function(NavigationAction, Map<String, dynamic>)? _navigationCallback;
-  
+
   // Audio feedback callback - will be set by the app
   Function(String, {String? language})? _audioFeedbackCallback;
-  
+
   // State management
   bool _isListening = false;
   bool _isEnabled = false;
@@ -58,28 +62,29 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   String _currentPage = '/';
   String _lastAudioMessage = '';
   Timer? _timeoutTimer;
-  
+
   // Error handling
   int _consecutiveErrors = 0;
   static const int _maxConsecutiveErrors = 3;
-  
+
   @override
   Stream<VoiceCommand> get commandStream => _commandStreamController.stream;
-  
+
   @override
   bool get isListening => _isListening;
-  
+
   @override
   bool get isEnabled => _isEnabled;
-  
+
   @override
   String get currentLanguage => _currentLanguage;
-  
+
   @override
   double get timeoutDuration => _timeoutDuration;
 
   /// Set navigation callback for executing navigation actions
-  void setNavigationCallback(Function(NavigationAction, Map<String, dynamic>) callback) {
+  void setNavigationCallback(
+      Function(NavigationAction, Map<String, dynamic>) callback) {
     _navigationCallback = callback;
   }
 
@@ -101,21 +106,23 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
           onError: _handleSpeechError,
           onStatus: _handleSpeechStatus,
         );
-        
+
         if (!available) {
           throw Exception('Speech recognition not available on this device');
         }
-        
+
         _isInitialized = true;
       }
-      
+
       _isEnabled = true;
       _consecutiveErrors = 0;
-      await provideCommandFeedback('Voice navigation enabled. Say "help" to hear available commands.');
+      await provideCommandFeedback(
+          'Voice navigation enabled. Say "help" to hear available commands.');
       notifyListeners();
     } catch (e) {
       debugPrint('Error enabling voice navigation: $e');
-      await provideCommandFeedback('Failed to enable voice navigation. Please check your microphone permissions.');
+      await provideCommandFeedback(
+          'Failed to enable voice navigation. Please check your microphone permissions.');
       rethrow;
     }
   }
@@ -141,7 +148,7 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
     }
 
     try {
-      final available = await _speechToText.listen(
+      await _speechToText.listen(
         onResult: _handleSpeechResult,
         listenFor: Duration(seconds: _timeoutDuration.toInt()),
         pauseFor: Duration(seconds: (_timeoutDuration / 2).toInt()),
@@ -151,7 +158,7 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
         listenMode: ListenMode.confirmation,
       );
 
-      if (available) {
+      if (_speechToText.isListening) {
         _isListening = true;
         _startTimeoutTimer();
         notifyListeners();
@@ -180,11 +187,20 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   @override
-  Future<VoiceCommandResult> executeNavigationCommand(VoiceCommand command) async {
+  Future<VoiceCommandResult> executeNavigationCommand(
+      VoiceCommand command) async {
     final startTime = DateTime.now();
-    
+
     try {
-      final action = _getNavigationAction(command.parameters['action'] as String);
+      final actionKey = command.parameters['action'] as String?;
+      if (actionKey == null) {
+        return VoiceCommandResult.failure(
+          command: command,
+          errorMessage: 'Missing action parameter',
+          executionTime: DateTime.now().difference(startTime).inMilliseconds,
+        );
+      }
+      final action = _getNavigationAction(actionKey);
       if (action == null) {
         return VoiceCommandResult.failure(
           command: command,
@@ -192,17 +208,16 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
           executionTime: DateTime.now().difference(startTime).inMilliseconds,
         );
       }
-
       // Execute navigation through callback
       if (_navigationCallback != null) {
         _navigationCallback!(action, command.parameters);
-        
+
         // Provide audio feedback
         final actionDescription = _getActionDescription(action);
         await provideCommandFeedback(actionDescription);
-        
+
         _consecutiveErrors = 0; // Reset error count on success
-        
+
         return VoiceCommandResult.success(
           command: command,
           action: action,
@@ -218,7 +233,7 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
     } catch (e) {
       debugPrint('Error executing navigation command: $e');
       await _handleError('Failed to execute command: ${command.originalText}');
-      
+
       return VoiceCommandResult.failure(
         command: command,
         errorMessage: e.toString(),
@@ -228,13 +243,14 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   @override
-  Future<VoiceCommandResult> executePageSpecificCommand(VoiceCommand command, String currentPage) async {
+  Future<VoiceCommandResult> executePageSpecificCommand(
+      VoiceCommand command, String currentPage) async {
     final startTime = DateTime.now();
-    
+
     try {
       // Handle page-specific commands based on current page
       final success = await _handlePageSpecificCommand(command, currentPage);
-      
+
       if (success) {
         await provideCommandFeedback('Command executed successfully');
         return VoiceCommandResult.success(
@@ -250,8 +266,9 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
       }
     } catch (e) {
       debugPrint('Error executing page-specific command: $e');
-      await _handleError('Failed to execute page command: ${command.originalText}');
-      
+      await _handleError(
+          'Failed to execute page command: ${command.originalText}');
+
       return VoiceCommandResult.failure(
         command: command,
         errorMessage: e.toString(),
@@ -287,11 +304,13 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   @override
   List<String> suggestSimilarCommands(String spokenText) {
     // First try global command suggestions
-    final globalSuggestions = _commandProcessor.suggestSimilarCommands(spokenText);
-    
+    final globalSuggestions =
+        _commandProcessor.suggestSimilarCommands(spokenText);
+
     // Then try page-specific suggestions
-    final pageSuggestions = _contextManager.getErrorSuggestions(_currentPage, spokenText);
-    
+    final pageSuggestions =
+        _contextManager.getErrorSuggestions(_currentPage, spokenText);
+
     // Combine and deduplicate
     final allSuggestions = [...globalSuggestions, ...pageSuggestions];
     return allSuggestions.toSet().take(3).toList();
@@ -300,13 +319,13 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   @override
   Future<void> setLanguage(String languageCode) async {
     _currentLanguage = languageCode;
-    
+
     // Restart listening if currently active to apply new language
     if (_isListening) {
       await stopListening();
       await startListening();
     }
-    
+
     await provideCommandFeedback('Voice language changed to $_currentLanguage');
     notifyListeners();
   }
@@ -314,29 +333,32 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   @override
   Future<void> setTimeout(double timeoutSeconds) async {
     _timeoutDuration = timeoutSeconds.clamp(1.0, 10.0); // Reasonable bounds
-    await provideCommandFeedback('Voice timeout set to ${_timeoutDuration.toInt()} seconds');
+    await provideCommandFeedback(
+        'Voice timeout set to ${_timeoutDuration.toInt()} seconds');
     notifyListeners();
   }
 
   /// Handle speech recognition results
   void _handleSpeechResult(result) {
     if (!result.finalResult) return;
-    
+
     final spokenText = result.recognizedWords as String;
     debugPrint('Speech recognized: $spokenText');
-    
+
     // Process the command
-    final command = _commandProcessor.processSpokenText(spokenText);
-    
+    final command = _commandProcessor.processSpokenText(spokenText, currentPage: _currentPage);
+
     if (command != null) {
       _commandStreamController.add(command);
       _processCommand(command);
     } else {
       _handleUnrecognizedCommand(spokenText);
     }
-    
+
     // Stop listening after processing
-    stopListening();
+    stopListening().catchError((e) {
+      debugPrint('Error stopping listening: $e');
+    });
   }
 
   /// Handle speech recognition errors
@@ -345,14 +367,16 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
     _isListening = false;
     _cancelTimeoutTimer();
     notifyListeners();
-    
-    _handleError('Speech recognition error. Please try again.');
+
+    _handleError('Speech recognition error. Please try again.').catchError((e) {
+      debugPrint('Error in _handleError: $e');
+    });
   }
 
   /// Handle speech recognition status changes
   void _handleSpeechStatus(String status) {
     debugPrint('Speech recognition status: $status');
-    
+
     if (status == 'done' || status == 'notListening') {
       _isListening = false;
       _cancelTimeoutTimer();
@@ -364,7 +388,7 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   Future<void> _processCommand(VoiceCommand command) async {
     try {
       VoiceCommandResult result;
-      
+
       if (command.type == CommandType.navigation) {
         result = await executeNavigationCommand(command);
       } else if (command.type == CommandType.help) {
@@ -376,7 +400,7 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
       } else {
         result = await executePageSpecificCommand(command, _currentPage);
       }
-      
+
       if (!result.success) {
         await _handleError(result.errorMessage ?? 'Command execution failed');
       }
@@ -389,22 +413,24 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   /// Handle unrecognized voice commands with context-aware suggestions
   Future<void> _handleUnrecognizedCommand(String spokenText) async {
     // Try to find page-specific command first
-    final pageCommand = _contextManager.createPageCommand(_currentPage, spokenText);
+    final pageCommand =
+        _contextManager.createPageCommand(_currentPage, spokenText);
     if (pageCommand != null) {
       _commandStreamController.add(pageCommand);
       await _processCommand(pageCommand);
       return;
     }
-    
+
     // Generate contextual error message with suggestions
-    final errorMessage = _helpSystem.generateErrorHelp(_currentPage, spokenText);
+    final errorMessage =
+        _helpSystem.generateErrorHelp(_currentPage, spokenText);
     await provideCommandFeedback(errorMessage);
   }
 
   /// Handle help commands
   Future<void> _handleHelpCommand(VoiceCommand command) async {
     final action = command.parameters['action'] as String;
-    
+
     if (action == 'show_help') {
       await listAvailableCommands(_currentPage);
     } else if (action == 'repeat_last') {
@@ -419,17 +445,18 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   /// Handle control commands
   Future<void> _handleControlCommand(VoiceCommand command) async {
     final action = command.parameters['action'] as String;
-    
+
     if (action == 'stop_voice_control') {
       await disableVoiceNavigation();
     }
   }
 
   /// Handle page-specific commands with context awareness
-  Future<bool> _handlePageSpecificCommand(VoiceCommand command, String currentPage) async {
+  Future<bool> _handlePageSpecificCommand(
+      VoiceCommand command, String currentPage) async {
     final action = command.parameters['action'] as String?;
     if (action == null) return false;
-    
+
     // Handle page-specific commands based on current page and action
     switch (currentPage) {
       case '/camera':
@@ -450,31 +477,36 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle camera page specific commands
-  Future<bool> _handleCameraCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleCameraCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'take_photo':
         await provideCommandFeedback('Taking photo for translation');
         // Trigger camera capture through callback
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'capture'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'capture'});
         }
         return true;
       case 'switch_camera':
         await provideCommandFeedback('Switching camera');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'switch_camera'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'switch_camera'});
         }
         return true;
       case 'flash_toggle':
         await provideCommandFeedback('Toggling camera flash');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'toggle_flash'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'toggle_flash'});
         }
         return true;
       case 'translate_photo':
         await provideCommandFeedback('Translating photo');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'translate'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'translate'});
         }
         return true;
       default:
@@ -483,30 +515,35 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle voice page specific commands
-  Future<bool> _handleVoiceCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleVoiceCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'start_recording':
         await provideCommandFeedback('Starting voice recording');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'start_recording'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'start_recording'});
         }
         return true;
       case 'stop_recording':
         await provideCommandFeedback('Stopping recording');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'stop_recording'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'stop_recording'});
         }
         return true;
       case 'play_translation':
         await provideCommandFeedback('Playing translation');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'play_audio'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'play_audio'});
         }
         return true;
       case 'clear_recording':
         await provideCommandFeedback('Clearing recording');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'clear'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'clear'});
         }
         return true;
       default:
@@ -515,30 +552,35 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle text page specific commands
-  Future<bool> _handleTextCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleTextCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'clear_text':
         await provideCommandFeedback('Clearing text');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'clear_text'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'clear_text'});
         }
         return true;
       case 'paste_text':
         await provideCommandFeedback('Pasting text');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'paste'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'paste'});
         }
         return true;
       case 'translate_text':
         await provideCommandFeedback('Translating text');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'translate'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'translate'});
         }
         return true;
       case 'copy_translation':
         await provideCommandFeedback('Copying translation');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'copy'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'copy'});
         }
         return true;
       default:
@@ -547,18 +589,21 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle settings page specific commands
-  Future<bool> _handleSettingsCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleSettingsCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'accessibility_settings':
         await provideCommandFeedback('Opening accessibility settings');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.settings, {'section': 'accessibility'});
+          _navigationCallback!(
+              NavigationAction.settings, {'section': 'accessibility'});
         }
         return true;
       case 'language_settings':
         await provideCommandFeedback('Opening language settings');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.settings, {'section': 'languages'});
+          _navigationCallback!(
+              NavigationAction.settings, {'section': 'languages'});
         }
         return true;
       case 'theme_settings':
@@ -573,18 +618,21 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle history page specific commands
-  Future<bool> _handleHistoryCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleHistoryCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'clear_history':
         await provideCommandFeedback('Clearing translation history');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'clear_history'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'clear_history'});
         }
         return true;
       case 'search_history':
         await provideCommandFeedback('Searching translation history');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'search'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'search'});
         }
         return true;
       default:
@@ -593,18 +641,21 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   }
 
   /// Handle emergency page specific commands
-  Future<bool> _handleEmergencyCommands(String action, Map<String, dynamic> parameters) async {
+  Future<bool> _handleEmergencyCommands(
+      String action, Map<String, dynamic> parameters) async {
     switch (action) {
       case 'medical_help':
         await provideCommandFeedback('Showing medical emergency phrases');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'medical'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'medical'});
         }
         return true;
       case 'police_help':
         await provideCommandFeedback('Showing police emergency phrases');
         if (_navigationCallback != null) {
-          _navigationCallback!(NavigationAction.startTranslation, {'action': 'police'});
+          _navigationCallback!(
+              NavigationAction.startTranslation, {'action': 'police'});
         }
         return true;
       default:
@@ -673,7 +724,9 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
     _cancelTimeoutTimer();
     _timeoutTimer = Timer(Duration(seconds: _timeoutDuration.toInt()), () {
       if (_isListening) {
-        stopListening();
+        stopListening().catchError((e) {
+          debugPrint('Error stopping listening on timeout: $e');
+        });
         provideCommandFeedback('Voice command timeout. Please try again.');
       }
     });
@@ -688,9 +741,10 @@ class VoiceNavigationController extends ChangeNotifier implements VoiceNavigatio
   /// Handle errors with consecutive error tracking
   Future<void> _handleError(String message) async {
     _consecutiveErrors++;
-    
+
     if (_consecutiveErrors >= _maxConsecutiveErrors) {
-      await provideCommandFeedback('Multiple voice recognition errors. Voice navigation will be disabled temporarily.');
+      await provideCommandFeedback(
+          'Multiple voice recognition errors. Voice navigation will be disabled temporarily.');
       await disableVoiceNavigation();
       _consecutiveErrors = 0;
     } else {

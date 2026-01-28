@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
 import 'pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/onboarding_page.dart';
 import 'package:bhashalens_app/pages/auth/login_page.dart';
@@ -52,10 +53,12 @@ void main() async {
   }
   
   // Initialize Firebase with error handling (non-blocking)
+  bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    firebaseInitialized = true;
     debugPrint("Firebase initialized successfully");
   } catch (e) {
     debugPrint("Warning: Failed to initialize Firebase: $e");
@@ -64,29 +67,38 @@ void main() async {
 
   // Initialize services
   final localStorageService = LocalStorageService();
-  final authService = FirebaseAuthService();
+  
+  // Create provider list with conditional Firebase services
+  final providers = <SingleChildWidget>[
+    ChangeNotifierProvider(create: (context) => AccessibilityService()),
+    Provider<LocalStorageService>.value(value: localStorageService),
+    Provider<GeminiService>(
+      create: (_) => GeminiService(
+        apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+        localStorageService: localStorageService,
+      ),
+    ),
+    ChangeNotifierProvider<VoiceTranslationService>(
+      create: (_) => VoiceTranslationService(
+        localStorageService: localStorageService,
+        geminiApiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+      ),
+    ),
+    ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
+  ];
+
+  // Only add Firebase services if initialization succeeded
+  if (firebaseInitialized) {
+    final authService = FirebaseAuthService();
+    providers.addAll([
+      Provider<FirebaseAuthService>(create: (_) => authService),
+      Provider<FirestoreService>(create: (_) => FirestoreService()),
+    ]);
+  }
   
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => AccessibilityService()),
-        Provider<FirebaseAuthService>(create: (_) => authService),
-        Provider<FirestoreService>(create: (_) => FirestoreService()),
-        Provider<LocalStorageService>.value(value: localStorageService),
-        Provider<GeminiService>(
-          create: (_) => GeminiService(
-            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-            localStorageService: localStorageService,
-          ),
-        ),
-        ChangeNotifierProvider<VoiceTranslationService>(
-          create: (_) => VoiceTranslationService(
-            localStorageService: localStorageService,
-            geminiApiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-          ),
-        ),
-        ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
-      ],
+      providers: providers,
       child: const BhashaLensApp(),
     ),
   );
@@ -103,6 +115,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   bool _showSplash = true;
   bool _isOnboardingCompleted = false;
   bool _isInitialized = false;
+  bool _initCancelled = false;
 
   @override
   void initState() {
@@ -119,7 +132,10 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       ]);
     } catch (e) {
       debugPrint("Initialization failed or timed out: $e");
-      // Continue with defaults
+      // Cancel any ongoing initialization to prevent setState after timeout
+      _initCancelled = true;
+      
+      // Continue with defaults (this should still run on timeout)
       if (mounted) {
         setState(() {
           _isOnboardingCompleted = false;
@@ -140,6 +156,9 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     // Quick initialization without blocking
     await Future.delayed(const Duration(milliseconds: 300));
     
+    // Check if initialization was cancelled
+    if (_initCancelled) return;
+    
     bool completed = false;
     try {
       // Try to check onboarding status with timeout
@@ -153,10 +172,13 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       completed = false;
     }
     
+    // Check cancellation before proceeding
+    if (_initCancelled) return;
+    
     // Initialize auth in background (don't wait for it)
     _checkAuth();
     
-    if (mounted) {
+    if (!_initCancelled && mounted) {
       setState(() {
         _isOnboardingCompleted = completed;
         _isInitialized = true;
@@ -164,7 +186,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       
       // Hide splash after short delay
       await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
+      if (!_initCancelled && mounted) {
         setState(() {
           _showSplash = false;
         });
@@ -174,17 +196,30 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
 
   Future<void> _checkAuth() async {
     try {
-      final authService = Provider.of<FirebaseAuthService>(
+      // Only try to access Firebase auth if the service is available
+      final authService = Provider.of<FirebaseAuthService?>(
         context,
         listen: false,
       );
-      if (authService.currentUser == null) {
+      if (authService != null && authService.currentUser == null) {
         await authService.signInAnonymously().timeout(
           const Duration(seconds: 3),
         );
       }
     } catch (e) {
       debugPrint('Failed to sign in anonymously: $e');
+    }
+  }
+
+  Stream<User?> _getAuthStream() {
+    try {
+      // Check if Firebase is initialized before accessing FirebaseAuth
+      Firebase.app();
+      return FirebaseAuth.instance.authStateChanges();
+    } catch (e) {
+      debugPrint('Firebase Auth not available: $e');
+      // Return a stream that emits null (no user) if Firebase is not available
+      return Stream.value(null);
     }
   }
 
@@ -226,7 +261,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                   ),
                 )
               : StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
+                  stream: _getAuthStream(),
                   builder: (context, snapshot) {
                     // Don't wait for auth - show app immediately
                     if (snapshot.connectionState == ConnectionState.waiting) {
