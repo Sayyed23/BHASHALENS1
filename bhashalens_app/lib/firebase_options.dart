@@ -2,7 +2,7 @@
 // ignore_for_file: lines_longer_than_80_chars, avoid_classes_with_only_static_members
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform, debugPrint;
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
@@ -84,26 +84,20 @@ class DefaultFirebaseOptions {
 
   static FirebaseOptions get windows {
     // Check if Windows specific keys exist, otherwise fall back to Web keys
-    final apiKey =
-        dotenv.env['FIREBASE_WINDOWS_API_KEY'] ??
+    final apiKey = dotenv.env['FIREBASE_WINDOWS_API_KEY'] ??
         dotenv.env['FIREBASE_WEB_API_KEY'];
-    final appId =
-        dotenv.env['FIREBASE_WINDOWS_APP_ID'] ??
+    final appId = dotenv.env['FIREBASE_WINDOWS_APP_ID'] ??
         dotenv.env['FIREBASE_WEB_APP_ID'];
     final messagingSenderId =
         dotenv.env['FIREBASE_WINDOWS_MESSAGING_SENDER_ID'] ??
-        dotenv.env['FIREBASE_WEB_MESSAGING_SENDER_ID'];
-    final projectId =
-        dotenv.env['FIREBASE_WINDOWS_PROJECT_ID'] ??
+            dotenv.env['FIREBASE_WEB_MESSAGING_SENDER_ID'];
+    final projectId = dotenv.env['FIREBASE_WINDOWS_PROJECT_ID'] ??
         dotenv.env['FIREBASE_WEB_PROJECT_ID'];
-    final authDomain =
-        dotenv.env['FIREBASE_WINDOWS_AUTH_DOMAIN'] ??
+    final authDomain = dotenv.env['FIREBASE_WINDOWS_AUTH_DOMAIN'] ??
         dotenv.env['FIREBASE_WEB_AUTH_DOMAIN'];
-    final storageBucket =
-        dotenv.env['FIREBASE_WINDOWS_STORAGE_BUCKET'] ??
+    final storageBucket = dotenv.env['FIREBASE_WINDOWS_STORAGE_BUCKET'] ??
         dotenv.env['FIREBASE_WEB_STORAGE_BUCKET'];
-    final measurementId =
-        dotenv.env['FIREBASE_WINDOWS_MEASUREMENT_ID'] ??
+    final measurementId = dotenv.env['FIREBASE_WINDOWS_MEASUREMENT_ID'] ??
         dotenv.env['FIREBASE_WEB_MEASUREMENT_ID'];
 
     if (apiKey == null ||

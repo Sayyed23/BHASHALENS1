@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
+import 'package:bhashalens_app/services/firebase_auth_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -45,6 +46,99 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Feature not implemented: $route')),
       );
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    // Show confirmation dialog
+    final bool? shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1C222B),
+          title: const Text(
+            'Logout',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Are you sure you want to logout? You will need to sign in again to access your saved settings.',
+            style: TextStyle(color: Color(0xFF94A3B8)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFF94A3B8)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Color(0xFFEF5350)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      if (!mounted) return;
+      try {
+        // Get the auth service - handle case where it might not be available
+        FirebaseAuthService? authService;
+        try {
+          authService =
+              Provider.of<FirebaseAuthService?>(context, listen: false);
+        } catch (e) {
+          debugPrint('FirebaseAuthService not available: $e');
+        }
+
+        if (authService != null) {
+          // Show loading indicator
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Logging out...'),
+                backgroundColor: Color(0xFF136DEC),
+              ),
+            );
+          }
+
+          // Perform logout
+          await authService.signOut();
+
+          // Navigate to login/onboarding page
+          if (mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/onboarding',
+              (route) => false,
+            );
+          }
+        } else {
+          // Fallback when auth service is not available
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Authentication service not available'),
+                backgroundColor: Color(0xFFEF5350),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error during logout: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Logout failed: ${e.toString()}'),
+              backgroundColor: const Color(0xFFEF5350),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -440,6 +534,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: "Clear History",
                     titleColor: const Color(0xFFEF5350),
                     onTap: () => _navigateTo("clear_history"),
+                  ),
+                  const Divider(height: 1, color: dividerColor),
+                  _buildActionTile(
+                    icon: Icons.logout,
+                    iconColor: const Color(0xFFEF5350), // Red
+                    title: "Logout",
+                    titleColor: const Color(0xFFEF5350),
+                    onTap: _handleLogout,
                   ),
                 ],
               ),

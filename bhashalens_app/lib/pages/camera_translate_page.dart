@@ -11,6 +11,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
 import 'dart:ui' as ui; // Import for ImageFilter
 import 'package:share_plus/share_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CameraTranslatePage extends StatefulWidget {
   const CameraTranslatePage({super.key});
@@ -46,7 +47,22 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadLanguages();
-    _initializeCamera();
+    _loadLanguages();
+    _requestCameraPermission();
+  }
+
+  Future<void> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      _initializeCamera();
+    } else {
+      debugPrint('Camera permission denied');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera permission is required')),
+        );
+      }
+    }
   }
 
   void _loadLanguages() {
@@ -226,24 +242,27 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             sourceLanguage: _sourceLanguageCode,
             targetLanguage: _targetLanguageCode,
           );
-          
+
           if (result != null && result.isNotEmpty) {
             translated = result;
           } else {
             // Check what models are missing for better error message
-            final missingModels = await _mlKitService.getMissingModelsForTranslation(
+            final missingModels =
+                await _mlKitService.getMissingModelsForTranslation(
               _sourceLanguageCode,
               _targetLanguageCode,
             );
 
             if (missingModels.isNotEmpty) {
               final languageNames = missingModels.map((code) {
-                final lang = _mlKitService.getSupportedLanguages()
-                    .firstWhere((l) => l['code'] == code, orElse: () => {'name': code});
+                final lang = _mlKitService.getSupportedLanguages().firstWhere(
+                    (l) => l['code'] == code,
+                    orElse: () => {'name': code});
                 return lang['name'] ?? code;
               }).join(', ');
-              
-              translated = 'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
+
+              translated =
+                  'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
             } else {
               translated = "Translation failed (Offline)";
             }

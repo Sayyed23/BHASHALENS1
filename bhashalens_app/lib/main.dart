@@ -1,7 +1,7 @@
 import 'package:bhashalens_app/services/firestore_service.dart'; // Import FirestoreService
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -40,10 +40,10 @@ import 'package:bhashalens_app/services/db_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize database factory
   initializeDatabaseFactory();
-  
+
   // Load environment variables with error handling (non-blocking)
   try {
     await dotenv.load(fileName: ".env");
@@ -51,7 +51,7 @@ void main() async {
     debugPrint("Warning: Failed to load .env file: $e");
     // Continue without .env - app should still work with google-services.json
   }
-  
+
   // Initialize Firebase with error handling (non-blocking)
   bool firebaseInitialized = false;
   try {
@@ -67,7 +67,7 @@ void main() async {
 
   // Initialize services
   final localStorageService = LocalStorageService();
-  
+
   // Create provider list with conditional Firebase services
   final providers = <SingleChildWidget>[
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
@@ -95,7 +95,7 @@ void main() async {
       Provider<FirestoreService>(create: (_) => FirestoreService()),
     ]);
   }
-  
+
   runApp(
     MultiProvider(
       providers: providers,
@@ -128,20 +128,21 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       // Set a maximum timeout for the entire initialization
       await Future.any([
         _performInitialization(),
-        Future.delayed(const Duration(seconds: 3)).then((_) => throw TimeoutException('Initialization timeout')),
+        Future.delayed(const Duration(seconds: 3))
+            .then((_) => throw TimeoutException('Initialization timeout')),
       ]);
     } catch (e) {
       debugPrint("Initialization failed or timed out: $e");
       // Cancel any ongoing initialization to prevent setState after timeout
       _initCancelled = true;
-      
+
       // Continue with defaults (this should still run on timeout)
       if (mounted) {
         setState(() {
           _isOnboardingCompleted = false;
           _isInitialized = true;
         });
-        
+
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
           setState(() {
@@ -155,13 +156,14 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   Future<void> _performInitialization() async {
     // Quick initialization without blocking
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     // Check if initialization was cancelled
     if (_initCancelled) return;
-    
+
     bool completed = false;
     try {
       // Try to check onboarding status with timeout
+      if (!mounted) return;
       final localStorage = Provider.of<LocalStorageService>(
         context,
         listen: false,
@@ -171,19 +173,19 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       debugPrint("Failed to check onboarding: $e");
       completed = false;
     }
-    
+
     // Check cancellation before proceeding
     if (_initCancelled) return;
-    
+
     // Initialize auth in background (don't wait for it)
     _checkAuth();
-    
+
     if (!_initCancelled && mounted) {
       setState(() {
         _isOnboardingCompleted = completed;
         _isInitialized = true;
       });
-      
+
       // Hide splash after short delay
       await Future.delayed(const Duration(milliseconds: 800));
       if (!_initCancelled && mounted) {
@@ -203,8 +205,8 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       );
       if (authService != null && authService.currentUser == null) {
         await authService.signInAnonymously().timeout(
-          const Duration(seconds: 3),
-        );
+              const Duration(seconds: 3),
+            );
       }
     } catch (e) {
       debugPrint('Failed to sign in anonymously: $e');
@@ -256,7 +258,8 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                   backgroundColor: Color(0xFFFFF8F5),
                   body: Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
                     ),
                   ),
                 )
@@ -269,7 +272,7 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                           ? const HomePage()
                           : const OnboardingPage();
                     }
-                    
+
                     // Handle errors gracefully
                     if (snapshot.hasError) {
                       debugPrint('Auth stream error: ${snapshot.error}');
@@ -277,12 +280,12 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                           ? const HomePage()
                           : const OnboardingPage();
                     }
-                    
+
                     // If user is logged in, show HomePage
                     if (snapshot.hasData) {
                       return const HomePage();
                     }
-                    
+
                     // Fallback to onboarding or home
                     return _isOnboardingCompleted
                         ? const HomePage()
@@ -311,7 +314,8 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         '/assistant_mode': (context) => const AssistantModePage(),
         '/text_translate': (context) => const TextTranslatePage(),
         '/error': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as String? ?? 'Unknown error';
+          final args = ModalRoute.of(context)?.settings.arguments as String? ??
+              'Unknown error';
           return ErrorFallbackPage(error: args);
         },
       },
