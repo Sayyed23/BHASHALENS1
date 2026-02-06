@@ -16,7 +16,9 @@ class MlKitTranslationService {
 
   final _modelManager = OnDeviceTranslatorModelManager();
 
-  final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  TextRecognizer _textRecognizer =
+      TextRecognizer(script: TextRecognitionScript.latin);
+  TextRecognitionScript _currentScript = TextRecognitionScript.latin;
 
   /// Translates text from source language to target language.
   /// Returns null if translation fails.
@@ -112,15 +114,27 @@ class MlKitTranslationService {
   Future<String> extractTextFromFile(File file,
       {String languageCode = 'en'}) async {
     try {
+      final script = _getScriptForLanguage(languageCode);
+      if (script != _currentScript) {
+        await _textRecognizer.close();
+        _textRecognizer = TextRecognizer(script: script);
+        _currentScript = script;
+      }
+
       final inputImage = InputImage.fromFile(file);
-      // Note: Currently limited to Latin script offline due to dependency issues.
-      // Ideally we would select script based on languageCode.
       final recognizedText = await _textRecognizer.processImage(inputImage);
       return recognizedText.text.trim();
     } catch (e) {
       debugPrint('Error extracting text from file: $e');
       return 'Error extracting text';
     }
+  }
+
+  TextRecognitionScript _getScriptForLanguage(String languageCode) {
+    // Note: To support non-Latin scripts, you must add the corresponding
+    // google_mlkit_text_recognition_<script> package to pubspec.yaml.
+    // For now, we default to Latin to avoid compilation errors.
+    return TextRecognitionScript.latin;
   }
 
   /// Release resources

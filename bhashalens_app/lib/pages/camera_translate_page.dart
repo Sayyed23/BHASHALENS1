@@ -245,6 +245,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         if (_capturedImage != null) {
           extracted = await _mlKitService.extractTextFromFile(
             File(_capturedImage!.path),
+            languageCode: _sourceLanguageCode,
           );
         } else {
           extracted = "Error: Image file not available for offline OCR.";
@@ -323,6 +324,53 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         setState(() {
           _extractedText = "Error processing image";
           _translatedText = e.toString();
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _reTranslate() async {
+    if (_extractedText.isEmpty || _isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none);
+      String translated = '';
+
+      if (isOffline) {
+        final result = await _mlKitService.translate(
+          text: _extractedText,
+          sourceLanguage: _sourceLanguageCode,
+          targetLanguage: _targetLanguageCode,
+        );
+        translated = result ?? "Translation failed (Offline)";
+      } else {
+        final geminiService =
+            Provider.of<GeminiService>(context, listen: false);
+        translated = await geminiService.translateText(
+          _extractedText,
+          _targetLanguageCode,
+          sourceLanguage:
+              _sourceLanguageCode == 'auto' ? null : _sourceLanguageCode,
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _translatedText = translated;
+          _isProcessing = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Re-translation error: $e');
+      if (mounted) {
+        setState(() {
+          _translatedText = "Error: $e";
           _isProcessing = false;
         });
       }
@@ -649,7 +697,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "English (Translated)", // Placeholder dynamic
+                                  "${_displayLanguages[_targetLanguageCode] ?? _targetLanguageCode} (Translated)",
                                   style: TextStyle(
                                     color: Colors.grey[400],
                                     fontSize: 12,
@@ -912,7 +960,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   }
                 });
                 Navigator.pop(ctx);
-                // Rerun process if image exists?
+
+                // If we already have an image, re-translate automatically
+                if (_capturedImageBytes != null) {
+                  _reTranslate();
+                }
               },
             );
           }).toList(),
