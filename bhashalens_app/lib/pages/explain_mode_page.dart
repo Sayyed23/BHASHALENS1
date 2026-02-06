@@ -1,4 +1,5 @@
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/offline_explain_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -97,14 +98,12 @@ class _ExplainModePageState extends State<ExplainModePage>
             _inputController.text = lastMsg.originalText;
             _isAnalyzing = true;
           });
-          _explainWithContext()
-              .then((_) {
-                if (mounted) setState(() => _isAnalyzing = false);
-              })
-              .catchError((e) {
-                if (mounted) setState(() => _isAnalyzing = false);
-                debugPrint("Analysis failed: $e");
-              });
+          _explainWithContext().then((_) {
+            if (mounted) setState(() => _isAnalyzing = false);
+          }).catchError((e) {
+            if (mounted) setState(() => _isAnalyzing = false);
+            debugPrint("Analysis failed: $e");
+          });
         }
       }
       setState(() {});
@@ -158,21 +157,6 @@ class _ExplainModePageState extends State<ExplainModePage>
       return;
     }
 
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'You are offline. AI features require an internet connection.',
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
     if (!mounted) return;
 
     setState(() {
@@ -181,24 +165,65 @@ class _ExplainModePageState extends State<ExplainModePage>
     });
     FocusScope.of(context).unfocus();
 
-    try {
-      final geminiService = Provider.of<GeminiService>(context, listen: false);
-      final result = await geminiService.explainTextWithContext(
-        text,
-        targetLanguage: _selectedOutputLanguage,
-        sourceLanguage: _selectedInputLanguage,
-      );
+    // Get service references before async operations to avoid context issues
+    final geminiService = Provider.of<GeminiService>(context, listen: false);
 
-      if (mounted) {
-        setState(() {
-          _contextData = result;
-        });
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOffline = connectivityResult.contains(ConnectivityResult.none);
+
+    try {
+      if (isOffline) {
+        // Use offline explain service
+        final offlineService = OfflineExplainService();
+        final result = await offlineService.explainAsMap(text);
+
+        // Add offline indicator to result
+        result['_offline'] = true;
+
+        if (mounted) {
+          setState(() {
+            _contextData = result;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Using offline explanation (basic mode)'),
+              backgroundColor: Colors.blueGrey,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Use online Gemini service (acquired before async ops)
+        final result = await geminiService.explainTextWithContext(
+          text,
+          targetLanguage: _selectedOutputLanguage,
+          sourceLanguage: _selectedInputLanguage,
+        );
+
+        if (mounted) {
+          setState(() {
+            _contextData = result;
+          });
+        }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to explain: $e')));
+      // On any error, try offline fallback
+      try {
+        final offlineService = OfflineExplainService();
+        final result = await offlineService.explainAsMap(text);
+        result['_offline'] = true;
+
+        if (mounted) {
+          setState(() {
+            _contextData = result;
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to explain: $e')));
+        }
       }
     } finally {
       if (mounted) {
@@ -260,8 +285,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                         e['name']!,
                         style: const TextStyle(color: Colors.white),
                       ),
-                      trailing:
-                          (isInput
+                      trailing: (isInput
                                   ? _selectedInputLanguage
                                   : _selectedOutputLanguage) ==
                               e['name']
@@ -1061,37 +1085,37 @@ class _ExplainModePageState extends State<ExplainModePage>
                                           as List<dynamic>?) ??
                                       [])
                                   .map(
-                                    (item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Padding(
-                                            padding: EdgeInsets.only(
-                                              top: 6,
-                                            ),
-                                            child: Icon(
-                                              Icons.circle,
-                                              size: 6,
-                                              color: primaryBlue,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              item.toString(),
-                                              style: const TextStyle(
-                                                color: textGrey,
-                                                fontSize: 14,
-                                                height: 1.5,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(
+                                          top: 6,
+                                        ),
+                                        child: Icon(
+                                          Icons.circle,
+                                          size: 6,
+                                          color: primaryBlue,
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          item.toString(),
+                                          style: const TextStyle(
+                                            color: textGrey,
+                                            fontSize: 14,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1586,9 +1610,9 @@ class _ExplainModePageState extends State<ExplainModePage>
 
     final geminiService = Provider.of<GeminiService>(context, listen: false);
     final langEntry = geminiService.getSupportedLanguages().firstWhere(
-      (l) => l['name'] == _selectedOutputLanguage,
-      orElse: () => {'code': 'en'},
-    );
+          (l) => l['name'] == _selectedOutputLanguage,
+          orElse: () => {'code': 'en'},
+        );
     final langCode = langEntry['code'] ?? 'en';
 
     Provider.of<VoiceTranslationService>(

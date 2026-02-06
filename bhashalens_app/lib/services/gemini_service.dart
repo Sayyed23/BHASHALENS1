@@ -126,13 +126,17 @@ class GeminiService {
     }
 
     try {
+      final String targetName = _getLanguageName(targetLanguage);
+      final String? sourceName =
+          sourceLanguage != null ? _getLanguageName(sourceLanguage) : null;
+
       String prompt;
-      if (sourceLanguage != null) {
+      if (sourceName != null) {
         prompt =
-            'You are a professional translator. Translate the following text from $sourceLanguage to $targetLanguage. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
+            'You are a professional translator. Translate the following text from $sourceName to $targetName. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
       } else {
         prompt =
-            'You are a professional translator. Translate the following text to $targetLanguage. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
+            'You are a professional translator. Translate the following text to $targetName. Maintain the original meaning, tone, and context. Only return the translated text, nothing else:\n\n$text';
       }
 
       await _checkAndIncrementLimit();
@@ -148,6 +152,17 @@ class GeminiService {
     } catch (e) {
       debugPrint('Error translating text: $e');
       throw Exception('Failed to translate text: $e');
+    }
+  }
+
+  String _getLanguageName(String code) {
+    if (code == 'auto') return 'Auto-detect';
+    final languages = getSupportedLanguages();
+    try {
+      return languages.firstWhere((lang) => lang['code'] == code)['name'] ??
+          code;
+    } catch (e) {
+      return code;
     }
   }
 
