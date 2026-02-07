@@ -48,7 +48,9 @@ class ExplanationResult {
       suggestions: List<String>.from(map['suggested_questions'] ?? []),
       culturalNote: map['cultural_insight'],
       safetyNote: map['safety_note'],
-      offlineGenerated: map['offlineGenerated'] ?? true,
+      offlineGenerated: map['offlineGenerated'] is int
+          ? map['offlineGenerated'] == 1
+          : (map['offlineGenerated'] ?? true),
       timestamp: map['timestamp'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
           : DateTime.now(),

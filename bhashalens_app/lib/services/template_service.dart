@@ -132,7 +132,9 @@ class TemplateService {
       meaning: ExplanationTemplates.genericTemplates['meaning']!,
       usage: ExplanationTemplates.genericTemplates['usage']!,
       toneDescription: ExplanationTemplates.genericTemplates['tone']!,
-      suggestions: ExplanationTemplates.suggestedQuestions[IntentType.unknown]!,
+      suggestions: [
+        ...ExplanationTemplates.suggestedQuestions[IntentType.unknown]!
+      ],
       culturalNote: null,
       safetyNote: safetyNote,
       offlineGenerated: true,

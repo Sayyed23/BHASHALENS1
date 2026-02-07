@@ -127,8 +127,11 @@ class GeminiService {
 
     try {
       final String targetName = _getLanguageName(targetLanguage);
+      // Treat 'auto' as null - we don't want "from Auto-detect" in prompts
       final String? sourceName =
-          sourceLanguage != null ? _getLanguageName(sourceLanguage) : null;
+          (sourceLanguage != null && sourceLanguage != 'auto')
+              ? _getLanguageName(sourceLanguage)
+              : null;
 
       String prompt;
       if (sourceName != null) {

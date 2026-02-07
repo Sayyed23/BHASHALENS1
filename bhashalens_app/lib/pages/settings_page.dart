@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
-import 'package:bhashalens_app/services/gemma_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,8 +19,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _autoDetectLanguage = true;
   bool _offlineMode = false;
   bool _wifiOnlyDownloads = false;
-
-  GemmaService? _gemmaService;
 
   void _navigateTo(String route) {
     if (route == 'settings') return;
@@ -148,13 +145,6 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _initGemmaService();
-  }
-
-  Future<void> _initGemmaService() async {
-    _gemmaService = GemmaService();
-    await _gemmaService!.initialize();
-    if (mounted) setState(() {});
   }
 
   @override
@@ -500,159 +490,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     onChanged: (val) =>
                         setState(() => _wifiOnlyDownloads = val),
                     hideIcon: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // AI ENHANCEMENT
-            const Text(
-              "AI ENHANCEMENT",
-              style: TextStyle(
-                color: textGrey,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
-              ),
-              child: Column(
-                children: [
-                  // Smart Explain Toggle
-                  _buildSwitchTile(
-                    icon: Icons.auto_awesome,
-                    iconColor: const Color(0xFFF59E0B), // Amber
-                    title: "Smart Offline Explanations",
-                    subtitle: _gemmaService?.isModelInstalled == true
-                        ? "Enhanced with Gemma AI"
-                        : "Download AI model first",
-                    value: _gemmaService?.isSmartExplainEnabled ?? false,
-                    onChanged: _gemmaService?.isModelInstalled == true
-                        ? (val) async {
-                            await _gemmaService?.setSmartExplainEnabled(val);
-                            setState(() {});
-                          }
-                        : (_) {},
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  // Download Section
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: primaryBlue.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.download,
-                                color: primaryBlue,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "SmolLM AI Model",
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 16),
-                                  ),
-                                  Text(
-                                    _gemmaService?.isModelInstalled == true
-                                        ? "Installed (~80 MB)"
-                                        : "~80 MB download",
-                                    style: TextStyle(
-                                      color: _gemmaService?.isModelInstalled ==
-                                              true
-                                          ? const Color(0xFF22C55E)
-                                          : textGrey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_gemmaService?.isDownloading == true)
-                              const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      primaryBlue),
-                                ),
-                              )
-                            else if (_gemmaService?.isModelInstalled != true)
-                              ElevatedButton(
-                                onPressed: () async {
-                                  await _gemmaService?.downloadModel();
-                                  setState(() {});
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: primaryBlue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text("Download"),
-                              )
-                            else
-                              const Icon(
-                                Icons.check_circle,
-                                color: Color(0xFF22C55E),
-                                size: 24,
-                              ),
-                          ],
-                        ),
-                        // Progress bar
-                        if (_gemmaService?.isDownloading == true) ...[
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: _gemmaService?.downloadProgress ?? 0,
-                              backgroundColor: const Color(0xFF334155),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  primaryBlue),
-                              minHeight: 6,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "${((_gemmaService?.downloadProgress ?? 0) * 100).toInt()}% downloaded",
-                            style:
-                                const TextStyle(color: textGrey, fontSize: 12),
-                          ),
-                        ],
-                        // Error message
-                        if (_gemmaService?.errorMessage != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            _gemmaService!.errorMessage!,
-                            style: const TextStyle(
-                                color: Color(0xFFEF5350), fontSize: 12),
-                          ),
-                        ],
-                      ],
-                    ),
                   ),
                 ],
               ),
