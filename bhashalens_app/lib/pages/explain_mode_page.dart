@@ -217,6 +217,13 @@ class _ExplainModePageState extends State<ExplainModePage>
           setState(() {
             _contextData = result;
           });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Connection failed. Using offline explanation.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
       } catch (_) {
         if (mounted) {

@@ -48,7 +48,8 @@ class DetectedIntent {
     required this.context,
     required this.sensitivity,
     required this.confidence,
-  });
+  }) : assert(confidence >= 0.0 && confidence <= 1.0,
+            'confidence must be between 0.0 and 1.0');
 
   /// Returns true if confidence is high enough for specific templates
   bool get isHighConfidence => confidence >= 0.7;

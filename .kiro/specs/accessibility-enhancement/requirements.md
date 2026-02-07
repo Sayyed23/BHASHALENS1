@@ -1,189 +1,162 @@
-# Requirements Document
+# Requirements Document: BhashaLens Multimodal Translation
 
 ## Introduction
 
-This document specifies the requirements for implementing three key accessibility features in the BhashaLens Flutter translation app to make it universally accessible and easy to use for everyone. The features focus on providing multiple ways to interact with the app - through voice, enhanced audio feedback, and improved visual design - ensuring that users with different abilities can easily access all translation features.
-
-**Key Goals:**
-- Make the app fully navigable by voice commands
-- Provide comprehensive audio feedback for all interactions
-- Offer high contrast and simplified visual modes
-- Ensure compatibility with existing assistive technologies
-- Maintain fast performance while adding accessibility features
+BhashaLens is a multimodal translation application designed to bridge language barriers for users in India and similar multilingual regions. The application provides accessible, offline-capable translation with context-aware explanations, supporting text, voice, and camera-based input methods. The system targets migrants, students, travelers, business professionals, and elderly users with limited digital literacy.
 
 ## Glossary
 
-- **Voice_Navigation_System**: A comprehensive voice-controlled interface that allows users to navigate and control the app using spoken commands
-- **TTS_Engine**: Text-to-Speech engine that converts text and UI elements into spoken audio
-- **High_Contrast_Mode**: Visual accessibility mode with enhanced color contrast ratios and simplified visual elements
-- **Accessibility_Service**: The existing Flutter service that manages accessibility features and settings
-- **Voice_Command_Processor**: Component that interprets and executes voice navigation commands
-- **Visual_Accessibility_Controller**: Component that manages high contrast themes and visual enhancements
-- **Touch_Target**: Interactive UI elements that users can tap or activate
-- **Screen_Reader_Compatible**: UI elements that work properly with assistive technologies
-- **Audio_Feedback_System**: System that provides audio responses for user interactions
+- **Translation_Engine**: The core system component responsible for converting text between languages
+- **Voice_Recognition_Module**: Component that converts spoken audio into text
+- **OCR_Module**: Optical Character Recognition component that extracts text from images
+- **Context_Engine**: Component that provides cultural context, pronunciation guides, and usage examples
+- **Language_Pack**: Downloadable offline data package containing translation models and dictionaries for specific languages
+- **Assistant_Mode**: Interactive learning feature that provides conversation practice and feedback
+- **Sync_Manager**: Component responsible for synchronizing offline data with online updates
+- **User_Profile**: Stored user data including preferences, progress, and learning history
 
 ## Requirements
 
-### Requirement 1: Complete Voice Navigation System
+### Requirement 1: Text Translation
 
-**User Story:** As a user who prefers hands-free interaction or has difficulty with touch gestures, I want to control the entire app using simple voice commands, so that I can easily access all translation features without needing to touch the screen.
-
-#### Acceptance Criteria
-
-1. WHEN a user says "start voice control" or taps the voice navigation button, THE Voice_Navigation_System SHALL activate and provide audio confirmation
-2. WHEN voice navigation is active, THE Voice_Navigation_System SHALL recognize common navigation commands like "go to camera", "go to voice translation", "go to text translation", and "go to settings"
-3. WHEN a user says "translate this" or "start translation", THE Voice_Navigation_System SHALL begin the translation process appropriate for the current page
-4. WHEN a user says "go back", "previous", or "return", THE Voice_Navigation_System SHALL navigate to the previous screen
-5. WHEN a user says "home" or "main menu", THE Voice_Navigation_System SHALL return to the home screen
-6. WHEN a user says "help", "what can I say", or "voice commands", THE Voice_Navigation_System SHALL list all available commands for the current screen
-7. WHEN a user says "repeat" or "say that again", THE Voice_Navigation_System SHALL repeat the last audio message
-8. WHEN a user says "stop voice control" or "turn off voice", THE Voice_Navigation_System SHALL deactivate voice navigation
-9. WHEN an unclear or unrecognized command is spoken, THE Voice_Navigation_System SHALL ask for clarification and suggest similar valid commands
-10. WHEN voice navigation executes a command, THE Voice_Navigation_System SHALL provide clear audio confirmation of the action taken
-11. WHEN the user is on different pages, THE Voice_Navigation_System SHALL support page-specific commands (like "take photo" on camera page, "speak to translate" on voice page)
-12. WHEN voice navigation is active, THE Voice_Navigation_System SHALL work in multiple languages matching the app's supported translation languages
-
-### Requirement 2: Smart Audio Feedback System
-
-**User Story:** As a user who benefits from audio feedback, I want the app to speak all important information and provide customizable voice settings, so that I can understand what's happening in the app and adjust the audio to my preferences.
+**User Story:** As a user, I want to translate text by typing, so that I can understand written content in different languages.
 
 #### Acceptance Criteria
 
-1. WHEN a user enables audio feedback, THE TTS_Engine SHALL automatically read important UI elements when they become active or focused
-2. WHEN a translation is completed, THE TTS_Engine SHALL read both the original text and the translated result clearly
-3. WHEN a user taps buttons or interactive elements, THE TTS_Engine SHALL announce what the button does (like "Camera Translation Button" or "Settings Button")
-4. WHEN moving between app pages, THE TTS_Engine SHALL announce the page name and briefly describe what can be done there
-5. WHEN errors occur (like "no internet connection") or success messages appear, THE TTS_Engine SHALL immediately read these messages aloud
-6. WHEN accessing audio settings, THE TTS_Engine SHALL allow users to make speech slower or faster (from half speed to double speed)
-7. WHEN accessing audio settings, THE TTS_Engine SHALL allow users to make the voice higher or lower in pitch
-8. WHEN multiple voice options are available, THE TTS_Engine SHALL let users choose their preferred voice
-9. WHEN audio is playing, THE TTS_Engine SHALL allow users to pause, resume, or stop the speech using simple voice commands or screen taps
-10. WHEN content is in different languages, THE TTS_Engine SHALL automatically use the appropriate language voice for reading
-11. WHEN the app is minimized or in background, THE TTS_Engine SHALL provide audio notifications for completed translations with platform-specific limitations and fallbacks:
-    - **Essential notifications**: Translation completion alerts (high priority for accessibility)
-    - **Optional notifications**: General UI feedback and non-critical announcements
-    - **iOS restrictions**: Background audio requires "Audio, AirPlay, and Picture in Picture" capability; fallback to local notifications with sound when background audio unavailable
-    - **Android restrictions**: Background audio limited by battery optimization and Do Not Disturb settings; fallback to notification sounds and vibration
-    - **Permission strategy**: Request background audio permissions only when user explicitly enables background translation notifications, with clear accessibility justification for App Store review
-    - **Battery mitigation**: Implement audio session management to minimize battery drain; automatically disable background audio after 30 minutes of inactivity
-    - **Thermal mitigation**: Monitor device thermal state and reduce background audio quality or disable when device overheating detected
-12. WHEN audio feedback is active, THE Audio_Feedback_System SHALL use different sounds or tones to indicate different types of actions (success sounds, error sounds, navigation sounds) with platform-aware implementation:
-    - **Essential audio cues**: Translation completion, critical errors, navigation confirmations
-    - **Optional audio cues**: Button taps, page transitions, non-critical feedback
-    - **iOS considerations**: Respect Silent Mode switch and Focus modes; provide haptic feedback alternatives when audio restricted
-    - **Android considerations**: Honor system volume settings and notification policies; integrate with accessibility services volume controls
-    - **Fallback strategy**: When audio unavailable, provide visual indicators and haptic feedback for essential notifications
+1. WHEN a user enters text in a source language, THE Translation_Engine SHALL translate it to the target language within 2 seconds
+2. WHEN a user selects a source language and target language, THE Translation_Engine SHALL maintain those selections for subsequent translations
+3. WHEN translation is performed, THE Translation_Engine SHALL achieve accuracy of at least 90 percent for common phrases and sentences
+4. WHEN the device is offline and the required Language_Pack is downloaded, THE Translation_Engine SHALL perform translation without internet connectivity
+5. WHEN a user enters text exceeding 500 characters, THE Translation_Engine SHALL process the translation in segments while maintaining context
 
-### Requirement 3: Enhanced Visual Accessibility
+### Requirement 2: Voice Translation
 
-**User Story:** As a user who has difficulty seeing small text or low contrast elements, I want high contrast themes and larger, clearer visual elements, so that I can easily see and interact with all parts of the app.
+**User Story:** As a user, I want to translate spoken words, so that I can communicate verbally across language barriers.
 
 #### Acceptance Criteria
 
-1. WHEN high contrast mode is enabled, THE Visual_Accessibility_Controller SHALL use bold, high contrast colors that are easy to distinguish (meeting accessibility standards with 7:1 contrast ratio)
-2. WHEN visual accessibility is active, THE Visual_Accessibility_Controller SHALL make all buttons and interactive areas larger (at least 48dp x 48dp) for easier tapping
-3. WHEN large text mode is enabled, THE Visual_Accessibility_Controller SHALL make all text bold and increase font sizes significantly
-4. WHEN text scaling is adjusted, THE Visual_Accessibility_Controller SHALL allow text to be made up to twice as large as normal
-5. WHEN high contrast is active, THE Visual_Accessibility_Controller SHALL use clearly different colors for different button states (normal, pressed, disabled)
-6. WHEN simplified mode is enabled, THE Visual_Accessibility_Controller SHALL hide decorative elements and reduce visual clutter to focus on essential functions
-7. WHEN focus indicators are enabled, THE Visual_Accessibility_Controller SHALL show clear, thick borders around the currently selected item
-8. WHEN color accessibility is enabled, THE Visual_Accessibility_Controller SHALL use patterns, shapes, or icons in addition to colors to show information
-9. WHEN visual settings are changed, THE Visual_Accessibility_Controller SHALL apply the changes immediately without needing to restart the app
-10. WHEN high contrast mode is active, THE Visual_Accessibility_Controller SHALL ensure all text is clearly readable against its background
-11. WHEN visual accessibility is enabled, THE Visual_Accessibility_Controller SHALL make button borders thicker and create clear separation between different sections
-12. WHEN motion sensitivity is enabled, THE Visual_Accessibility_Controller SHALL reduce or remove animations and moving elements that might be distracting
+1. WHEN a user speaks into the microphone, THE Voice_Recognition_Module SHALL convert speech to text within 5 seconds
+2. WHEN speech is converted to text, THE Translation_Engine SHALL translate the recognized text to the target language
+3. WHEN voice input is detected, THE Voice_Recognition_Module SHALL filter background noise to improve recognition accuracy
+4. WHEN the device is offline and the required Language_Pack is downloaded, THE Voice_Recognition_Module SHALL perform speech recognition without internet connectivity
+5. WHEN voice recognition fails to understand input, THE Voice_Recognition_Module SHALL prompt the user to repeat or rephrase
 
-### Requirement 4: Easy Setup and User Guidance
+### Requirement 3: Camera Translation
 
-**User Story:** As a new user discovering accessibility features, I want clear guidance on how to set up and use these features, so that I can quickly configure the app to work best for my needs.
+**User Story:** As a user, I want to translate text from images, so that I can understand signs, menus, and documents in real-time.
 
 #### Acceptance Criteria
 
-1. WHEN a user first opens accessibility settings, THE Accessibility_Service SHALL provide a simple welcome guide explaining the available features
-2. WHEN setting up accessibility features, THE Accessibility_Service SHALL offer a quick setup wizard that helps users choose the best combination of features
-3. WHEN users are trying accessibility settings, THE Accessibility_Service SHALL provide preview modes so users can test settings before applying them
-4. WHEN accessibility features are enabled for the first time, THE Accessibility_Service SHALL provide brief tutorials on how to use voice commands and other new features
-5. WHEN users need help, THE Accessibility_Service SHALL provide an easily accessible help section with common questions and troubleshooting
-6. WHEN accessibility settings are being configured, THE Accessibility_Service SHALL allow users to reset to default settings if they get confused
-7. WHEN multiple accessibility features are enabled, THE Accessibility_Service SHALL ensure they work well together without conflicts
-8. WHEN users want to share settings, THE Accessibility_Service SHALL allow exporting and importing accessibility preferences for easy setup on multiple devices with comprehensive validation and security:
+1. WHEN a user captures an image containing text, THE OCR_Module SHALL extract text from the image within 5 seconds
+2. WHEN text is extracted from an image, THE Translation_Engine SHALL translate the extracted text to the target language
+3. WHEN the image contains multiple text regions, THE OCR_Module SHALL preserve the spatial layout and reading order
+4. WHEN the device is offline and the required Language_Pack is downloaded, THE OCR_Module SHALL perform text extraction without internet connectivity
+5. WHEN image quality is poor or text is unclear, THE OCR_Module SHALL provide feedback requesting a clearer image
 
-   **Export Functionality:**
-   - SHALL include preferences version field (semantic versioning format) in exported data
-   - SHALL exclude sensitive fields (device-specific identifiers, temporary tokens) from export payload
-   - SHALL require explicit user consent before export with clear data disclosure
-   - SHALL optionally encrypt exported data using user-provided password
-   - SHALL generate integrity checksum for exported file validation
+### Requirement 4: Language Support
 
-   **Import Validation:**
-   - SHALL validate imported payload against defined JSON schema before processing
-   - SHALL verify all preference values are within allowable ranges (e.g., text scale 0.5-3.0, speech rate 0.1-2.0)
-   - SHALL reject imports with invalid data types or missing required fields
-   - SHALL provide specific error codes for validation failures: INVALID_SCHEMA (001), VALUE_OUT_OF_RANGE (002), MISSING_REQUIRED_FIELD (003)
-
-   **Version Compatibility:**
-   - SHALL support backward compatibility for preferences from previous app versions
-   - SHALL migrate older preference formats to current schema automatically when possible
-   - SHALL provide clear error message "Preferences from newer app version (v2.1) not supported. Please update app to import." for unsupported future versions
-   - SHALL log migration actions for debugging and user transparency
-
-   **Error Handling:**
-   - SHALL verify file integrity using checksum validation before import
-   - SHALL detect corrupted files and display user-friendly error: "Import file appears corrupted. Please re-export from source device."
-   - SHALL provide retry guidance: "Try re-downloading the file or export again from the original device"
-   - SHALL offer partial import option when some preferences are valid but others fail validation
-
-   **Privacy and Security:**
-   - SHALL identify and exclude sensitive fields: device ID, authentication tokens, location data, usage analytics
-   - SHALL require user confirmation before importing with clear list of settings that will be changed
-   - SHALL recommend password protection for exports containing personalized voice training data
-   - SHALL provide option to export "public-safe" subset excluding any potentially identifying information
-
-### Requirement 5: Seamless Integration with Existing App
-
-**User Story:** As a current user of BhashaLens, I want the new accessibility features to work smoothly with all existing translation features, so that the app remains fast and all my favorite features continue to work perfectly.
+**User Story:** As a user, I want to translate between English, Hindi, and regional Indian languages, so that I can communicate across India's linguistic diversity.
 
 #### Acceptance Criteria
 
-1. WHEN accessibility features are enabled, THE Accessibility_Service SHALL maintain full compatibility with existing camera translation, voice translation, and text translation features
-2. WHEN voice navigation is active, THE Accessibility_Service SHALL continue to work with Firebase user accounts and saved preferences
-3. WHEN audio feedback is enabled, THE Accessibility_Service SHALL work seamlessly with ML Kit translation results and Gemini AI explanations
-4. WHEN visual accessibility mode is active, THE Accessibility_Service SHALL preserve all existing app themes and user interface functionality
-5. WHEN accessibility settings are changed, THE Accessibility_Service SHALL save preferences using the existing settings system
-6. WHEN voice commands are used for navigation, THE Accessibility_Service SHALL use the existing Flutter navigation without breaking the back button or navigation flow
-7. WHEN accessibility features are active, THE Accessibility_Service SHALL maintain compatibility with all existing Provider state management
-8. WHEN multiple accessibility features are enabled together, THE Accessibility_Service SHALL coordinate between them smoothly without causing conflicts or performance issues
+1. THE Translation_Engine SHALL support translation between English and Hindi in both directions
+2. THE Translation_Engine SHALL support at least 5 major regional Indian languages including Tamil, Telugu, Bengali, Marathi, and Gujarati
+3. WHEN a user selects a language pair, THE Translation_Engine SHALL display the availability status for offline and online modes
+4. WHEN translating between two regional languages, THE Translation_Engine SHALL support direct translation without requiring English as an intermediary
+5. THE Translation_Engine SHALL maintain consistent terminology across all supported language pairs
 
-### Requirement 6: Performance and Reliability
+### Requirement 5: Context-Aware Explanations
 
-**User Story:** As any user of the app, I want accessibility features to make the app better without slowing it down, so that the app remains fast, responsive, and reliable for everyone.
+**User Story:** As a user, I want cultural context and usage examples, so that I can understand not just the words but their meaning and appropriate usage.
 
 #### Acceptance Criteria
 
-1. WHEN accessibility features are turned off, THE Accessibility_Service SHALL have no impact on app speed, battery usage, or memory consumption
-2. WHEN voice commands are spoken, THE Voice_Command_Processor SHALL respond with tiered performance requirements:
-   - **Typical commands** (navigation, settings): SHALL respond within 1 second
-   - **Complex operations** (help requests, multi-step actions): MAY take up to 1.5 seconds
-   - **Extended operations** (translation initiation, file operations): MUST provide immediate interim feedback (within 500ms) when processing will exceed 1.5 seconds, followed by completion notification
-3. WHEN audio feedback is playing, THE TTS_Engine SHALL not interfere with other app functions like taking photos or recording voice translations
-4. WHEN visual accessibility mode is enabled, THE Visual_Accessibility_Controller SHALL maintain smooth animations and quick response times
-5. WHEN accessibility features encounter problems, THE Accessibility_Service SHALL handle errors gracefully and keep the main translation features working
-6. WHEN voice recognition is learning, THE Voice_Command_Processor SHALL gradually improve accuracy based on user patterns
-7. WHEN multiple accessibility features are running, THE Accessibility_Service SHALL manage resources efficiently to maintain good performance
-8. WHEN the app is under heavy use, THE Accessibility_Service SHALL prioritize core translation functionality while maintaining accessibility features
+1. WHEN a translation contains idioms or culturally specific phrases, THE Context_Engine SHALL provide cultural context explanations
+2. WHEN a user requests pronunciation guidance, THE Context_Engine SHALL provide phonetic transcription and audio playback
+3. WHEN a translation is displayed, THE Context_Engine SHALL provide at least 2 usage examples showing the phrase in different contexts
+4. WHEN regional variations exist for a phrase, THE Context_Engine SHALL display dialect-specific alternatives with regional labels
+5. WHEN context information is requested, THE Context_Engine SHALL present explanations in the user's preferred interface language
 
-### Requirement 7: Compatibility with Assistive Technologies
+### Requirement 6: Offline Functionality
 
-**User Story:** As a user who already uses assistive technologies like screen readers or external accessibility tools, I want the app to work perfectly with my existing tools, so that I can use BhashaLens alongside my other accessibility aids.
+**User Story:** As a user, I want to download language packs and use the app offline, so that I can translate without internet connectivity.
 
 #### Acceptance Criteria
 
-1. WHEN screen readers are active, THE Accessibility_Service SHALL provide proper labels and descriptions for all buttons, images, and interactive elements
-2. WHEN external assistive technologies connect to the app, THE Accessibility_Service SHALL expose all necessary accessibility information and actions
-3. WHEN keyboard navigation is used (for users with external keyboards), THE Accessibility_Service SHALL support full navigation through all app features using tab and arrow keys
-4. WHEN the app is tested with platform accessibility tools, THE Accessibility_Service SHALL meet Android and iOS accessibility guidelines and standards
-5. WHEN focus moves through the app, THE Accessibility_Service SHALL maintain logical focus order that makes sense to screen reader users
-6. WHEN the app announces information, THE Accessibility_Service SHALL use appropriate announcement types that work well with existing assistive technologies
-7. WHEN app content or state changes, THE Accessibility_Service SHALL properly notify assistive technologies so they can update their users
-8. WHEN accessibility compliance is tested, THE Accessibility_Service SHALL pass automated accessibility testing tools and manual accessibility reviews
+1. WHEN a user selects a language pair, THE Sync_Manager SHALL offer to download the corresponding Language_Pack
+2. WHEN a Language_Pack is being downloaded, THE Sync_Manager SHALL display download progress and estimated time remaining
+3. WHEN the device is offline, THE Translation_Engine SHALL provide at least 80 percent of online functionality using downloaded Language_Packs
+4. WHEN the device reconnects to internet, THE Sync_Manager SHALL check for Language_Pack updates and notify the user
+5. WHEN storage space is limited, THE Sync_Manager SHALL display Language_Pack sizes before download and allow selective installation
+
+### Requirement 7: Assistant Mode
+
+**User Story:** As a user, I want to practice conversations with AI feedback, so that I can build confidence in using new languages.
+
+#### Acceptance Criteria
+
+1. WHEN a user enters Assistant_Mode, THE Assistant_Mode SHALL present scenario-based conversation options including shopping, directions, and greetings
+2. WHEN a user speaks or types in a practice conversation, THE Assistant_Mode SHALL provide real-time feedback on grammar and pronunciation
+3. WHEN a user completes a practice session, THE Assistant_Mode SHALL update the User_Profile with progress metrics
+4. WHEN a user requests suggestions, THE Assistant_Mode SHALL recommend practice scenarios based on User_Profile history and weak areas
+5. WHEN pronunciation errors are detected, THE Assistant_Mode SHALL provide corrective audio examples and phonetic guidance
+
+### Requirement 8: User Interface Accessibility
+
+**User Story:** As a user with limited digital literacy, I want a simple and accessible interface, so that I can use the app without technical expertise.
+
+#### Acceptance Criteria
+
+1. THE User_Interface SHALL use icons and visual cues alongside text labels for all primary functions
+2. THE User_Interface SHALL support font size adjustment from 100 percent to 200 percent of default size
+3. THE User_Interface SHALL provide voice guidance for navigation when accessibility mode is enabled
+4. WHEN a user performs an action, THE User_Interface SHALL provide clear visual and audio feedback confirming the action
+5. THE User_Interface SHALL maintain a consistent layout across all screens with navigation elements in fixed positions
+
+### Requirement 9: Performance and Response Time
+
+**User Story:** As a user, I want fast translation responses, so that I can have fluid conversations and interactions.
+
+#### Acceptance Criteria
+
+1. WHEN text translation is requested, THE Translation_Engine SHALL return results within 2 seconds for inputs up to 500 characters
+2. WHEN voice translation is requested, THE Voice_Recognition_Module SHALL complete speech-to-text conversion within 5 seconds
+3. WHEN camera translation is requested, THE OCR_Module SHALL extract and translate text within 5 seconds for standard images
+4. WHEN the app launches, THE User_Interface SHALL display the main screen within 3 seconds on devices meeting minimum specifications
+5. WHEN switching between translation modes, THE User_Interface SHALL complete the transition within 1 second
+
+### Requirement 10: Data Synchronization
+
+**User Story:** As a user, I want my progress and preferences synced across devices, so that I can continue learning seamlessly.
+
+#### Acceptance Criteria
+
+1. WHEN the device is online, THE Sync_Manager SHALL upload User_Profile changes to cloud storage within 30 seconds of modification
+2. WHEN the app launches with internet connectivity, THE Sync_Manager SHALL download the latest User_Profile from cloud storage
+3. WHEN sync conflicts occur, THE Sync_Manager SHALL merge changes using the most recent timestamp for each field
+4. WHEN Language_Pack updates are available, THE Sync_Manager SHALL download updates in the background without interrupting usage
+5. WHEN sync fails due to connectivity issues, THE Sync_Manager SHALL queue changes and retry automatically when connection is restored
+
+### Requirement 11: Voice Synthesis
+
+**User Story:** As a user, I want to hear translations spoken aloud, so that I can learn pronunciation and use the app in hands-free situations.
+
+#### Acceptance Criteria
+
+1. WHEN a translation is displayed, THE Voice_Synthesis_Module SHALL provide an audio playback option for the translated text
+2. WHEN audio playback is requested, THE Voice_Synthesis_Module SHALL generate speech within 2 seconds
+3. WHEN the device is offline and the required Language_Pack is downloaded, THE Voice_Synthesis_Module SHALL synthesize speech without internet connectivity
+4. WHEN playing audio, THE Voice_Synthesis_Module SHALL support playback speed adjustment from 0.5x to 1.5x normal speed
+5. WHEN multiple translations are queued, THE Voice_Synthesis_Module SHALL play them sequentially with 1 second pause between items
+
+### Requirement 12: Privacy and Data Security
+
+**User Story:** As a user, I want my data protected and private, so that I can use the app without privacy concerns.
+
+#### Acceptance Criteria
+
+1. WHEN a user creates an account, THE Authentication_System SHALL encrypt passwords using industry-standard hashing algorithms
+2. WHEN voice or camera data is processed, THE Privacy_Manager SHALL process data locally when offline mode is active
+3. WHEN data is transmitted to servers, THE Privacy_Manager SHALL use encrypted connections with TLS 1.3 or higher
+4. WHEN a user requests data deletion, THE Privacy_Manager SHALL remove all User_Profile data from servers within 30 days
+5. THE Privacy_Manager SHALL not collect or transmit user data without explicit consent displayed during onboarding
