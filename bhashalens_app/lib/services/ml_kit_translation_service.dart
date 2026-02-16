@@ -488,6 +488,12 @@ class MlKitTranslationService {
       case 'ar':
       case 'arabic':
         return TranslateLanguage.arabic;
+      case 'pa':
+      case 'punjabi':
+      case 'ml':
+      case 'malayalam':
+        // Punjabi and Malayalam are currently OCR-only in ML Kit and do not support offline translation.
+        return null;
       default:
         // Try to find by BCP47 code
         for (var lang in TranslateLanguage.values) {
@@ -575,7 +581,6 @@ class MlKitTranslationService {
         return 'mk';
       case TranslateLanguage.marathi:
         return 'mr';
-      // case TranslateLanguage.malayalam: return 'ml'; // Removed as it causes error
       case TranslateLanguage.malay:
         return 'ms';
       case TranslateLanguage.maltese:
