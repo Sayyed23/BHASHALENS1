@@ -12,6 +12,7 @@ class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // API configuration
   String? _geminiApiKey;
@@ -123,6 +124,17 @@ class VoiceTranslationService extends ChangeNotifier {
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
 
+    // Initial connectivity check
+    await checkConnectivity();
+
+    // Listen to connectivity changes
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) {
+      _isOfflineMode = results.contains(ConnectivityResult.none);
+      debugPrint('Connectivity changed: isOfflineMode=$_isOfflineMode');
+      notifyListeners();
+    });
+
     notifyListeners();
   }
 
@@ -174,8 +186,13 @@ class VoiceTranslationService extends ChangeNotifier {
         }
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(
+          seconds: 5), // Increased pause duration for better offline experience
       localeId: localeId,
+      listenOptions: SpeechListenOptions(
+        onDevice: _isOfflineMode,
+        cancelOnError: true,
+      ),
       onSoundLevelChange: (level) {
         // Handle sound level changes if needed
       },
@@ -213,9 +230,12 @@ class VoiceTranslationService extends ChangeNotifier {
         }
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(seconds: 5),
       localeId: localeId ?? 'en-US',
-      listenOptions: SpeechListenOptions(cancelOnError: true),
+      listenOptions: SpeechListenOptions(
+        onDevice: _isOfflineMode,
+        cancelOnError: true,
+      ),
     );
   } // Translation
 
@@ -308,12 +328,23 @@ class VoiceTranslationService extends ChangeNotifier {
           }
         }
 
-        // Use GeminiService for translation
-        return await _geminiService.translateText(
-          text,
-          toLanguage,
-          sourceLanguage: actualSourceLanguage,
-        );
+        try {
+          // Use GeminiService for translation
+          return await _geminiService.translateText(
+            text,
+            toLanguage,
+            sourceLanguage: actualSourceLanguage,
+          );
+        } catch (e) {
+          debugPrint('Online translation failed, falling back to offline: $e');
+          // If online translation fails (e.g. timeout or sudden disconnect), try ML Kit
+          final mlKitResult = await _mlKitService.translate(
+            text: text,
+            sourceLanguage: actualSourceLanguage,
+            targetLanguage: toLanguage,
+          );
+          return mlKitResult ?? 'Translation failed: $e';
+        }
       }
     } catch (e) {
       debugPrint('Translation error: $e');
@@ -328,6 +359,9 @@ class VoiceTranslationService extends ChangeNotifier {
       debugPrint('No transcript to process.');
       return;
     }
+
+    // Force connectivity check before processing
+    await checkConnectivity();
 
     final speaker = _currentSpeaker;
     final originalText = _currentTranscript;
@@ -548,6 +582,7 @@ class VoiceTranslationService extends ChangeNotifier {
   // Dispose
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _speechToText.cancel();
     _flutterTts.stop();
     super.dispose();
