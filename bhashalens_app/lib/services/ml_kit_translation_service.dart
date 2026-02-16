@@ -16,10 +16,6 @@ class MlKitTranslationService {
 
   final _modelManager = OnDeviceTranslatorModelManager();
 
-  TextRecognizer _textRecognizer =
-      TextRecognizer(script: TextRecognitionScript.latin);
-  TextRecognitionScript _currentScript = TextRecognitionScript.latin;
-
   /// Translates text from source language to target language.
   /// Returns null if translation fails.
   /// Note: ML Kit models are primarily designed for translation TO English.
@@ -111,35 +107,117 @@ class MlKitTranslationService {
   }
 
   /// Extracts text from image file using ML Kit Text Recognition.
+  /// Uses script-specific recognizers for best accuracy.
+  /// For languages without native OCR script support (Tamil, Telugu, etc.),
+  /// tries multiple recognizers and picks the best result.
   Future<String> extractTextFromFile(File file,
       {String languageCode = 'en'}) async {
     try {
+      final inputImage = InputImage.fromFile(file);
       final script = _getScriptForLanguage(languageCode);
-      if (script != _currentScript) {
-        await _textRecognizer.close();
-        _textRecognizer = TextRecognizer(script: script);
-        _currentScript = script;
+
+      // If the language has native script support, use it directly
+      if (script != null) {
+        return await _recognizeWithScript(inputImage, script);
       }
 
-      final inputImage = InputImage.fromFile(file);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      return recognizedText.text.trim();
+      // For unsupported scripts (Tamil, Telugu, etc.), try multiple recognizers
+      // and pick the result with the most text extracted
+      debugPrint(
+          'No native OCR script for $languageCode, trying fallback recognizers');
+
+      final results = <String>[];
+
+      // Try Devanagari (closest Indic script recognizer)
+      final devanagariResult = await _recognizeWithScript(
+          inputImage, TextRecognitionScript.devanagiri);
+      if (devanagariResult.isNotEmpty &&
+          !devanagariResult.startsWith('Error')) {
+        results.add(devanagariResult);
+      }
+
+      // Try Latin (works for transliterated text)
+      final latinResult =
+          await _recognizeWithScript(inputImage, TextRecognitionScript.latin);
+      if (latinResult.isNotEmpty && !latinResult.startsWith('Error')) {
+        results.add(latinResult);
+      }
+
+      if (results.isEmpty) {
+        return '';
+      }
+
+      // Return the result with the most extracted text
+      results.sort((a, b) => b.length.compareTo(a.length));
+      return results.first;
     } catch (e) {
       debugPrint('Error extracting text from file: $e');
       return 'Error extracting text';
     }
   }
 
-  TextRecognitionScript _getScriptForLanguage(String languageCode) {
-    // Note: To support non-Latin scripts, you must add the corresponding
-    // google_mlkit_text_recognition_<script> package to pubspec.yaml.
-    // For now, we default to Latin to avoid compilation errors.
-    return TextRecognitionScript.latin;
+  /// Recognize text from an image using a specific script recognizer.
+  Future<String> _recognizeWithScript(
+      InputImage inputImage, TextRecognitionScript script) async {
+    try {
+      final recognizer = TextRecognizer(script: script);
+      final result = await recognizer.processImage(inputImage);
+      final text = result.text.trim();
+      await recognizer.close();
+      return text;
+    } catch (e) {
+      debugPrint('Error with script $script: $e');
+      return '';
+    }
   }
 
-  /// Release resources
+  /// Returns the appropriate TextRecognitionScript for a given language code.
+  /// Returns null if the language's script is not natively supported by ML Kit.
+  /// ML Kit supports: Latin, Devanagari, Chinese, Japanese, Korean.
+  /// Tamil, Telugu, Bengali, Gujarati, Kannada scripts are NOT natively supported.
+  TextRecognitionScript? _getScriptForLanguage(String languageCode) {
+    switch (languageCode.toLowerCase()) {
+      case 'hi': // Hindi
+      case 'mr': // Marathi
+      case 'sa': // Sanskrit
+        return TextRecognitionScript.devanagiri;
+      case 'zh': // Chinese
+        return TextRecognitionScript.chinese;
+      case 'ja': // Japanese
+        return TextRecognitionScript.japanese;
+      case 'ko': // Korean
+        return TextRecognitionScript.korean;
+      // Latin-script languages
+      case 'en':
+      case 'es':
+      case 'fr':
+      case 'de':
+      case 'it':
+      case 'pt':
+      case 'ru': // Cyrillic, but Latin recognizer handles it reasonably
+        return TextRecognitionScript.latin;
+      // Indian languages without native OCR script support
+      case 'ta': // Tamil
+      case 'te': // Telugu
+      case 'bn': // Bengali
+      case 'gu': // Gujarati
+      case 'kn': // Kannada
+      case 'ur': // Urdu
+        return null; // Will trigger multi-recognizer fallback
+      default:
+        return TextRecognitionScript.latin;
+    }
+  }
+
+  /// Check if a language has native OCR script support in ML Kit.
+  /// Languages without native support will use fallback recognizers.
+  bool isOcrScriptSupported(String languageCode) {
+    return _getScriptForLanguage(languageCode) != null;
+  }
+
+  /// Release resources (recognizers are created & closed per-use)
   Future<void> dispose() async {
-    await _textRecognizer.close();
+    // No-op: recognizers are now created and closed per extractTextFromFile call
   }
 
   /// Downloads the translation model for the given language code.
@@ -299,15 +377,56 @@ class MlKitTranslationService {
       case 'mr':
       case 'marathi':
         return TranslateLanguage.marathi;
+      case 'ta':
+      case 'tamil':
+        return TranslateLanguage.tamil;
+      case 'te':
+      case 'telugu':
+        return TranslateLanguage.telugu;
+      case 'bn':
+      case 'bengali':
+        return TranslateLanguage.bengali;
+      case 'gu':
+      case 'gujarati':
+        return TranslateLanguage.gujarati;
+      case 'kn':
+      case 'kannada':
+        return TranslateLanguage.kannada;
+      case 'ur':
+      case 'urdu':
+        return TranslateLanguage.urdu;
       case 'es':
       case 'spanish':
         return TranslateLanguage.spanish;
       case 'fr':
       case 'french':
         return TranslateLanguage.french;
-      // Add more as needed
+      case 'de':
+      case 'german':
+        return TranslateLanguage.german;
+      case 'it':
+      case 'italian':
+        return TranslateLanguage.italian;
+      case 'pt':
+      case 'portuguese':
+        return TranslateLanguage.portuguese;
+      case 'ru':
+      case 'russian':
+        return TranslateLanguage.russian;
+      case 'ja':
+      case 'japanese':
+        return TranslateLanguage.japanese;
+      case 'ko':
+      case 'korean':
+        return TranslateLanguage.korean;
+      case 'zh':
+      case 'chinese':
+        return TranslateLanguage.chinese;
+      case 'ar':
+      case 'arabic':
+        return TranslateLanguage.arabic;
       default:
-        // Try to find by code
+        // Try to find by BCP47 code
         for (var lang in TranslateLanguage.values) {
           if (_getBcp47Code(lang) == languageCode) {
             return lang;
