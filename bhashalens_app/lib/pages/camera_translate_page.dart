@@ -21,8 +21,10 @@ class CameraTranslatePage extends StatefulWidget {
 }
 
 class _CameraTranslatePageState extends State<CameraTranslatePage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   CameraController? _cameraController;
+  late AnimationController _focusAnimationController;
+  late Animation<double> _focusAnimation;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
   bool _isProcessing = false;
@@ -31,9 +33,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   XFile? _capturedImage;
   Uint8List? _capturedImageBytes;
   String _extractedText = '';
+  bool _extractedIsError = false;
   String _translatedText = '';
   String _sourceLanguageCode = 'auto'; // 'auto' means detect
   String _targetLanguageCode = 'en'; // Default target
+  String? _detectedLanguageCode; // For showing badge
 
   // Mapping for display
   final Map<String, String> _displayLanguages = {
@@ -48,6 +52,18 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     WidgetsBinding.instance.addObserver(this);
     _loadLanguages();
     _requestCameraPermission();
+
+    _focusAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _focusAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(
+        parent: _focusAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   Future<void> _requestCameraPermission() async {
@@ -77,6 +93,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
+    _focusAnimationController.dispose();
     super.dispose();
   }
 
@@ -205,14 +222,31 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       String extracted = '';
+      bool extractedIsError = false;
       String translated = '';
       String detectedLang = _sourceLanguageCode;
 
       if (isOffline) {
         if (_sourceLanguageCode == 'auto') {
-          throw Exception(
-            "Offline Mode: Please select a specific Source Language (Auto-detect not supported offline).",
+          // Attempt offline language detection
+          final detectedCode = await _mlKitService.identifyLanguage(
+            // We need text to identify language.
+            // If we are here, we haven't extracted text yet.
+            // Let's perform OCR with Latin script first to get some text for detection.
+            await _mlKitService.extractTextFromFile(
+              File(_capturedImage!.path),
+              languageCode: 'en',
+            ),
           );
+
+          if (detectedCode != 'und') {
+            detectedLang = detectedCode;
+            debugPrint('Offline detected language: $detectedLang');
+          } else {
+            throw Exception(
+              "Offline Mode: Could not auto-detect language. Please select a specific Source Language.",
+            );
+          }
         }
 
         // Check if Source model is downloaded
@@ -248,6 +282,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           );
         } else {
           extracted = "Error: Image file not available for offline OCR.";
+          extractedIsError = true;
         }
 
         if (extracted.isNotEmpty && !extracted.startsWith("Error")) {
@@ -282,6 +317,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             }
           }
         } else if (extracted.isEmpty) {
+          extractedIsError = true;
           if (!_mlKitService.isOcrScriptSupported(_sourceLanguageCode)) {
             extracted =
                 "No text detected. Note: ${_displayLanguages[_sourceLanguageCode] ?? _sourceLanguageCode} script has limited offline OCR support. For best results, use online mode or try with transliterated (Latin/Roman) text.";
@@ -311,17 +347,22 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           translated = await geminiService.translateText(
             extracted,
             _targetLanguageCode,
-            sourceLanguage: detectedLang == 'auto' ? null : detectedLang,
+            sourceLanguage:
+                null, // Let Gemini handle detection during translation
           );
         } else {
           extracted = "No text found in image.";
+          extractedIsError = true;
         }
       }
 
       if (mounted) {
         setState(() {
           _extractedText = extracted;
+          _extractedIsError = extractedIsError;
           _translatedText = translated;
+          _detectedLanguageCode =
+              _sourceLanguageCode == 'auto' ? detectedLang : null;
           _isProcessing = false;
         });
       }
@@ -330,6 +371,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       if (mounted) {
         setState(() {
           _extractedText = "Error processing image";
+          _extractedIsError = true;
           _translatedText = e.toString();
           _isProcessing = false;
         });
@@ -339,6 +381,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   Future<void> _reTranslate() async {
     if (_extractedText.isEmpty || _isProcessing) return;
+
+    if (_extractedIsError) {
+      // Current text is an error/informational message, re-run full OCR
+      if (_capturedImageBytes != null) {
+        await _processImage(_capturedImageBytes!);
+      }
+      return;
+    }
 
     setState(() {
       _isProcessing = true;
@@ -363,8 +413,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         translated = await geminiService.translateText(
           _extractedText,
           _targetLanguageCode,
-          sourceLanguage:
-              _sourceLanguageCode == 'auto' ? null : _sourceLanguageCode,
+          sourceLanguage: _sourceLanguageCode == 'auto'
+              ? _detectedLanguageCode
+              : _sourceLanguageCode,
         );
       }
 
@@ -390,7 +441,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       _capturedImage = null;
       _capturedImageBytes = null;
       _extractedText = '';
+      _extractedIsError = false;
       _translatedText = '';
+      _detectedLanguageCode = null;
     });
     _initializeCamera(); // Re-init preview if needed
   }
@@ -458,39 +511,42 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           // 2.5 Focus Brackets Decoration (Visual only)
           if (_capturedImageBytes == null)
             Center(
-              child: Container(
-                width: 320,
-                height: 220,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: Stack(
-                  children: [
-                    // Top Left
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      child: _buildCorner(true, true),
-                    ),
-                    // Top Right
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: _buildCorner(true, false),
-                    ),
-                    // Bottom Left
-                    Positioned(
-                      left: 0,
-                      bottom: 0,
-                      child: _buildCorner(false, true),
-                    ),
-                    // Bottom Right
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: _buildCorner(false, false),
-                    ),
-                  ],
+              child: ScaleTransition(
+                scale: _focusAnimation,
+                child: Container(
+                  width: 320,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.transparent),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Top Left
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: _buildCorner(true, true),
+                      ),
+                      // Top Right
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: _buildCorner(true, false),
+                      ),
+                      // Bottom Left
+                      Positioned(
+                        left: 0,
+                        bottom: 0,
+                        child: _buildCorner(false, true),
+                      ),
+                      // Bottom Right
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: _buildCorner(false, false),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -534,55 +590,47 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   ClipRRect(
                     borderRadius: BorderRadius.circular(30),
                     child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
+                          horizontal: 16,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            GestureDetector(
-                              onTap: () => _showLanguagePicker(true),
-                              child: Text(
-                                _displayLanguages[_sourceLanguageCode] ??
-                                    _sourceLanguageCode,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
+                            _buildLanguagePill(
+                              code: _sourceLanguageCode,
+                              isSource: true,
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 10,
                               ),
                               child: Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white.withValues(alpha: 0.7),
-                                size: 16,
+                                Icons.swap_horiz_rounded,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                size: 18,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () => _showLanguagePicker(false),
-                              child: Text(
-                                _displayLanguages[_targetLanguageCode] ??
-                                    _targetLanguageCode,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
+                            _buildLanguagePill(
+                              code: _targetLanguageCode,
+                              isSource: false,
                             ),
                           ],
                         ),
@@ -704,33 +752,99 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "${_displayLanguages[_targetLanguageCode] ?? _targetLanguageCode} (Translated)",
-                                  style: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 12,
-                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF3B82F6)
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        (_displayLanguages[
+                                                    _targetLanguageCode] ??
+                                                _targetLanguageCode)
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Color(0xFF60A5FA),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Translated Text",
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    if (_detectedLanguageCode != null) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                            color: Colors.green.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "DETECTED: ${_displayLanguages[_detectedLanguageCode] ?? _detectedLanguageCode}",
+                                          style: const TextStyle(
+                                            color: Colors.greenAccent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
                                 Text(
                                   _translatedText,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.volume_up,
-                              color: Color(0xFF3B82F6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3B82F6)
+                                  .withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
                             ),
-                            onPressed: () {
-                              // TTS placeholder
-                            },
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.volume_up_rounded,
+                                color: Color(0xFF60A5FA),
+                                size: 28,
+                              ),
+                              onPressed: () {
+                                // TTS placeholder
+                              },
+                            ),
                           ),
                         ],
                       ),
@@ -752,20 +866,22 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                           ),
                           const SizedBox(height: 12),
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.05),
                               ),
                             ),
                             child: Text(
                               _extractedText,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                                height: 1.5,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 15,
+                                height: 1.6,
+                                fontStyle: FontStyle.italic,
                               ),
                             ),
                           ),
@@ -850,8 +966,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         width: 80, // Fixed width for alignment
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF374151).withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF374151).withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+          ),
         ),
         child: Column(
           children: [
@@ -946,36 +1065,118 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     Share.share("$_extractedText\n\n$_translatedText");
   }
 
+  Widget _buildLanguagePill({required String code, required bool isSource}) {
+    return GestureDetector(
+      onTap: () => _showLanguagePicker(isSource),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          (_displayLanguages[code] ?? code).toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showLanguagePicker(bool isSource) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1F2937),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: _displayLanguages.entries.map((e) {
-            // Filter "auto" if offline and isSource
-            // But we don't have easy access to 'isOffline' state here without checking connectivity again or passing it.
-            // For now show all.
-            return ListTile(
-              title: Text(e.value, style: const TextStyle(color: Colors.white)),
-              onTap: () {
-                setState(() {
-                  if (isSource) {
-                    _sourceLanguageCode = e.key;
-                  } else {
-                    _targetLanguageCode = e.key;
-                  }
-                });
-                Navigator.pop(ctx);
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Color(0xFF1F2937),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isSource ? "Source Language" : "Target Language",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _displayLanguages.length,
+                  itemBuilder: (context, index) {
+                    final entry = _displayLanguages.entries.elementAt(index);
+                    final isSelected = isSource
+                        ? _sourceLanguageCode == entry.key
+                        : _targetLanguageCode == entry.key;
 
-                // If we already have an image, re-translate automatically
-                if (_capturedImageBytes != null) {
-                  _reTranslate();
-                }
-              },
-            );
-          }).toList(),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          entry.value,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded,
+                                color: Color(0xFF3B82F6))
+                            : null,
+                        onTap: () {
+                          setState(() {
+                            if (isSource) {
+                              _sourceLanguageCode = entry.key;
+                            } else {
+                              _targetLanguageCode = entry.key;
+                            }
+                          });
+                          Navigator.pop(ctx);
+                          if (_capturedImageBytes != null) {
+                            _reTranslate();
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

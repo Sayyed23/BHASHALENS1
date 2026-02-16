@@ -296,14 +296,18 @@ class GeminiService {
 
     try {
       final prompt =
-          'Detect the language of this text and return only the language name in English:\n\n$text';
+          'Detect the language of the following text. Return ONLY the name of the language (e.g., "Hindi", "English", "Marathi") as a single word or short phrase. Do NOT include any explanations, conversational filler, or formatting. If you are unsure, respond with "Unknown".\n\nText: $text';
       await _checkAndIncrementLimit();
 
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
       final language = response.text ?? 'Unknown';
 
-      return language.trim();
+      return language
+          .split('\n')
+          .first
+          .trim()
+          .replaceAll(RegExp(r'[^a-zA-Z\s]'), '');
     } catch (e) {
       debugPrint('Error detecting language: $e');
       return 'Unknown';

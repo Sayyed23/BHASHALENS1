@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_language_id/google_mlkit_language_id.dart';
 
 class MlKitTranslationService {
   // Singleton pattern
@@ -15,6 +16,7 @@ class MlKitTranslationService {
   MlKitTranslationService._internal();
 
   final _modelManager = OnDeviceTranslatorModelManager();
+  final _languageIdentifier = LanguageIdentifier(confidenceThreshold: 0.5);
 
   /// Translates text from source language to target language.
   /// Returns null if translation fails.
@@ -159,15 +161,16 @@ class MlKitTranslationService {
   /// Recognize text from an image using a specific script recognizer.
   Future<String> _recognizeWithScript(
       InputImage inputImage, TextRecognitionScript script) async {
+    final recognizer = TextRecognizer(script: script);
     try {
-      final recognizer = TextRecognizer(script: script);
       final result = await recognizer.processImage(inputImage);
       final text = result.text.trim();
-      await recognizer.close();
       return text;
     } catch (e) {
       debugPrint('Error with script $script: $e');
       return '';
+    } finally {
+      await recognizer.close();
     }
   }
 
@@ -187,6 +190,9 @@ class MlKitTranslationService {
         return TextRecognitionScript.japanese;
       case 'ko': // Korean
         return TextRecognitionScript.korean;
+      case 'ru': // Russian uses Cyrillic, ML Kit lacks a dedicated Cyrillic recognizer
+      case 'ar': // Arabic
+        return null; // Trigger multi-recognizer fallback
       // Latin-script languages
       case 'en':
       case 'es':
@@ -194,7 +200,6 @@ class MlKitTranslationService {
       case 'de':
       case 'it':
       case 'pt':
-      case 'ru': // Cyrillic, but Latin recognizer handles it reasonably
         return TextRecognitionScript.latin;
       // Indian languages without native OCR script support
       case 'ta': // Tamil
@@ -215,9 +220,23 @@ class MlKitTranslationService {
     return _getScriptForLanguage(languageCode) != null;
   }
 
-  /// Release resources (recognizers are created & closed per-use)
+  /// Release resources
   Future<void> dispose() async {
-    // No-op: recognizers are now created and closed per extractTextFromFile call
+    await _languageIdentifier.close();
+  }
+
+  /// Identifies the language of the given text offline.
+  /// Returns the language code (e.g., 'en', 'hi') or 'und' if unidentified.
+  Future<String> identifyLanguage(String text) async {
+    try {
+      if (text.trim().isEmpty) return 'und';
+      final languageCode = await _languageIdentifier.identifyLanguage(text);
+      debugPrint('ML Kit Offline Identified Language: $languageCode');
+      return languageCode;
+    } catch (e) {
+      debugPrint('Error identifying language with ML Kit: $e');
+      return 'und';
+    }
   }
 
   /// Downloads the translation model for the given language code.
