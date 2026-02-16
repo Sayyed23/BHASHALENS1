@@ -42,8 +42,7 @@ class MlKitTranslationService {
       }
 
       // Check if both models are available
-      final sourceModelAvailable = await isModelDownloaded(sourceLanguage);
-      final targetModelAvailable = await isModelDownloaded(targetLanguage);
+      // (These were previously checked here, but now checked inside the translation paths for better logging)
 
       // Direct translation (works best when one language is English)
       if (sourceLang == TranslateLanguage.english ||
@@ -52,11 +51,15 @@ class MlKitTranslationService {
         final nonEnglishLang = sourceLang == TranslateLanguage.english
             ? targetLanguage
             : sourceLanguage;
+
         if (!(await isModelDownloaded(nonEnglishLang))) {
-          debugPrint('Required model not available: $nonEnglishLang');
+          debugPrint(
+              'ML Kit: Model NOT downloaded for non-English language: $nonEnglishLang');
           return null;
         }
 
+        debugPrint(
+            'ML Kit: Starting direct translation ($sourceLanguage -> $targetLanguage)');
         final onDeviceTranslator = OnDeviceTranslator(
           sourceLanguage: sourceLang,
           targetLanguage: targetLang,
@@ -64,12 +67,18 @@ class MlKitTranslationService {
 
         final String response = await onDeviceTranslator.translateText(text);
         await onDeviceTranslator.close();
+        debugPrint(
+            'ML Kit: Direct translation success. Result length: ${response.length}');
         return response;
       }
+
       // For non-English to non-English translation, use two-step process via English
+      debugPrint(
+          'ML Kit: Starting two-step translation ($sourceLanguage -> en -> $targetLanguage)');
+
       // Step 1: Source language -> English
-      if (!sourceModelAvailable) {
-        debugPrint('Source language model not available: $sourceLanguage');
+      if (!(await isModelDownloaded(sourceLanguage))) {
+        debugPrint('ML Kit: Source model not downloaded: $sourceLanguage');
         return null;
       }
 
@@ -82,13 +91,22 @@ class MlKitTranslationService {
       await toEnglishTranslator.close();
 
       if (englishText.isEmpty) {
-        debugPrint('Failed to translate to English: $sourceLanguage -> en');
+        debugPrint(
+            'ML Kit: Failed to translate to intermediate English: $sourceLanguage -> en');
+        return null;
+      }
+      debugPrint(
+          'ML Kit: Intermediate English translation success. Length: ${englishText.length}');
+
+      // Step 2: English -> Target language
+      if (!(await isModelDownloaded(targetLanguage))) {
+        debugPrint('ML Kit: Target model not downloaded: $targetLanguage');
         return null;
       }
 
-      // Step 2: English -> Target language
-      if (!targetModelAvailable) {
-        debugPrint('Target language model not available: $targetLanguage');
+      if (!(await isModelDownloaded('en'))) {
+        debugPrint(
+            'ML Kit: English model not downloaded (required for intermediate step)');
         return null;
       }
 
@@ -100,10 +118,13 @@ class MlKitTranslationService {
       final finalResult =
           await fromEnglishTranslator.translateText(englishText);
       await fromEnglishTranslator.close();
+      debugPrint(
+          'ML Kit: Final step translation success ($sourceLanguage -> $targetLanguage). Result length: ${finalResult.length}');
 
       return finalResult;
     } catch (e) {
-      debugPrint('Error translating with ML Kit: $e');
+      debugPrint(
+          'Error translating with ML Kit ($sourceLanguage -> $targetLanguage): $e');
       return null;
     }
   }
@@ -207,6 +228,8 @@ class MlKitTranslationService {
       case 'bn': // Bengali
       case 'gu': // Gujarati
       case 'kn': // Kannada
+      case 'pa': // Punjabi
+      case 'ml': // Malayalam
       case 'ur': // Urdu
         return null; // Will trigger multi-recognizer fallback
       default:
@@ -356,9 +379,22 @@ class MlKitTranslationService {
   Future<bool> isModelDownloaded(String languageCode) async {
     try {
       final lang = _getTranslateLanguage(languageCode);
-      if (lang == null) return false;
+      if (lang == null) {
+        debugPrint(
+            'isModelDownloaded: Unsupported language code: $languageCode');
+        return false;
+      }
 
-      return await _modelManager.isModelDownloaded(_getBcp47Code(lang));
+      final bcpCode = _getBcp47Code(lang);
+      if (bcpCode.isEmpty) {
+        debugPrint('isModelDownloaded: No BCP47 mapping for $lang');
+        return false;
+      }
+
+      final isDownloaded = await _modelManager.isModelDownloaded(bcpCode);
+      debugPrint(
+          'isModelDownloaded: $languageCode ($bcpCode) -> $isDownloaded');
+      return isDownloaded;
     } catch (e) {
       debugPrint('Error checking model status for $languageCode: $e');
       return false;
@@ -369,12 +405,20 @@ class MlKitTranslationService {
   Future<List<String>> getDownloadedModels() async {
     try {
       // Iterate over supported languages and check status
-      List<String> downloaded = [];
-      // Check common languages to avoid checking hundreds if expensive,
-      // or check all in TranslateLanguage.values
-      for (var lang in TranslateLanguage.values) {
-        if (await _modelManager.isModelDownloaded(_getBcp47Code(lang))) {
-          downloaded.add(_getBcp47Code(lang));
+      final List<String> downloaded = [];
+      // Use a set of BCP47 codes we care about to avoid redundant checks
+      final codesToCheck = <String>{};
+      for (var l in getSupportedLanguages()) {
+        final lang = _getTranslateLanguage(l['code']!);
+        if (lang != null) {
+          final bcp = _getBcp47Code(lang);
+          if (bcp.isNotEmpty) codesToCheck.add(bcp);
+        }
+      }
+
+      for (var bcp in codesToCheck) {
+        if (await _modelManager.isModelDownloaded(bcp)) {
+          downloaded.add(bcp);
         }
       }
       return downloaded;
@@ -575,7 +619,7 @@ class MlKitTranslationService {
       case TranslateLanguage.welsh:
         return 'cy';
       default:
-        return 'en';
+        return ''; // Return empty for unhandled languages to avoid false positives
     }
   }
 
