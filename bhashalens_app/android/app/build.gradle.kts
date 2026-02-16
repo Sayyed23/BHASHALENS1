@@ -8,8 +8,8 @@ plugins {
 
 android {
     namespace = "com.example.bhashalens_app"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.2.13676358"
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -25,8 +25,8 @@ android {
         applicationId = "com.example.bhashalens_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion  // Updated to support camera plugin requirements
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -56,4 +56,12 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // ML Kit Text Recognition - script-specific models for offline OCR
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 }

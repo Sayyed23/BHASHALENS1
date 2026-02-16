@@ -47,7 +47,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadLanguages();
-    _loadLanguages();
     _requestCameraPermission();
   }
 
@@ -282,6 +281,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               translated = "Translation failed (Offline)";
             }
           }
+        } else if (extracted.isEmpty) {
+          if (!_mlKitService.isOcrScriptSupported(_sourceLanguageCode)) {
+            extracted =
+                "No text detected. Note: ${_displayLanguages[_sourceLanguageCode] ?? _sourceLanguageCode} script has limited offline OCR support. For best results, use online mode or try with transliterated (Latin/Roman) text.";
+          } else {
+            extracted =
+                "No text detected in image. Make sure the image contains clear text in the selected source language.";
+          }
         }
       } else {
         // Gemini Online Logic
@@ -339,6 +346,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
+      if (!mounted) return;
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
       String translated = '';
 
