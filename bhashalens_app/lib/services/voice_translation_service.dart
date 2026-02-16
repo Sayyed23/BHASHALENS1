@@ -212,7 +212,6 @@ class VoiceTranslationService extends ChangeNotifier {
           notifyListeners();
         }
       },
-
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
       localeId: localeId ?? 'en-US',
@@ -239,6 +238,14 @@ class VoiceTranslationService extends ChangeNotifier {
           fromLanguage ?? 'en'; // Default to English if not provided
 
       if (_isOfflineMode) {
+        if (fromLanguage == 'auto') {
+          actualSourceLanguage = await _mlKitService.identifyLanguage(text);
+          if (actualSourceLanguage == 'und') {
+            return 'Offline Mode: Could not auto-detect language.';
+          }
+          debugPrint('Offline detected language: $actualSourceLanguage');
+        }
+
         // Use ML Kit for offline translation
         debugPrint(
           'Using ML Kit for offline translation: $actualSourceLanguage -> $toLanguage',
@@ -254,18 +261,20 @@ class VoiceTranslationService extends ChangeNotifier {
           return mlKitResult;
         } else {
           // Check what models are missing for better error message
-          final missingModels = await _mlKitService.getMissingModelsForTranslation(
+          final missingModels =
+              await _mlKitService.getMissingModelsForTranslation(
             actualSourceLanguage,
             toLanguage,
           );
 
           if (missingModels.isNotEmpty) {
             final languageNames = missingModels.map((code) {
-              final lang = _mlKitService.getSupportedLanguages()
-                  .firstWhere((l) => l['code'] == code, orElse: () => {'name': code});
+              final lang = _mlKitService.getSupportedLanguages().firstWhere(
+                  (l) => l['code'] == code,
+                  orElse: () => {'name': code});
               return lang['name'] ?? code;
             }).join(', ');
-            
+
             return 'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
           }
           return 'Translation failed. Please try again.';
@@ -337,24 +346,33 @@ class VoiceTranslationService extends ChangeNotifier {
     try {
       String actualSourceLanguage = speakerLanguage;
 
-      // If source language is 'auto', detect it first (only with Gemini)
+      // If source language is 'auto', detect it first
       if (speakerLanguage == 'auto') {
-        if (!_geminiService.isInitialized) {
-          throw Exception(
-            'Gemini service not initialized for language detection',
-          );
-        }
-        try {
-          final detectedLanguage = await _geminiService.detectLanguage(
-            originalText,
-          );
-          actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
-          debugPrint(
-            'Detected language: $detectedLanguage -> $actualSourceLanguage',
-          );
-        } catch (e) {
-          debugPrint('Language detection failed, using default: $e');
-          actualSourceLanguage = 'en'; // fallback to English
+        if (_isOfflineMode) {
+          actualSourceLanguage =
+              await _mlKitService.identifyLanguage(originalText);
+          if (actualSourceLanguage == 'und') {
+            actualSourceLanguage = 'en'; // Fallback
+          }
+          debugPrint('Offline detected language: $actualSourceLanguage');
+        } else {
+          if (!_geminiService.isInitialized) {
+            throw Exception(
+              'Gemini service not initialized for language detection',
+            );
+          }
+          try {
+            final detectedLanguage = await _geminiService.detectLanguage(
+              originalText,
+            );
+            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
+            debugPrint(
+              'Detected language: $detectedLanguage -> $actualSourceLanguage',
+            );
+          } catch (e) {
+            debugPrint('Language detection failed, using default: $e');
+            actualSourceLanguage = 'en'; // fallback to English
+          }
         }
       }
 
@@ -377,9 +395,8 @@ class VoiceTranslationService extends ChangeNotifier {
         timestamp: DateTime.now(),
         speakerLanguage: actualSourceLanguage, // Use actual detected language
         targetLanguage: targetLanguage,
-        detectedLanguage: (speakerLanguage == 'auto')
-            ? actualSourceLanguage
-            : null,
+        detectedLanguage:
+            (speakerLanguage == 'auto') ? actualSourceLanguage : null,
       );
 
       _conversationHistory.add(message);
