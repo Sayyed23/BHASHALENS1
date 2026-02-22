@@ -11,11 +11,9 @@ class GeminiService {
   late GenerativeModel _visionModel;
   bool _isInitialized = false;
 
-  GeminiService({this.apiKey, required this.localStorageService}) {
-    if (apiKey != null && apiKey!.isNotEmpty) {
-      initialize();
-    }
-  }
+  GeminiService({this.apiKey, required this.localStorageService});
+  // Initialization is deferred to explicit `initialize()` call
+  // to avoid fire-and-forget async in constructor
 
   Future<void> _lastLimitCheck = Future.value();
 
@@ -339,12 +337,12 @@ class GeminiService {
           '"translation": "String - The text translated to $targetLanguage", '
           '"analysis": "String - A brief contextual summary (1-2 sentences). Who is speaking? What is the main topic?", '
           '"meaning": "String - A very simple, jargon-free explanation of what this means. Imagine explaining to a child (ELI5). Use clear, short sentences.", '
-          '"suggested_questions": ["String", "String"] - A list of 2-3 relevant follow-up questions", '
-          '"when_to_use": "String - Recommendation on when to use this", '
-          '"tone": "String - The tone (e.g., Formal, Casual, Urgent)", '
-          '"situational_context": ["String", "String"] - 2 specific situational examples", '
-          '"cultural_insight": "String - Brief cultural nuance or \'N/A\' if none", '
-          '"safety_note": "String - (Optional) Safety warnings or null"'
+          '"suggested_questions": ["String", "String"], '
+          '"when_to_use": "String", '
+          '"tone": "String", '
+          '"situational_context": ["String", "String"], '
+          '"cultural_insight": "String", '
+          '"safety_note": "String or null"'
           '} '
           'Input Text: "$text"';
 

@@ -2,22 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:bhashalens_app/pages/camera_translate_page.dart';
 import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/text_translate_page.dart';
+import 'package:bhashalens_app/pages/home/widgets/feature_card.dart';
+import 'package:bhashalens_app/theme/app_colors.dart';
 
 class TranslationModePage extends StatelessWidget {
   const TranslationModePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Translation Mode')),
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        title: const Text('Translation Mode'),
+        backgroundColor: theme.colorScheme.surface,
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         children: [
-          _buildFeatureCard(
-            context,
-            icon: Icons.camera_alt,
+          FeatureCard(
+            icon: Icons.camera_alt_rounded,
             title: 'Camera Translate',
-            description: 'Translate text from images instantly.',
+            description:
+                'Snap a photo to translate signboards, menus, and documents instantly.',
+            buttonText: 'Open Camera',
+            iconColor: AppColors.blue600,
+            isPrimary: true,
             onTap: () {
               Navigator.push(
                 context,
@@ -27,12 +38,13 @@ class TranslationModePage extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 16),
-          _buildFeatureCard(
-            context,
-            icon: Icons.mic,
+          FeatureCard(
+            icon: Icons.mic_rounded,
             title: 'Voice Translate',
-            description: 'Translate spoken words in real-time.',
+            description:
+                'Speak and translate in real-time for seamless conversations.',
+            buttonText: 'Start Speaking',
+            iconColor: const Color(0xFFA855F7), // Purple
             onTap: () {
               Navigator.push(
                 context,
@@ -42,12 +54,13 @@ class TranslationModePage extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 16),
-          _buildFeatureCard(
-            context,
-            icon: Icons.text_fields,
+          FeatureCard(
+            icon: Icons.translate_rounded,
             title: 'Text Translate',
-            description: 'Type and translate text manually.',
+            description:
+                'Enter text manually to get accurate translations in seconds.',
+            buttonText: 'Type Message',
+            iconColor: const Color(0xFF22C55E), // Green
             onTap: () {
               Navigator.push(
                 context,
@@ -57,59 +70,7 @@ class TranslationModePage extends StatelessWidget {
               );
             },
           ),
-          // Add more translation features here if needed (e.g., Text Translate)
         ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String description,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16),
-            ],
-          ),
-        ),
       ),
     );
   }

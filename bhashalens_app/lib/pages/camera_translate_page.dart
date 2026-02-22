@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
@@ -461,12 +462,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   @override
   Widget build(BuildContext context) {
-    // Dark theme enforce
-    const backgroundColor = Color(0xFF111827);
-    const surfaceColor = Color(0xFF1F2937);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -566,24 +566,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               child: Row(
                 children: [
                   // Back Button (Glassy)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ),
-                    ),
+                  _buildGlassyButton(
+                    icon: Icons.arrow_back_rounded,
+                    onTap: () => Navigator.pop(context),
                   ),
                   const Spacer(),
                   // Language Selector Pill (Glassy)
@@ -597,10 +582,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: colorScheme.surface.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.15),
                             width: 1,
                           ),
                           boxShadow: [
@@ -624,7 +610,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                               ),
                               child: Icon(
                                 Icons.swap_horiz_rounded,
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
                                 size: 18,
                               ),
                             ),
@@ -722,9 +709,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               maxChildSize: 0.85,
               builder: (context, scrollController) {
                 return Container(
-                  decoration: const BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(24),
                     ),
                   ),
@@ -897,26 +884,31 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                             Icons.copy,
                             "Copy",
                             _copyTranslation,
+                            theme,
                           ),
                           _buildActionButton(
                             Icons.save,
                             "Save",
                             _saveTranslation,
+                            theme,
                           ),
                           _buildActionButton(
                             Icons.psychology,
                             "Explain",
                             _explainTranslation,
+                            theme,
                           ),
                           _buildActionButton(
                             Icons.share,
                             "Share",
                             _shareTranslation,
+                            theme,
                           ),
                           _buildActionButton(
                             Icons.restart_alt,
                             "Retake",
                             _resetState,
+                            theme,
                           ),
                         ],
                       ),
@@ -931,9 +923,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   }
 
   Widget _buildCorner(bool isTop, bool isLeft) {
-    const double size = 20;
-    const double thickness = 3;
-    const color = Color(0xFF3B82F6);
+    const double size = 24;
+    const double thickness = 4;
+    const color = AppColors.blue500;
 
     return Container(
       width: size,
@@ -958,30 +950,31 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildActionButton(
+      IconData icon, String label, VoidCallback onTap, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: 80, // Fixed width for alignment
+        width: 72,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF374151).withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(20),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 26),
+            Icon(icon, color: colorScheme.primary, size: 24),
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1038,7 +1031,10 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Translation Saved')));
+        ).showSnackBar(SnackBar(
+          content: const Text('Translation Saved'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ));
       }
     } catch (e) {
       debugPrint("Error saving: $e");
@@ -1088,6 +1084,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   }
 
   void _showLanguagePicker(bool isSource) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1095,9 +1094,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       builder: (ctx) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Color(0xFF1F2937),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
             children: [
@@ -1134,12 +1133,12 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+                            ? colorScheme.primary.withValues(alpha: 0.1)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
+                              ? colorScheme.primary.withValues(alpha: 0.3)
                               : Colors.transparent,
                         ),
                       ),
@@ -1154,8 +1153,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded,
-                                color: Color(0xFF3B82F6))
+                            ? Icon(Icons.check_circle_rounded,
+                                color: colorScheme.primary)
                             : null,
                         onTap: () {
                           setState(() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/theme/app_colors.dart';
 
 class VoiceTranslatePage extends StatefulWidget {
   const VoiceTranslatePage({super.key});
@@ -10,8 +11,6 @@ class VoiceTranslatePage extends StatefulWidget {
 }
 
 class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
-  // VoiceTranslationService is accessed via Provider
-
   String convertLanguageCodeToName(String languageCode) {
     return VoiceTranslationService.supportedLanguages[languageCode] ??
         languageCode;
@@ -20,32 +19,29 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // We force dark mode look for this page based on mock (dark background)
-    // Or we respect theme but use specific colors. Mock is dark.
-    // Let's use the dark colors from mock.
-    const backgroundColor = Color(0xFF111827); // Dark background
-
-    const accentColor = Color(0xFF3B82F6); // Blue
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back_rounded, color: colorScheme.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Voice Translation',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          'Live Translation',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () => _showHelpDialog(theme, true),
+            icon:
+                Icon(Icons.help_outline_rounded, color: colorScheme.onSurface),
+            onPressed: () => _showHelpDialog(theme),
           ),
         ],
       ),
@@ -56,33 +52,43 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
               // Language Selector Row
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.1),
+                    ),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Your Language (A)
-                    _buildLanguagePill(
-                      voiceService.userALanguage,
-                      (lang) => voiceService.setUserALanguage(lang),
-                      theme,
+                    Expanded(
+                      child: _buildLanguagePill(
+                        voiceService.userALanguage,
+                        (lang) => voiceService.setUserALanguage(lang),
+                        theme,
+                      ),
                     ),
 
                     // Swap Button
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: GestureDetector(
                         onTap: () => voiceService.swapLanguages(),
                         child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: accentColor,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.swap_horiz,
-                            color: Colors.white,
+                          child: Icon(
+                            Icons.swap_horiz_rounded,
+                            color: colorScheme.primary,
                             size: 24,
                           ),
                         ),
@@ -90,10 +96,12 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                     ),
 
                     // Their Language (B)
-                    _buildLanguagePill(
-                      voiceService.userBLanguage,
-                      (lang) => voiceService.setUserBLanguage(lang),
-                      theme,
+                    Expanded(
+                      child: _buildLanguagePill(
+                        voiceService.userBLanguage,
+                        (lang) => voiceService.setUserBLanguage(lang),
+                        theme,
+                      ),
                     ),
                   ],
                 ),
@@ -101,76 +109,88 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
               // Chat Area
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // Show user Prompt "Tap a microphone below to start translating." if empty
-                    if (voiceService.conversationHistory.isEmpty &&
-                        !voiceService.isListening &&
-                        !voiceService.isTranslating)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 100),
-                        child: Column(
-                          children: [
-                            Icon(Icons.mic, size: 48, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              "Tap a microphone below to start translating.",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
+                child: Container(
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.3),
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      if (voiceService.conversationHistory.isEmpty &&
+                          !voiceService.isListening &&
+                          !voiceService.isTranslating)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 100),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.mic_rounded,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.2),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 20),
+                              Text(
+                                "Tap a microphone below to start\na real-time translation",
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+
+                      ...voiceService.conversationHistory.map(
+                        (msg) => _buildChatBubble(msg, theme),
                       ),
 
-                    ...voiceService.conversationHistory.map(
-                      (msg) => _buildChatBubble(msg),
-                    ),
-
-                    // Active Transcript Bubble
-                    if (voiceService.isListening || voiceService.isTranslating)
-                      _buildActiveTranscriptBubble(voiceService),
-                  ],
+                      // Active Transcript Bubble
+                      if (voiceService.isListening ||
+                          voiceService.isTranslating)
+                        _buildActiveTranscriptBubble(voiceService, theme),
+                    ],
+                  ),
                 ),
               ),
 
               // Bottom Controls
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                decoration: const BoxDecoration(
-                  color: backgroundColor, // Match/Extend body
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    // Hindi (Them / B) - Left
+                    // Them / B - Left
                     Expanded(
                       child: _buildMicButton(
-                        label:
-                            "${_getLanguageName(voiceService.userBLanguage)} (Them)",
-                        isListening:
-                            voiceService.isListening &&
+                        label: _getLanguageName(voiceService.userBLanguage),
+                        subtitle: "Them",
+                        isListening: voiceService.isListening &&
                             voiceService.currentSpeaker == 'B',
                         onTap: () => _handleMicrophoneTap('B', voiceService),
-                        activeColor: Colors
-                            .grey[700]!, // Or distinct color for Them? Mock shows Grey vs Blue.
-                        // Actually mock shows Left button is Grey pill with mic. Right is Blue pill with mic.
+                        theme: theme,
                         isPrimary: false,
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // English (You / A) - Right
+                    // You / A - Right
                     Expanded(
                       child: _buildMicButton(
-                        label:
-                            "${_getLanguageName(voiceService.userALanguage)} (You)",
-                        isListening:
-                            voiceService.isListening &&
+                        label: _getLanguageName(voiceService.userALanguage),
+                        subtitle: "You",
+                        isListening: voiceService.isListening &&
                             voiceService.currentSpeaker == 'A',
                         onTap: () => _handleMicrophoneTap('A', voiceService),
-                        activeColor: accentColor,
+                        theme: theme,
                         isPrimary: true,
                       ),
                     ),
@@ -193,32 +213,35 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     Function(String) onChanged,
     ThemeData theme,
   ) {
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2937),
-        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.1),
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: currentCode,
-          dropdownColor: const Color(0xFF1F2937),
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-          isDense: true,
+          dropdownColor: colorScheme.surface,
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: colorScheme.primary, size: 18),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+          isExpanded: true,
           onChanged: (val) {
             if (val != null) onChanged(val);
           },
           items: VoiceTranslationService.supportedLanguages.entries.map((e) {
             return DropdownMenuItem(
               value: e.key,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Flag could go here
-                  Text(e.value),
-                ],
-              ),
+              child: Text(e.value),
             );
           }).toList(),
         ),
@@ -228,49 +251,67 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
 
   Widget _buildMicButton({
     required String label,
+    required String subtitle,
     required bool isListening,
     required VoidCallback onTap,
-    required Color activeColor,
+    required ThemeData theme,
     required bool isPrimary,
   }) {
-    // Mock:
-    // Left: Grey Pill, White Text/Icon
-    // Right: Blue Pill, White Text/Icon
-    final bgColor = isPrimary
-        ? (isListening ? Colors.red : const Color(0xFF3B82F6))
-        : (isListening ? Colors.red : const Color(0xFF374151));
+    final colorScheme = theme.colorScheme;
+
+    final bgColor = isListening
+        ? AppColors.error
+        : (isPrimary ? colorScheme.primary : colorScheme.secondary);
+
+    final onColor = isListening
+        ? Colors.white
+        : (isPrimary ? colorScheme.onPrimary : colorScheme.onSecondary);
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 60,
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: isListening
               ? [
                   BoxShadow(
-                    color: bgColor.withValues(alpha: 0.5),
-                    blurRadius: 10,
+                    color: bgColor.withValues(alpha: 0.4),
+                    blurRadius: 15,
                     spreadRadius: 2,
                   ),
                 ]
-              : [],
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
           children: [
             Icon(
-              isListening ? Icons.graphic_eq : Icons.mic,
-              color: Colors.white,
+              isListening ? Icons.graphic_eq_rounded : Icons.mic_rounded,
+              color: onColor,
+              size: 28,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: onColor,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: onColor.withValues(alpha: 0.8),
+                fontSize: 10,
               ),
             ),
           ],
@@ -279,53 +320,76 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildChatBubble(ConversationMessage msg) {
+  Widget _buildChatBubble(ConversationMessage msg, ThemeData theme) {
     final isYou = msg.speaker == 'A';
+    final colorScheme = theme.colorScheme;
+
     return Align(
       alignment: isYou ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(12),
-        constraints: const BoxConstraints(maxWidth: 280),
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
-          color: isYou ? const Color(0xFF3B82F6) : const Color(0xFF374151),
+          color: isYou ? colorScheme.primary : colorScheme.surface,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isYou ? const Radius.circular(16) : Radius.zero,
-            bottomRight: isYou ? Radius.zero : const Radius.circular(16),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: isYou ? const Radius.circular(20) : Radius.zero,
+            bottomRight: isYou ? Radius.zero : const Radius.circular(20),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: isYou
+              ? null
+              : Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               isYou
-                  ? "You (${msg.speakerLanguage})"
-                  : "Them (${msg.speakerLanguage})",
+                  ? "YOU (${msg.speakerLanguage})"
+                  : "THEM (${msg.speakerLanguage})",
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.white.withValues(alpha: 0.7),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: isYou
+                    ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               msg.originalText,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-
-            // Divider
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Divider(
-                color: Colors.white.withValues(alpha: 0.2),
-                height: 1,
+              style: TextStyle(
+                color: isYou ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontSize: 16,
               ),
             ),
-
+            const SizedBox(height: 8),
+            Container(
+              height: 1,
+              width: double.infinity,
+              color: (isYou ? colorScheme.onPrimary : colorScheme.outline)
+                  .withValues(alpha: 0.1),
+            ),
+            const SizedBox(height: 8),
             Text(
               msg.translatedText,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(
+                color: isYou ? colorScheme.onPrimary : colorScheme.primary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -333,53 +397,67 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  Widget _buildActiveTranscriptBubble(VoiceTranslationService service) {
+  Widget _buildActiveTranscriptBubble(
+      VoiceTranslationService service, ThemeData theme) {
     final isYou = service.currentSpeaker == 'A';
-    // If we only have transcript (original) but no translation yet
+    final colorScheme = theme.colorScheme;
     final text = service.currentTranscript;
     if (text.isEmpty) return const SizedBox.shrink();
 
     return Align(
       alignment: isYou ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(12),
-        constraints: const BoxConstraints(maxWidth: 280),
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
-          color: (isYou ? const Color(0xFF3B82F6) : const Color(0xFF374151))
-              .withValues(
-                alpha: 0.7,
-              ), // Slightly transparent to indicate processing
-          borderRadius: BorderRadius.circular(16),
+          color: (isYou ? colorScheme.primary : colorScheme.surface)
+              .withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(20),
+          border: isYou
+              ? null
+              : Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isYou ? colorScheme.onPrimary : colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Listening...",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isYou
+                        ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Text(
-              "Listening...",
+              text,
               style: TextStyle(
-                fontSize: 10,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: isYou ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontSize: 16,
                 fontStyle: FontStyle.italic,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              text,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            if (service.isTranslating)
-              const Padding(
-                padding: EdgeInsets.only(top: 8.0),
-                child: SizedBox(
-                  height: 2,
-                  width: 50,
-                  child: LinearProgressIndicator(
-                    color: Colors.white,
-                    backgroundColor: Colors.transparent,
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -394,47 +472,59 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     }
   }
 
-  void _showHelpDialog(ThemeData theme, bool isDarkMode) {
+  void _showHelpDialog(ThemeData theme) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1F2937),
-        title: const Text(
-          'How to Use Live Conversation',
-          style: TextStyle(color: Colors.white),
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'How to Use',
+          style:
+              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '1. Select languages for "You" and "Them".',
-                style: TextStyle(color: Colors.white70),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '2. Tap the microphone button corresponding to who is speaking.',
-                style: TextStyle(color: Colors.white70),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '3. The app will transcribe and translate automatically.',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ],
-          ),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHelpStep(Icons.language_rounded,
+                'Select languages for "You" and "Them".', theme),
+            const SizedBox(height: 16),
+            _buildHelpStep(Icons.mic_rounded,
+                'Tap a microphone when that person speaks.', theme),
+            const SizedBox(height: 16),
+            _buildHelpStep(Icons.translate_rounded,
+                'App will transcribe and translate instantly.', theme),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
+            child: Text(
               'Got it',
-              style: TextStyle(color: Color(0xFF3B82F6)),
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHelpStep(IconData icon, String text, ThemeData theme) {
+    return Row(
+      children: [
+        Icon(icon, color: theme.colorScheme.primary, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -35,6 +35,7 @@ dependencies:
   
   # Networking
   http: ^1.1.0
+  google_fonts: ^6.2.1
   
   # ML & AI
   google_mlkit_translation: ^0.12.0

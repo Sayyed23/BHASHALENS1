@@ -86,7 +86,7 @@ void main() async {
       create: (_) => GeminiService(
         apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
         localStorageService: localStorageService,
-      ),
+      )..initialize(),
     ),
     ChangeNotifierProvider<VoiceTranslationService>(
       create: (_) => VoiceTranslationService(
@@ -136,11 +136,9 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   Future<void> _initializeApp() async {
     try {
       // Set a maximum timeout for the entire initialization
-      await Future.any([
-        _performInitialization(),
-        Future.delayed(const Duration(seconds: 3))
-            .then((_) => throw TimeoutException('Initialization timeout')),
-      ]);
+      await _performInitialization().timeout(
+        const Duration(seconds: 3),
+      );
     } catch (e) {
       debugPrint("Initialization failed or timed out: $e");
       // Cancel any ongoing initialization to prevent setState after timeout
@@ -207,13 +205,23 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   }
 
   Future<void> _checkAuth() async {
+    if (!mounted) return;
     try {
       // Only try to access Firebase auth if the service is available
-      final authService = Provider.of<FirebaseAuthService?>(
-        context,
-        listen: false,
-      );
-      if (authService != null && authService.currentUser == null) {
+      // The provider is registered as non-nullable, so we must catch the exception
+      // if Firebase wasn't initialized and the provider wasn't added.
+      late final FirebaseAuthService authService;
+      try {
+        authService = Provider.of<FirebaseAuthService>(
+          context,
+          listen: false,
+        );
+      } catch (e) {
+        debugPrint('FirebaseAuthService not available in provider tree: $e');
+        return;
+      }
+
+      if (authService.currentUser == null) {
         await authService.signInAnonymously().timeout(
               const Duration(seconds: 3),
             );

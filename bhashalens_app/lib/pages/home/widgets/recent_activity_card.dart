@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
 class RecentActivityCard extends StatelessWidget {
   final VoidCallback onTap;
@@ -7,33 +8,43 @@ class RecentActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2B38), // Dark blue/grey background
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB47D42).withValues(alpha: 0.2),
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: AppColors.blue50,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.history,
-                    color: Color(0xFFE5A060), // Orange/Brown icon
-                    size: 24,
+                    Icons.history_rounded,
+                    color: AppColors.blue600,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -41,20 +52,17 @@ class RecentActivityCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Recent activity',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Medical Bill Translation',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 13,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -63,8 +71,8 @@ class RecentActivityCard extends StatelessWidget {
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  Icons.chevron_right_rounded,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 ),
               ],
             ),
