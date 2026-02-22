@@ -18,7 +18,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String? _geminiApiKey;
   final bool _useOpenAI = false; // This will now control online/offline
 
-  late GeminiService _geminiService;
+  GeminiService? _geminiService;
   final LocalStorageService localStorageService;
 
   // ML Kit for offline translation
@@ -77,6 +77,7 @@ class VoiceTranslationService extends ChangeNotifier {
     'gu': 'Gujarati',
     'mr': 'Marathi',
     'pa': 'Punjabi',
+    'ur': 'Urdu',
   };
 
   VoiceTranslationService({
@@ -102,7 +103,7 @@ class VoiceTranslationService extends ChangeNotifier {
         apiKey: _geminiApiKey,
         localStorageService: localStorageService,
       );
-      await _geminiService.initialize();
+      await _geminiService!.initialize();
     }
 
     // Initialize speech recognition
@@ -291,7 +292,7 @@ class VoiceTranslationService extends ChangeNotifier {
             final languageNames = missingModels.map((code) {
               final lang = _mlKitService.getSupportedLanguages().firstWhere(
                   (l) => l['code'] == code,
-                  orElse: () => {'name': code});
+                  orElse: () => <String, String>{'name': code, 'code': code});
               return lang['name'] ?? code;
             }).join(', ');
 
@@ -303,7 +304,8 @@ class VoiceTranslationService extends ChangeNotifier {
         // Use Gemini for online translation (better quality)
         if (_geminiApiKey == null ||
             _geminiApiKey!.isEmpty ||
-            !_geminiService.isInitialized) {
+            _geminiService == null ||
+            !_geminiService!.isInitialized) {
           // Fall back to ML Kit if Gemini is not available
           debugPrint('Gemini not available, falling back to ML Kit');
           final mlKitResult = await _mlKitService.translate(
@@ -316,7 +318,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
         if (fromLanguage == 'auto') {
           try {
-            final detectedLanguage = await _geminiService.detectLanguage(text);
+            final detectedLanguage = await _geminiService!.detectLanguage(text);
             // Convert detected language name to language code
             actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
             debugPrint(
@@ -330,7 +332,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
         try {
           // Use GeminiService for translation
-          return await _geminiService.translateText(
+          return await _geminiService!.translateText(
             text,
             toLanguage,
             sourceLanguage: actualSourceLanguage,
@@ -390,13 +392,13 @@ class VoiceTranslationService extends ChangeNotifier {
           }
           debugPrint('Offline detected language: $actualSourceLanguage');
         } else {
-          if (!_geminiService.isInitialized) {
+          if (_geminiService == null || !_geminiService!.isInitialized) {
             throw Exception(
               'Gemini service not initialized for language detection',
             );
           }
           try {
-            final detectedLanguage = await _geminiService.detectLanguage(
+            final detectedLanguage = await _geminiService!.detectLanguage(
               originalText,
             );
             actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
@@ -507,6 +509,8 @@ class VoiceTranslationService extends ChangeNotifier {
         return 'mr-IN';
       case 'pa':
         return 'pa-IN';
+      case 'ur':
+        return 'ur-PK';
       default:
         return 'en-US';
     }

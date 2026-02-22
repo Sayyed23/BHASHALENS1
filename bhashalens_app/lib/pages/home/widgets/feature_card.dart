@@ -24,131 +24,141 @@ class FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       height: 160,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2B38), // Dark card background
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Row(
-            children: [
-              // Left Graphic Area
-              Container(
-                width: 110,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Row(
+              children: [
+                // Left Graphic Area
+                Container(
+                  width: 110,
+                  decoration: BoxDecoration(
+                    gradient: backgroundGradient ??
+                        LinearGradient(
+                          colors: [
+                            iconColor.withValues(alpha: 0.15),
+                            iconColor.withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                   ),
-                  gradient:
-                      backgroundGradient ??
-                      LinearGradient(
-                        colors: [
-                          iconColor.withValues(alpha: 0.2),
-                          iconColor.withValues(alpha: 0.05),
+                  child: Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: isPrimary ? colorScheme.primary : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (isPrimary ? colorScheme.primary : iconColor)
+                                .withValues(alpha: 0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                        border: isPrimary
+                            ? null
+                            : Border.all(
+                                color: iconColor.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
                       ),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: isPrimary ? Colors.white : iconColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isPrimary ? iconColor : Colors.white,
-                      size: 28,
+                      child: Icon(
+                        icon,
+                        color: isPrimary ? Colors.white : iconColor,
+                        size: 30,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // Right Content Area
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                // Right Content Area
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                          height: 1.2,
+                        const SizedBox(height: 6),
+                        Text(
+                          description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 36,
-                        child: IgnorePointer(
-                          child: ElevatedButton(
-                            onPressed: onTap,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isPrimary
-                                  ? const Color(0xFF136DEC) // Primary Blue
-                                  : Colors.white.withValues(alpha: 0.08),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: !isPrimary
-                                    ? BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                      )
-                                    : BorderSide.none,
+                        const Spacer(),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 40,
+                          child: IgnorePointer(
+                            child: ElevatedButton(
+                              onPressed: onTap,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isPrimary
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceContainerHighest,
+                                foregroundColor: isPrimary
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.primary,
+                                elevation: 0,
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              buttonText,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              child: Text(
+                                buttonText,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
