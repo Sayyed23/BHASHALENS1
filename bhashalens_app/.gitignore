@@ -11,9 +11,19 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
+
+# Firebase configuration files (contain secrets)
+google-services.json
+GoogleService-Info.plist
+firebase-adminsdk-*.json
+serviceAccountKey.json
+!google-services.json.example
+!GoogleService-Info.plist.example
 
 # IntelliJ related
 *.iml
