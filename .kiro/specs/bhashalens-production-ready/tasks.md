@@ -2,329 +2,613 @@
 
 ## Overview
 
-This implementation plan tracks the development of BhashaLens, a hybrid offline-first, cloud-augmented multilingual translation and language assistance application.
+This implementation plan transforms BhashaLens into a production-ready, offline-first Android application with cloud augmentation. The architecture prioritizes on-device AI processing using quantized models while intelligently leveraging AWS cloud services when available. Implementation follows a phased approach focusing on core offline functionality first, then progressively adding voice, OCR, LLM assistance, and cloud integration.
 
-**Architecture**: Offline-first with cloud augmentation (Firebase + Gemini instead of AWS)  
-**Platform**: Flutter (cross-platform) instead of Android Kotlin/Jetpack Compose  
-**AI Models**: ML Kit (on-device) + Google Gemini API (cloud) instead of Marian NMT + Amazon Bedrock  
-**Languages**: Hindi, Marathi, English, and additional languages supported by ML Kit
+The implementation uses Kotlin for Android development with Jetpack Compose for UI, integrating native libraries (llama.cpp JNI, Vosk/Whisper, Tesseract/ML Kit) for on-device AI processing.
 
-## Implementation Notes
+## Tasks
 
-**Technology Stack Differences from Original Spec:**
-- **Framework**: Flutter instead of Android Kotlin/Jetpack Compose (enables cross-platform support)
-- **Dependency Injection**: Provider instead of Hilt
-- **Translation**: ML Kit Translation (on-device) + Gemini API (cloud) instead of Marian NMT/NLLB + Bedrock
-- **LLM**: Google Gemini API (cloud-based) instead of llama.cpp with on-device GGUF models
-- **Database**: SQLite (not encrypted with SQLCipher yet) instead of SQLCipher
-- **Cloud Backend**: Firebase (Auth, Firestore, Analytics) + Gemini API instead of AWS (Lambda, Bedrock, DynamoDB, S3)
-- **Voice**: speech_to_text + flutter_tts packages instead of Vosk/Whisper Small
-- **OCR**: ML Kit Text Recognition instead of Tesseract
+- [x] 1. Set up project structure and core architecture
+  - Create Kotlin package structure for offline-first architecture
+  - Set up Gradle dependencies for Jetpack Compose, SQLCipher, WorkManager, Retrofit
+  - Configure ProGuard/R8 rules for model optimization
+  - Define core domain models (Language, LanguagePair, ProcessingBackend enums)
+  - Create base interfaces for all major components
+  - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-**What's Been Implemented:**
-- ✅ Core translation functionality (text, voice, OCR)
-- ✅ Offline translation using ML Kit
-- ✅ Online translation using Gemini API
-- ✅ Voice translation with STT/TTS
-- ✅ OCR with camera and gallery support
-- ✅ LLM assistance (grammar, Q&A, conversation, simplification)
-- ✅ Complete UI for all modes
-- ✅ Local storage (SQLite + SharedPreferences)
-- ✅ Firebase authentication and analytics
-- ✅ Accessibility features
-- ✅ Onboarding and settings
+- [x] 2. Implement encrypted local storage layer
+  - [x] 2.1 Create SQLCipher database with schema
+    - Implement database schema for translation_history, user_preferences, translation_cache, conversation_history, language_pack_metadata tables
+    - Configure AES-256 encryption with Android Keystore integration
+    - _Requirements: 9.1, 9.2, 9.6_
+  
+  - [ ]* 2.2 Write property test for data encryption
+    - **Property 24: Data encryption**
+    - **Validates: Requirements 9.2**
+  
+  - [x] 2.3 Implement LocalStorage interface
+    - Write methods for saveTranslation, getTranslationHistory, searchTranslationHistory, deleteTranslationHistory
+    - Implement preference management (savePreference, getPreference)
+    - Implement translation caching (cacheTranslation, getCachedTranslation)
+    - Implement conversation history management
+    - _Requirements: 9.2, 9.3, 9.4_
+  
+  - [ ]* 2.4 Write property tests for storage operations
+    - **Property 25: Translation history retrieval ordering**
+    - **Property 26: Data deletion completeness**
+    - **Property 27: Encryption key security**
+    - **Validates: Requirements 15.6, 9.4, 9.6**
+  
+  - [ ]* 2.5 Write unit tests for LocalStorage
+    - Test edge cases for empty history, large datasets, concurrent access
+    - Test cache expiration and cleanup
+    - _Requirements: 9.2_
 
-**What's Not Yet Implemented:**
-- ❌ AWS cloud infrastructure (using Firebase/Gemini instead)
-- ❌ SQLCipher encryption (using regular SQLite)
-- ❌ Comprehensive Smart Hybrid Router (basic online/offline switching exists)
-- ❌ Background Sync Manager
-- ❌ Comprehensive testing (unit, integration, property-based)
-- ❌ Production deployment and CI/CD
-- ❌ Performance benchmarking and optimization
+- [x] 3. Implement Translation Engine with quantized models
+  - [x] 3.1 Integrate Marian NMT or Distilled NLLB models
+    - Set up model loading infrastructure for INT8 quantized models
+    - Implement model inference using ONNX Runtime or TensorFlow Lite
+    - Create language pair model registry
+    - _Requirements: 2.5, 2.6_
+  
+  - [x] 3.2 Implement TranslationEngine interface
+    - Write initialize method for loading language-specific models
+    - Implement translate method with confidence scoring
+    - Implement isLanguagePairAvailable check
+    - Add model resource management (release method)
+    - _Requirements: 2.1, 2.4_
+  
+  - [ ]* 3.3 Write property tests for Translation Engine
+    - **Property 1: Offline translation availability**
+    - **Property 2: Translation latency target**
+    - **Property 3: Language pair bidirectionality**
+    - **Property 5: Translation cache consistency**
+    - **Validates: Requirements 1.1, 2.1, 2.4, 9.2**
+  
+  - [ ]* 3.4 Write unit tests for Translation Engine
+    - Test translation quality with sample phrases
+    - Test error handling for invalid inputs
+    - Test model loading failures
+    - _Requirements: 2.1, 2.6_
 
-## Phase 1: Foundation & Core Infrastructure (Offline Translation MVP)
+- [ ] 4. Implement Language Pack Manager
+  - [ ] 4.1 Create language pack download infrastructure
+    - Implement LanguagePackManager interface with download, delete, verify methods
+    - Set up HTTP client for downloading from S3/CDN with progress tracking
+    - Implement checksum verification (SHA-256)
+    - Create file system structure for language pack storage
+    - _Requirements: 8.1, 8.2, 8.5, 8.6_
+  
+  - [ ]* 4.2 Write property tests for Language Pack Manager
+    - **Property 20: Language pack size constraint**
+    - **Property 21: Download integrity verification**
+    - **Property 22: Storage availability check**
+    - **Property 23: Language pack availability**
+    - **Validates: Requirements 8.2, 8.6, 8.7, 8.3**
+  
+  - [ ] 4.3 Implement language pack update mechanism
+    - Implement checkForUpdates and updateLanguagePack methods
+    - Add rollback capability for failed updates
+    - Store language pack metadata in LocalStorage
+    - _Requirements: 14.1, 14.2, 14.5_
+  
+  - [ ]* 4.4 Write unit tests for update mechanism
+    - Test update detection logic
+    - Test rollback on failure
+    - Test incremental updates
+    - _Requirements: 14.3, 14.5_
 
-- [x] 1. Project Setup
-  - [x] 1.1 Initialize Android project (Flutter instead of Kotlin/Jetpack Compose)
-  - [x] 1.2 Set up dependency injection (Provider instead of Hilt)
-  - [x] 1.3 Configure build variants and environment configuration
-  - [x] 1.4 Set up SQLite database (not encrypted with SQLCipher yet)
+- [x] 5. Checkpoint - Ensure basic translation works offline
+  - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 2. Data Layer Implementation
-  - [x] 2.1 Create database entities and DAOs (SQLite tables)
-  - [x] 2.2 Implement LocalStorage service (without encryption)
-  - [x] 2.3 Create data models (SavedTranslation, ConversationMessage, etc.)
-  - [x] 2.4 Implement translation cache mechanism (SharedPreferences + SQLite)
+- [ ] 6. Implement Voice Processor for STT and TTS
+  - [ ] 6.1 Integrate Vosk or Whisper Small for STT
+    - Set up Vosk or Whisper Small (4-bit quantized) model loading
+    - Implement VoiceProcessor interface with speechToText method
+    - Add audio recording and preprocessing
+    - _Requirements: 3.1, 3.4_
+  
+  - [ ] 6.2 Integrate Android TTS for speech synthesis
+    - Implement textToSpeech method using Android native TTS
+    - Configure language-specific voices for Hindi, Marathi, English
+    - _Requirements: 3.2, 3.5_
+  
+  - [ ] 6.3 Implement voice translation pipeline
+    - Implement voiceTranslate method combining STT, Translation, TTS
+    - Ensure raw audio is not permanently stored
+    - _Requirements: 2.2, 3.3, 3.6_
+  
+  - [ ]* 6.4 Write property tests for Voice Processor
+    - **Property 6: Voice roundtrip latency**
+    - **Property 7: Voice data privacy**
+    - **Property 8: STT accuracy threshold**
+    - **Validates: Requirements 3.3, 13.2, 3.6, 9.3, 3.7**
+  
+  - [ ]* 6.5 Write unit tests for Voice Processor
+    - Test STT with sample audio files
+    - Test TTS output quality
+    - Test error handling for unsupported languages
+    - _Requirements: 3.1, 3.2_
 
-- [x] 3. Translation Engine (On-Device)
-  - [x] 3.1 Integrate ML Kit Translation (instead of Marian NMT/NLLB)
-  - [x] 3.2 Implement TranslationEngine interface (MlKitTranslationService)
-  - [x] 3.3 Create model loading and management logic
-  - [x] 3.4 Implement bidirectional translation (Hi↔En, Mr↔En, and more)
-  - [x] 3.5 Add translation result caching
-  - [x] 3.6 Optimize for translation latency
+- [ ] 7. Implement OCR Engine for image text extraction
+  - [ ] 7.1 Integrate Tesseract or ML Kit for OCR
+    - Set up Tesseract 5.x or Google ML Kit
+    - Configure support for Devanagari (Hindi, Marathi) and Latin (English) scripts
+    - Implement image preprocessing (contrast, brightness, deskewing)
+    - _Requirements: 4.1, 4.2_
+  
+  - [ ] 7.2 Implement OCREngine interface
+    - Write extractText method with confidence scoring
+    - Implement extractTextRegions for multi-region detection
+    - Add language detection for extracted text
+    - _Requirements: 4.3, 4.4_
+  
+  - [ ]* 7.3 Write property tests for OCR Engine
+    - **Property 9: OCR processing latency**
+    - **Property 10: OCR accuracy threshold**
+    - **Property 11: Multi-script support**
+    - **Validates: Requirements 4.4, 4.5, 4.2**
+  
+  - [ ]* 7.4 Write unit tests for OCR Engine
+    - Test with sample images containing Hindi, Marathi, English text
+    - Test error handling for low-quality images
+    - Test multi-region extraction
+    - _Requirements: 4.1, 4.6_
 
-- [x] 4. Language Pack Manager
-  - [x] 4.1 Implement LanguagePackManager interface (ML Kit model manager)
-  - [x] 4.2 Create download mechanism with progress tracking
-  - [x] 4.3 Implement checksum verification (handled by ML Kit)
-  - [x] 4.4 Add storage availability checking
-  - [x] 4.5 Create language pack update mechanism
-  - [x] 4.6 Language packs managed by ML Kit
+- [ ] 8. Implement LLM Assistant with on-device model
+  - [ ] 8.1 Integrate llama.cpp via JNI for GGUF model inference
+    - Set up llama.cpp JNI bindings for Android
+    - Implement model loading for 1B-3B parameter GGUF models (Phi-2, TinyLlama, Gemma-2B)
+    - Configure 4-bit or 8-bit quantization
+    - _Requirements: 5.4_
+  
+  - [ ] 8.2 Implement LLMAssistant interface for grammar checking
+    - Write checkGrammar method with correction detection and explanations
+    - Implement prompt engineering for grammar analysis
+    - _Requirements: 5.1_
+  
+  - [ ] 8.3 Implement Q&A and conversation features
+    - Write answerQuestion method with context support
+    - Implement practiceConversation with conversation history management
+    - Maintain context for up to 10 exchanges (~2048 tokens)
+    - _Requirements: 5.2, 5.3, 5.7_
+  
+  - [ ] 8.4 Implement text simplification and explanation
+    - Write simplifyText method with complexity level control
+    - Implement explainText method with key term extraction
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6_
+  
+  - [ ]* 8.5 Write property tests for LLM Assistant
+    - **Property 12: Grammar correction completeness**
+    - **Property 13: Conversation context maintenance**
+    - **Property 14: Simplification accuracy**
+    - **Property 15: LLM response latency**
+    - **Validates: Requirements 5.1, 5.7, 6.1, 6.5, 5.5, 13.6**
+  
+  - [ ]* 8.6 Write unit tests for LLM Assistant
+    - Test grammar checking with sample texts
+    - Test Q&A with various question types
+    - Test conversation context preservation
+    - Test simplification quality
+    - _Requirements: 5.1, 5.2, 6.1_
 
-- [x] 5. Smart Hybrid Router
-  - [x] 5.1 Implement basic online/offline routing logic
-  - [x] 5.2 Create routing decision logic (network connectivity)
-  - [x] 5.3 Add network connectivity monitoring (connectivity_plus)
-  - [ ] 5.4 Implement battery level monitoring
-  - [x] 5.5 Create fallback mechanism for cloud failures
+- [ ] 9. Checkpoint - Ensure all offline modes work
+  - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 6. Basic UI (Translation Mode)
-  - [x] 6.1 Create main screen with mode selector
-  - [x] 6.2 Implement text translation UI
-  - [x] 6.3 Add language selection dropdowns
-  - [x] 6.4 Create translation history screen
-  - [x] 6.5 Add loading indicators and progress feedback
-  - [x] 6.6 Implement error message display
+- [ ] 10. Implement Smart Hybrid Router
+  - [ ] 10.1 Create routing decision engine
+    - Implement HybridRouter interface with routing logic
+    - Create RoutingContext data class for network, battery, preferences
+    - Implement decision tree: offline → on-device, low battery → on-device, complex + online → cloud with fallback
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
+  
+  - [ ]* 10.2 Write property tests for Smart Hybrid Router
+    - **Property 16: Offline routing guarantee**
+    - **Property 17: User preference respect**
+    - **Property 18: Cloud fallback execution**
+    - **Property 19: Battery-aware routing**
+    - **Validates: Requirements 7.3, 7.6, 7.5, 11.7, 7.7**
+  
+  - [ ] 10.3 Implement request complexity analyzer
+    - Create logic to classify requests as SIMPLE, MODERATE, COMPLEX
+    - Consider text length, language pair, operation type
+    - _Requirements: 7.2_
+  
+  - [ ]* 10.4 Write unit tests for routing logic
+    - Test all routing decision paths
+    - Test fallback scenarios
+    - Test preference overrides
+    - _Requirements: 7.1, 7.2_
 
-## Phase 2: Voice & OCR Integration
+- [ ] 11. Implement AWS Backend integration
+  - [ ] 11.1 Create API Gateway client
+    - Set up Retrofit client with HTTPS enforcement
+    - Implement IAM authentication or API key management
+    - Define API endpoints for /v1/translate, /v1/assist, /v1/simplify
+    - _Requirements: 11.1, 12.1_
+  
+  - [ ] 11.2 Implement cloud request handlers
+    - Create request/response models for cloud API
+    - Implement timeout handling (5 second limit)
+    - Add circuit breaker pattern for resilience
+    - _Requirements: 11.2, 11.6, 17.6_
+  
+  - [ ]* 11.3 Write property tests for AWS integration
+    - **Property 32: HTTPS enforcement**
+    - **Property 33: Cloud response latency**
+    - **Property 34: Cloud unavailability fallback**
+    - **Validates: Requirements 11.1, 12.1, 11.6, 13.3, 11.7**
+  
+  - [ ]* 11.4 Write unit tests for API client
+    - Test request serialization
+    - Test error handling for network failures
+    - Test timeout scenarios
+    - _Requirements: 11.1, 11.6_
 
-- [x] 7. Voice Processor (STT/TTS)
-  - [x] 7.1 Integrate speech_to_text and flutter_tts packages
-  - [x] 7.2 Implement VoiceProcessor interface (VoiceTranslationService)
-  - [x] 7.3 Create speech-to-text pipeline
-  - [x] 7.4 Integrate Flutter TTS engine
-  - [x] 7.5 Implement voice translation pipeline (STT → Translation → TTS)
-  - [x] 7.6 Optimize for voice roundtrip latency
-  - [x] 7.7 Voice recordings not permanently stored
+- [ ] 12. Implement AWS Lambda functions
+  - [ ] 12.1 Create translation handler Lambda
+    - Write Python Lambda function for translation using Amazon Bedrock
+    - Implement request validation and error handling
+    - Add CloudWatch logging
+    - _Requirements: 11.2, 11.3_
+  
+  - [ ] 12.2 Create assistance handler Lambda
+    - Write Lambda for grammar, Q&A, conversation using Bedrock
+    - Implement context management for multi-turn conversations
+    - _Requirements: 11.2, 11.3_
+  
+  - [ ] 12.3 Create simplification handler Lambda
+    - Write Lambda for text simplification and explanation using Bedrock
+    - _Requirements: 11.2, 11.3_
+  
+  - [ ]* 12.4 Write unit tests for Lambda functions
+    - Test each handler with sample inputs
+    - Test error handling and validation
+    - Test Bedrock integration
+    - _Requirements: 11.2_
 
-- [x] 8. OCR Engine
-  - [x] 8.1 Integrate ML Kit Text Recognition
-  - [x] 8.2 Implement OCREngine interface (in MlKitTranslationService)
-  - [x] 8.3 Add support for Devanagari and Latin scripts
-  - [x] 8.4 Create image preprocessing pipeline
-  - [x] 8.5 Implement multi-region text extraction
-  - [x] 8.6 OCR processing implemented
-  - [x] 8.7 Character recognition using ML Kit
+- [ ] 13. Set up AWS infrastructure with Terraform
+  - [ ] 13.1 Create Terraform configuration for API Gateway
+    - Define REST API with HTTPS enforcement
+    - Configure IAM authentication
+    - Set up CORS and rate limiting
+    - _Requirements: 11.1, 12.2_
+  
+  - [ ] 13.2 Create Terraform configuration for Lambda functions
+    - Define Lambda functions with Python 3.11 runtime
+    - Configure IAM roles with least privilege
+    - Set up environment variables and timeouts
+    - _Requirements: 11.2, 12.2_
+  
+  - [ ] 13.3 Create Terraform configuration for DynamoDB
+    - Define UserPreferences, TranslationHistory, LanguagePackMetadata tables
+    - Enable encryption at rest with AWS-managed keys
+    - Configure on-demand capacity mode
+    - _Requirements: 11.4, 12.4_
+  
+  - [ ] 13.4 Create Terraform configuration for S3
+    - Define bucket for language packs and model artifacts
+    - Enable AES-256 encryption at rest
+    - Configure lifecycle policies
+    - Set up CloudFront distribution for CDN
+    - _Requirements: 11.5, 12.3_
+  
+  - [ ] 13.5 Create Terraform configuration for CloudWatch
+    - Set up log groups for Lambda functions
+    - Configure alarms for latency, errors, throttling
+    - Set up X-Ray tracing
+    - _Requirements: 11.6_
+  
+  - [ ]* 13.6 Write property test for data encryption at rest
+    - **Property 35: Data encryption at rest**
+    - **Validates: Requirements 11.3, 11.4**
 
-- [x] 9. Voice & OCR UI
-  - [x] 9.1 Create voice translation screen with recording controls
-  - [x] 9.2 Add real-time transcription display
-  - [x] 9.3 Implement camera capture screen for OCR
-  - [x] 9.4 Add image selection from gallery
-  - [x] 9.5 Create OCR result display with text overlay
-  - [x] 9.6 Add haptic feedback for interactions
+- [ ] 14. Implement Sync Manager for background synchronization
+  - [ ] 14.1 Create WorkManager jobs for sync operations
+    - Implement SyncManager interface with syncNow, scheduleSyncJob methods
+    - Set up WorkManager for reliable background execution
+    - Configure constraints (network type, battery level)
+    - _Requirements: 10.1, 10.2, 10.3_
+  
+  - [ ] 14.2 Implement sync logic with exponential backoff
+    - Implement retry logic with 1s, 2s, 4s delays
+    - Batch operations to minimize network requests
+    - Implement delta sync for changed data only
+    - _Requirements: 10.4_
+  
+  - [ ] 14.3 Implement preference and history sync
+    - Sync user preferences to DynamoDB
+    - Sync translation history with user consent check
+    - Sync language pack metadata
+    - _Requirements: 10.2, 10.7_
+  
+  - [ ]* 14.4 Write property tests for Sync Manager
+    - **Property 28: Automatic sync trigger**
+    - **Property 29: Background sync non-blocking**
+    - **Property 30: Sync retry with backoff**
+    - **Property 31: User consent for history sync**
+    - **Validates: Requirements 10.1, 10.3, 10.4, 10.7**
+  
+  - [ ]* 14.5 Write unit tests for sync operations
+    - Test sync success and failure scenarios
+    - Test network constraint handling
+    - Test user consent enforcement
+    - _Requirements: 10.1, 10.4, 10.7_
 
-## Phase 3: Assistance Mode (LLM Integration)
+- [ ] 15. Checkpoint - Ensure cloud integration works
+  - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 10. LLM Assistant (Cloud-Based)
-  - [x] 10.1 Integrate Google Gemini API (instead of llama.cpp)
-  - [x] 10.2 Use Gemini 2.0 Flash model (cloud-based)
-  - [x] 10.3 Implement LLMAssistant interface (GeminiService)
-  - [x] 10.4 Create grammar checking functionality
-  - [x] 10.5 Implement Q&A system
-  - [x] 10.6 Add conversation practice with context management
-  - [x] 10.7 Response time depends on cloud API
+- [ ] 16. Implement UI layer with Jetpack Compose
+  - [ ] 16.1 Create mode selector screen
+    - Design home screen with Translation, Assistance, Simplify mode cards
+    - Implement navigation to each mode
+    - Follow BhashaLens design system (blue-slate palette, Lexend/Source Sans 3 fonts)
+    - _Requirements: 15.1_
+  
+  - [ ] 16.2 Create Translation Mode UI
+    - Implement text input/output with language selector
+    - Add voice input button with recording indicator
+    - Add camera button for OCR translation
+    - Display translation history with search/filter
+    - _Requirements: 2.1, 2.2, 2.3, 15.6_
+  
+  - [ ] 16.3 Create Assistance Mode UI
+    - Implement grammar check interface with corrections display
+    - Create Q&A interface with context input
+    - Create conversation practice interface with history
+    - _Requirements: 5.1, 5.2, 5.3_
+  
+  - [ ] 16.4 Create Simplify & Explain Mode UI
+    - Implement text input with simplification level selector
+    - Display simplified text and explanation side-by-side
+    - _Requirements: 6.1, 6.2_
+  
+  - [ ] 16.5 Create Settings screen
+    - Implement language pack management UI (download, delete, update)
+    - Add data usage preferences (offline only, Wi-Fi only, cellular allowed)
+    - Add sync preferences (timing, network type, history opt-in)
+    - Add privacy controls (clear data, opt-out of cloud)
+    - Display battery and data usage statistics
+    - _Requirements: 8.4, 7.6, 10.5, 12.6, 16.3, 16.4_
+  
+  - [ ]* 16.6 Write unit tests for UI components
+    - Test navigation flows
+    - Test input validation
+    - Test error message display
+    - _Requirements: 15.1, 15.2_
 
-- [x] 11. Simplify & Explain Mode
-  - [x] 11.1 Create text simplification prompts
-  - [x] 11.2 Implement explanation generation
-  - [x] 11.3 Add complexity level adjustment
-  - [x] 11.4 Create key terms extraction
-  - [x] 11.5 Meaning preservation in simplification
+- [ ] 17. Implement real-time feedback and progress indicators
+  - [ ] 17.1 Add loading indicators for all processing operations
+    - Show spinner during translation, voice processing, OCR
+    - Display progress bars for language pack downloads
+    - Show estimated time remaining
+    - _Requirements: 15.2, 8.5_
+  
+  - [ ] 17.2 Implement haptic feedback
+    - Add haptic feedback for voice recording start/stop
+    - Add haptic feedback for translation complete
+    - _Requirements: 15.4_
+  
+  - [ ] 17.3 Implement error messaging
+    - Display clear error messages in user's preferred language
+    - Provide actionable suggestions (retry, download language pack, check network)
+    - _Requirements: 15.5, 17.1_
 
-- [x] 12. Assistance & Simplify UI
-  - [x] 12.1 Create assistance mode screen
-  - [x] 12.2 Add grammar check interface
-  - [x] 12.3 Implement Q&A chat interface
-  - [x] 12.4 Create conversation practice screen
-  - [x] 12.5 Add simplify & explain screen
-  - [x] 12.6 Implement conversation history display
+- [ ] 18. Implement accessibility features
+  - [ ] 18.1 Add TalkBack support
+    - Add content descriptions for all UI elements
+    - Ensure proper focus order
+    - Test with TalkBack enabled
+    - _Requirements: 15.3_
+  
+  - [ ] 18.2 Add large text support
+    - Implement dynamic text scaling
+    - Test with system large text settings
+    - _Requirements: 15.3_
+  
+  - [ ] 18.3 Add high contrast mode
+    - Ensure sufficient color contrast ratios
+    - Test with high contrast mode enabled
+    - _Requirements: 15.3_
 
-## Phase 4: AWS Cloud Enhancement
+- [ ] 19. Implement resource management and optimization
+  - [ ] 19.1 Implement model resource management
+    - Release models when not in use
+    - Implement lazy loading for models
+    - Optimize memory footprint
+    - _Requirements: 16.2, 16.7_
+  
+  - [ ] 19.2 Implement background processing limits
+    - Disable non-essential background operations when battery < 15%
+    - Limit background sync to essential operations
+    - _Requirements: 16.1, 16.5_
+  
+  - [ ] 19.3 Add usage statistics tracking
+    - Track battery usage by component
+    - Track data usage for cloud requests
+    - Display statistics in settings
+    - _Requirements: 16.3, 16.4, 16.6_
 
-- [ ] 13. AWS Infrastructure Setup
-  - [ ] 13.1 Create AWS account and configure IAM roles
-  - [ ] 13.2 Set up API Gateway with HTTPS endpoints
-  - [ ] 13.3 Create Lambda functions (translation, assistance, simplification)
-  - [ ] 13.4 Configure Amazon Bedrock (Claude 3 Sonnet, Titan Text, Titan Embeddings)
-  - [ ] 13.5 Set up DynamoDB tables (user_preferences, translation_history, language_pack_metadata)
-  - [ ] 13.6 Create S3 buckets for language packs and models
-  - [ ] 13.7 Enable encryption at rest (AES-256) for S3 and DynamoDB
-  - [ ] 13.8 Configure CloudWatch logging and monitoring
+- [ ] 20. Implement error handling and resilience
+  - [ ] 20.1 Add comprehensive error handling
+    - Implement error handling for translation failures
+    - Detect and handle corrupted language packs
+    - Handle cloud service unavailability with fallback
+    - Handle storage full scenarios
+    - _Requirements: 17.1, 17.2, 17.3, 17.4_
+  
+  - [ ] 20.2 Implement circuit breaker for cloud services
+    - Add circuit breaker pattern to prevent cascading failures
+    - Configure thresholds and recovery timeouts
+    - _Requirements: 17.6_
+  
+  - [ ] 20.3 Add crash reporting
+    - Implement crash reporting with user consent
+    - Log unrecoverable errors for debugging
+    - _Requirements: 17.7_
+  
+  - [ ]* 20.4 Write unit tests for error handling
+    - Test all error scenarios
+    - Test fallback mechanisms
+    - Test circuit breaker behavior
+    - _Requirements: 17.1, 17.6_
 
-- [ ] 14. Lambda Function Implementation
-  - [ ] 14.1 Implement translation handler using Bedrock
-  - [ ] 14.2 Implement assistance handler using Bedrock
-  - [ ] 14.3 Implement simplification handler using Bedrock
-  - [ ] 14.4 Add request validation and error handling
-  - [ ] 14.5 Implement response formatting
-  - [ ] 14.6 Optimize for <5s response time
-  - [ ] 14.7 Add request/response logging
+- [ ] 21. Implement security and privacy features
+  - [ ] 21.1 Enforce HTTPS for all network communications
+    - Configure Retrofit with HTTPS-only
+    - Implement certificate pinning
+    - _Requirements: 12.1_
+  
+  - [ ] 21.2 Implement privacy controls
+    - Add opt-out for cloud features
+    - Enforce no data transmission when opted out
+    - Require explicit consent for voice data transmission
+    - _Requirements: 12.5, 12.6, 12.7_
+  
+  - [ ]* 21.3 Write property tests for security and privacy
+    - **Property 36: Voice transmission consent**
+    - **Property 37: Privacy control availability**
+    - **Property 38: Opt-out enforcement**
+    - **Validates: Requirements 12.5, 12.6, 12.7**
+  
+  - [ ]* 21.4 Write unit tests for security features
+    - Test HTTPS enforcement
+    - Test opt-out enforcement
+    - Test consent checks
+    - _Requirements: 12.1, 12.7_
 
-- [ ] 15. Android AWS Integration
-  - [ ] 15.1 Add AWS SDK dependencies
-  - [ ] 15.2 Implement API Gateway client
-  - [ ] 15.3 Add authentication and authorization
-  - [ ] 15.4 Implement cloud request handlers
-  - [ ] 15.5 Add timeout and retry logic
-  - [ ] 15.6 Implement circuit breaker pattern
-  - [ ] 15.7 Update Smart Hybrid Router for cloud routing
+- [ ] 22. Implement performance monitoring and optimization
+  - [ ] 22.1 Add performance metric logging
+    - Implement PerformanceMetrics data class
+    - Log metrics for all operations
+    - Log when performance targets are not met
+    - _Requirements: 13.7_
+  
+  - [ ]* 22.2 Write property tests for performance targets
+    - **Property 2: Translation latency target**
+    - **Property 6: Voice roundtrip latency**
+    - **Property 9: OCR processing latency**
+    - **Property 15: LLM response latency**
+    - **Property 33: Cloud response latency**
+    - **Property 39: Cold start latency**
+    - **Property 40: UI responsiveness**
+    - **Property 41: Performance metric logging**
+    - **Validates: Requirements 2.1, 13.1, 3.3, 13.2, 4.4, 5.5, 13.6, 11.6, 13.3, 13.4, 13.5, 13.7**
+  
+  - [ ] 22.3 Optimize cold start performance
+    - Implement lazy initialization for components
+    - Optimize app startup sequence
+    - Ensure home screen displays within 3 seconds
+    - _Requirements: 13.4_
+  
+  - [ ]* 22.4 Write unit tests for performance monitoring
+    - Test metric collection
+    - Test logging when targets are missed
+    - _Requirements: 13.7_
 
-- [ ] 16. Sync Manager
-  - [ ] 16.1 Implement SyncManager interface
-  - [ ] 16.2 Create background sync using WorkManager
-  - [ ] 16.3 Implement preference synchronization
-  - [ ] 16.4 Add translation history sync (with user consent)
-  - [ ] 16.5 Implement exponential backoff retry logic
-  - [ ] 16.6 Add sync status monitoring
-  - [ ] 16.7 Respect user sync preferences (timing, network type)
+- [ ] 23. Implement phased rollout support
+  - [ ] 23.1 Add feature flag system
+    - Implement feature flags for enabling/disabling functionality
+    - Configure flags for Phase 1-5 features
+    - Hide/disable features from incomplete phases
+    - _Requirements: 18.1, 18.7_
+  
+  - [ ] 23.2 Configure Phase 1 (Offline Translation MVP)
+    - Enable text translation for Hindi, Marathi, English
+    - Disable voice, OCR, LLM, cloud features
+    - _Requirements: 18.2_
+  
+  - [ ]* 23.3 Write unit tests for feature flags
+    - Test flag evaluation
+    - Test feature visibility based on flags
+    - _Requirements: 18.1_
 
-## Phase 5: Testing & Quality Assurance
+- [ ] 24. Checkpoint - Ensure all features work end-to-end
+  - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 17. Unit Tests
-  - [ ] 17.1 Test TranslationEngine (model loading, translation, caching)
-  - [ ] 17.2 Test VoiceProcessor (STT, TTS, pipeline)
-  - [ ] 17.3 Test OCREngine (text extraction, preprocessing)
-  - [ ] 17.4 Test LLMAssistant (grammar, Q&A, conversation, simplification)
-  - [ ] 17.5 Test SmartHybridRouter (routing logic, fallback)
-  - [ ] 17.6 Test LanguagePackManager (download, verification, updates)
-  - [ ] 17.7 Test LocalStorage (CRUD, encryption, queries)
-  - [ ] 17.8 Test SyncManager (upload, download, retry)
-  - [ ] 17.9 Achieve 80% code coverage
+- [ ] 25. Set up CI/CD pipeline
+  - [ ] 25.1 Create GitHub Actions workflow for Android app
+    - Configure build, test, lint steps
+    - Set up automated testing on pull requests
+    - Configure release builds with signing
+    - _Requirements: 14.1_
+  
+  - [ ] 25.2 Create CI/CD pipeline for AWS infrastructure
+    - Set up Terraform plan/apply automation
+    - Configure Lambda deployment pipeline
+    - Add automated testing for Lambda functions
+    - _Requirements: 11.2_
 
-- [ ] 18. Property-Based Tests
-  - [ ] 18.1 Property 1-5: Translation Engine properties
-  - [ ] 18.2 Property 6-8: Voice Processing properties
-  - [ ] 18.3 Property 9-11: OCR properties
-  - [ ] 18.4 Property 12-15: LLM Assistant properties
-  - [ ] 18.5 Property 16-19: Smart Hybrid Router properties
-  - [ ] 18.6 Property 20-23: Language Pack Management properties
-  - [ ] 18.7 Property 24-27: Local Storage properties
-  - [ ] 18.8 Property 28-31: Synchronization properties
-  - [ ] 18.9 Property 32-35: AWS Cloud Integration properties
-  - [ ] 18.10 Property 36-41: Security, Privacy, and Performance properties
+- [ ] 26. Implement monitoring and observability
+  - [ ] 26.1 Set up CloudWatch dashboards
+    - Create dashboards for Lambda metrics (latency, errors, invocations)
+    - Create dashboards for API Gateway metrics
+    - Set up alarms for critical metrics
+    - _Requirements: 11.6_
+  
+  - [ ] 26.2 Set up X-Ray tracing
+    - Enable X-Ray for Lambda functions
+    - Configure trace sampling
+    - _Requirements: 11.6_
+  
+  - [ ] 26.3 Set up application performance monitoring
+    - Integrate Firebase Performance Monitoring or similar
+    - Track screen load times, network requests, custom traces
+    - _Requirements: 13.5_
 
-- [ ] 19. Integration Tests
-  - [ ] 19.1 Test end-to-end text translation flow
-  - [ ] 19.2 Test end-to-end voice translation flow
-  - [ ] 19.3 Test end-to-end OCR translation flow
-  - [ ] 19.4 Test offline-online transitions
-  - [ ] 19.5 Test language pack download and installation
-  - [ ] 19.6 Test background synchronization
-  - [ ] 19.7 Test cloud fallback scenarios
+- [ ] 27. Implement ProGuard/R8 optimization
+  - [ ] 27.1 Configure ProGuard rules
+    - Add keep rules for model classes and JNI interfaces
+    - Enable code shrinking and obfuscation
+    - Test release builds thoroughly
+    - _Requirements: 16.7_
+  
+  - [ ] 27.2 Configure ABI splits and App Bundle
+    - Set up ABI splits for optimized APK sizes
+    - Configure Android App Bundle for Play Store
+    - _Requirements: 16.7_
 
-- [ ] 20. UI Tests
-  - [ ] 20.1 Test mode switching and navigation
-  - [ ] 20.2 Test translation input and output display
-  - [ ] 20.3 Test voice recording and playback
-  - [ ] 20.4 Test camera capture and OCR display
-  - [ ] 20.5 Test settings and preferences
-  - [ ] 20.6 Test error message display
-  - [ ] 20.7 Test accessibility features (TalkBack, large text)
+- [ ] 28. Final integration testing and validation
+  - [ ] 28.1 Test offline-first functionality
+    - Test all modes work without internet
+    - Test language pack installation and usage
+    - Test data persistence and encryption
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  
+  - [ ] 28.2 Test cloud augmentation
+    - Test Smart Hybrid Router routing decisions
+    - Test cloud fallback scenarios
+    - Test sync operations
+    - _Requirements: 7.1, 7.5, 10.1_
+  
+  - [ ] 28.3 Test performance targets
+    - Benchmark all operations against targets
+    - Test on low-end and high-end devices
+    - Optimize bottlenecks
+    - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6_
+  
+  - [ ] 28.4 Test security and privacy
+    - Verify encryption at rest and in transit
+    - Test privacy controls and opt-out enforcement
+    - Conduct security audit
+    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
+  
+  - [ ]* 28.5 Run all property-based tests
+    - Execute all 41 property tests with 100+ iterations
+    - Verify all properties hold across input space
+    - _Requirements: All_
 
-- [ ] 21. Performance Testing
-  - [ ] 21.1 Benchmark offline text translation (<1s)
-  - [ ] 21.2 Benchmark voice roundtrip (<2s)
-  - [ ] 21.3 Benchmark OCR processing (<1.5s)
-  - [ ] 21.4 Benchmark LLM first token (<500ms)
-  - [ ] 21.5 Benchmark cloud response (<5s)
-  - [ ] 21.6 Benchmark app cold start (<3s)
-  - [ ] 21.7 Test with 1000+ translations in history
-  - [ ] 21.8 Test concurrent operations
-  - [ ] 21.9 Monitor memory usage and battery consumption
-
-- [ ] 22. Security Testing
-  - [ ] 22.1 Verify local data encryption (AES-256)
-  - [ ] 22.2 Verify HTTPS enforcement for cloud communication
-  - [ ] 22.3 Verify key storage in Android Keystore
-  - [ ] 22.4 Test data deletion completeness
-  - [ ] 22.5 Test privacy controls functionality
-  - [ ] 22.6 Verify opt-out enforcement
-  - [ ] 22.7 Test voice data handling
-  - [ ] 22.8 Perform penetration testing
-
-## Phase 6: Polish & Deployment
-
-- [x] 23. UI/UX Refinement
-  - [x] 23.1 Implement Material Design 3 theming
-  - [x] 23.2 Add animations and transitions
-  - [x] 23.3 Optimize layouts for different screen sizes
-  - [x] 23.4 Improve error messages and user guidance
-  - [x] 23.5 Add onboarding flow
-  - [x] 23.6 Implement settings screen
-  - [x] 23.7 Add about and help screens
-
-- [x] 24. Accessibility
-  - [x] 24.1 Add content descriptions for UI elements
-  - [x] 24.2 Support TalkBack screen reader
-  - [x] 24.3 Ensure touch targets are appropriately sized
-  - [x] 24.4 Support large text scaling (AccessibilityService)
-  - [x] 24.5 Add haptic feedback for key interactions
-  - [x] 24.6 Keyboard navigation support
-
-- [x] 25. Monitoring & Analytics
-  - [x] 25.1 Integrate Firebase Analytics (with user consent)
-  - [x] 25.2 Add performance monitoring capability
-  - [x] 25.3 Implement crash reporting (Firebase)
-  - [ ] 25.4 Add custom events for key user actions
-  - [ ] 25.5 Set up CloudWatch dashboards for AWS
-  - [ ] 25.6 Configure CloudWatch alarms
-  - [ ] 25.7 Enable X-Ray tracing for Lambda functions
-
-- [ ] 26. Documentation
-  - [ ] 26.1 Write user guide
-  - [ ] 26.2 Create developer documentation
-  - [ ] 26.3 Document API endpoints
-  - [ ] 26.4 Write deployment guide
-  - [ ] 26.5 Create troubleshooting guide
-  - [ ] 26.6 Document privacy policy and terms of service
-
-- [ ] 27. Deployment Preparation
-  - [ ] 27.1 Create release build configuration
-  - [ ] 27.2 Generate signed APK/AAB
-  - [ ] 27.3 Test release build on multiple devices
-  - [ ] 27.4 Create Play Store listing (screenshots, description)
-  - [ ] 27.5 Set up CI/CD pipeline (GitHub Actions or AWS CodePipeline)
-  - [ ] 27.6 Configure gradual rollout strategy
-  - [ ] 27.7 Prepare rollback plan
-
-- [ ] 28. AWS Production Deployment
-  - [ ] 28.1 Deploy Lambda functions to production
-  - [ ] 28.2 Configure API Gateway production stage
-  - [ ] 28.3 Set up CloudFront CDN for language pack distribution
-  - [ ] 28.4 Enable DynamoDB point-in-time recovery
-  - [ ] 28.5 Enable S3 versioning
-  - [ ] 28.6 Configure backup and disaster recovery
-  - [ ] 28.7 Perform load testing on production infrastructure
+- [ ] 29. Final checkpoint - Production readiness validation
+  - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
 
-**Phase Completion Criteria**:
-- Phase 1: Offline text translation working for all language pairs
-- Phase 2: Voice and OCR translation functional offline
-- Phase 3: LLM assistance and simplification working offline
-- Phase 4: Cloud enhancement operational with fallback to offline
-- Phase 5: All tests passing with 80%+ coverage
-- Phase 6: Production-ready with monitoring and documentation
-
-**Performance Targets**:
-- Offline text translation: <1 second
-- Voice roundtrip: <2 seconds
-- OCR processing: <1.5 seconds
-- LLM first token: <500ms
-- Cloud response: <5 seconds
-- App cold start: <3 seconds
-
-**Model Size Constraints**:
-- Language pack: <30MB per pair
-- LLM model: <1.5GB (quantized)
-- Total app size: <100MB (excluding language packs)
-
-**AWS Cost Optimization**:
-- Use Lambda for serverless compute
-- Use DynamoDB on-demand pricing
-- Implement CloudFront CDN for language pack distribution
-- Cache Bedrock responses when appropriate
-- Monitor and optimize Bedrock API usage
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation at major milestones
+- Property tests validate universal correctness properties (41 total)
+- Unit tests validate specific examples and edge cases
+- Implementation uses Kotlin for Android with Jetpack Compose UI
+- On-device AI uses quantized models: Marian NMT/NLLB (translation), Vosk/Whisper (STT), Tesseract/ML Kit (OCR), llama.cpp (LLM)
+- AWS cloud uses Lambda + Bedrock for enhanced processing when available
+- All core features work 100% offline; cloud only augments, never blocks
