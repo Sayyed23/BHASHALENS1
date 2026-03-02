@@ -1,5 +1,9 @@
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/sarvam_service.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/aws_cloud_service.dart';
 import 'package:flutter/material.dart';
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/firestore_service.dart';
@@ -99,12 +103,16 @@ class _AssistantModePageState extends State<AssistantModePage> {
   Future<void> _fetchBasicGuide() async {
     setState(() => _isLoadingGuide = true);
     try {
-      final service = Provider.of<GeminiService>(context, listen: false);
+      final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+      final awsService = Provider.of<AwsCloudService>(context, listen: false);
+      
       final situation = _situations[_selectedSituationIndex]['label'];
-      final guide = await service.getBasicGuide(
+      
+      // Use AWS for cultural guides as it tends to be more comprehensive
+      final guide = await awsService.getBasicGuide(
         situation,
         'English',
-      ); // Default to English for now
+      );
 
       if (mounted) {
         setState(() => _basicGuide = guide);
@@ -146,7 +154,6 @@ class _AssistantModePageState extends State<AssistantModePage> {
   }
 
   Future<void> _startRoleplay() async {
-    final service = Provider.of<GeminiService>(context, listen: false);
     final situation = _situations[_selectedSituationIndex]['label'];
     final goalText = _goals[_selectedGoalIndex];
 
@@ -158,7 +165,9 @@ class _AssistantModePageState extends State<AssistantModePage> {
     });
 
     try {
-      final greeting = await service.startRoleplay(
+      final awsService = Provider.of<AwsCloudService>(context, listen: false);
+      
+      final greeting = await awsService.startRoleplay(
         situation,
         goalText,
         'English',
@@ -244,11 +253,14 @@ class _AssistantModePageState extends State<AssistantModePage> {
     });
 
     try {
-      final service = Provider.of<GeminiService>(context, listen: false);
-      // Helper to ensure initialized?
-      // Assuming context is valid
+      final service = Provider.of<HybridTranslationService>(context, listen: false);
+      // Construct history
+      final history = _chatMessages.map((m) => {
+        'role': m['role'] == 'me' ? 'user' : 'assistant',
+        'content': m['text'] as String
+      }).toList();
 
-      final response = await service.chatWithAssistant(text);
+      final response = await service.chat(message: text, history: history);
       if (mounted) {
         setState(() {
           _chatMessages.add({'role': 'other', 'text': response});
@@ -309,6 +321,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: const CommonBottomNavBar(currentIndex: 4),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

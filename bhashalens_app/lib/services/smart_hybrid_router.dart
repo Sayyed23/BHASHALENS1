@@ -6,6 +6,7 @@ import 'aws_cloud_service.dart';
 enum ProcessingBackend {
   onDevice,
   awsCloud,
+  sarvam,
 }
 
 /// Network status
@@ -119,14 +120,24 @@ class SmartHybridRouter {
       return ProcessingBackend.onDevice;
     }
 
-    // Rule 7: If request complexity is COMPLEX and network available → AWS_CLOUD
+    // Rule 7: For Indian languages, prefer SARVAM
+    final indianLanguages = ['hi', 'bn', 'ta', 'te', 'ml', 'kn', 'gu', 'mr', 'pa', 'ur'];
+    // We would need the target language here. Let's assume complexity/context analysis
+    // and if complexity is moderate and it's a known indian language area, use Sarvam.
+    
+    // For now, let's use a simpler heuristic:
     if (context.requestComplexity == ComplexityLevel.complex) {
       debugPrint('Router: Complex request with network → AWS_CLOUD');
       return ProcessingBackend.awsCloud;
     }
 
-    // Default: ON_DEVICE for moderate complexity
-    debugPrint('Router: Default (moderate) → ON_DEVICE');
+    if (context.requestComplexity == ComplexityLevel.moderate) {
+      debugPrint('Router: Moderate request with network → SARVAM');
+      return ProcessingBackend.sarvam;
+    }
+
+    // Default: ON_DEVICE for simple/moderate complexity fallback
+    debugPrint('Router: Default (simple/fallback) → ON_DEVICE');
     return ProcessingBackend.onDevice;
   }
 

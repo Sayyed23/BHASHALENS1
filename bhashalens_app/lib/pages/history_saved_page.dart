@@ -4,6 +4,7 @@ import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 
 import 'package:flutter/material.dart';
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -116,6 +117,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: const CommonBottomNavBar(currentIndex: 3),
       body: Column(
         children: [
           // Custom Tab Bar

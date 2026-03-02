@@ -1,11 +1,15 @@
-import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/sarvam_service.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/offline_explain_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class ExplainModePage extends StatefulWidget {
   final String? initialText;
@@ -122,14 +126,15 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (!mounted) return;
         setState(() => _isProcessing = true);
 
-        final geminiService = Provider.of<GeminiService>(
-          context,
-          listen: false,
-        );
+        final mlKitService = MlKitTranslationService();
         final bytes = await image.readAsBytes();
 
         if (!mounted) return;
-        final extracted = await geminiService.extractTextFromImage(bytes);
+        final file = File(image.path);
+        final extracted = await mlKitService.extractTextFromFile(
+          file, 
+          languageCode: _selectedInputLanguage == 'Auto-detected' ? 'en' : _selectedInputLanguage.toLowerCase().substring(0, 2)
+        );
 
         if (!mounted) return;
         setState(() {
@@ -166,7 +171,8 @@ class _ExplainModePageState extends State<ExplainModePage>
     FocusScope.of(context).unfocus();
 
     // Get service references before async operations to avoid context issues
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
+    final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+    final sarvamService = Provider.of<SarvamService>(context, listen: false);
 
     final connectivityResult = await Connectivity().checkConnectivity();
     final isOffline = connectivityResult.contains(ConnectivityResult.none);
@@ -193,11 +199,13 @@ class _ExplainModePageState extends State<ExplainModePage>
           );
         }
       } else {
-        // Use online Gemini service (acquired before async ops)
-        final result = await geminiService.explainTextWithContext(
-          text,
-          targetLanguage: _selectedOutputLanguage,
-          sourceLanguage: _selectedInputLanguage,
+        // Use online Hybrid service
+        final result = await hybridService.explainText(
+          text: text,
+          targetLanguage: _selectedOutputLanguage.toLowerCase().substring(0, 2),
+          sourceLanguage: _selectedInputLanguage == 'Auto-detected' 
+              ? null 
+              : _selectedInputLanguage.toLowerCase().substring(0, 2),
         );
 
         if (mounted) {
@@ -242,12 +250,12 @@ class _ExplainModePageState extends State<ExplainModePage>
   }
 
   void _showLanguagePicker({bool isInput = false}) {
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
-    var languages = geminiService.getSupportedLanguages();
+    final voiceService = Provider.of<VoiceTranslationService>(context, listen: false);
+    final languages = VoiceTranslationService.supportedLanguages.entries.map((e) => {'code': e.key, 'name': e.value}).toList();
 
-    // Add Auto-detected option for input
+    var displayLanguages = languages;
     if (isInput) {
-      languages = [
+      displayLanguages = [
         {'code': 'auto', 'name': 'Auto-detected'},
         ...languages,
       ];
@@ -285,7 +293,7 @@ class _ExplainModePageState extends State<ExplainModePage>
           Flexible(
             child: ListView(
               shrinkWrap: true,
-              children: languages
+              children: displayLanguages
                   .map(
                     (e) => ListTile(
                       title: Text(
@@ -621,6 +629,7 @@ class _ExplainModePageState extends State<ExplainModePage>
               ),
             )
           : null,
+      bottomNavigationBar: const CommonBottomNavBar(currentIndex: 2),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -1615,8 +1624,8 @@ class _ExplainModePageState extends State<ExplainModePage>
   void _speakInOutputLanguage(String? text) {
     if (text == null || text.isEmpty) return;
 
-    final geminiService = Provider.of<GeminiService>(context, listen: false);
-    final langEntry = geminiService.getSupportedLanguages().firstWhere(
+    final sarvamService = Provider.of<SarvamService>(context, listen: false);
+    final langEntry = sarvamService.getSupportedLanguages().firstWhere(
           (l) => l['name'] == _selectedOutputLanguage,
           orElse: () => {'code': 'en'},
         );
