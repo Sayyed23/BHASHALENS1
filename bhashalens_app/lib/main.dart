@@ -19,7 +19,7 @@ import 'package:bhashalens_app/pages/offline_models_page.dart';
 import 'package:bhashalens_app/pages/error_fallback_page.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
-import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -37,6 +37,12 @@ import 'package:bhashalens_app/pages/splash_screen.dart';
 import 'package:bhashalens_app/firebase_options.dart';
 
 import 'package:bhashalens_app/services/db_initializer.dart';
+import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
+import 'package:bhashalens_app/services/aws_cloud_service.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,17 +88,33 @@ void main() async {
   final providers = <SingleChildWidget>[
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
     Provider<LocalStorageService>.value(value: localStorageService),
-    Provider<GeminiService>(
-      create: (_) => GeminiService(
-        apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+    Provider<SarvamService>(
+      create: (_) => SarvamService(
+        apiKey: dotenv.env['SARVAM_AI_API_KEY'] ?? '',
         localStorageService: localStorageService,
       )..initialize(),
     ),
-    ChangeNotifierProvider<VoiceTranslationService>(
-      create: (_) => VoiceTranslationService(
-        localStorageService: localStorageService,
-        geminiApiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+    Provider<AwsApiGatewayClient>(
+      create: (_) => AwsApiGatewayClient(),
+    ),
+    ProxyProvider<AwsApiGatewayClient, AwsCloudService>(
+      update: (_, apiClient, __) => AwsCloudService(apiClient: apiClient),
+    ),
+    ProxyProvider3<AwsCloudService, SarvamService, LocalStorageService, HybridTranslationService>(
+      update: (_, awsCloud, sarvam, localStorage, __) => HybridTranslationService(
+        cloudService: awsCloud,
+        sarvamService: sarvam,
+        localStorageService: localStorage,
+        onDeviceTranslation: MlKitTranslationService(),
+        onDeviceLLM: GeminiService(localStorageService: localStorage),
       ),
+    ),
+    ChangeNotifierProxyProvider<HybridTranslationService, VoiceTranslationService>(
+      create: (context) => VoiceTranslationService(
+        localStorageService: localStorageService,
+        sarvamApiKey: dotenv.env['SARVAM_AI_API_KEY'] ?? '',
+      ),
+      update: (context, hybrid, voice) => voice!..hybridService = hybrid,
     ),
     ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
   ];

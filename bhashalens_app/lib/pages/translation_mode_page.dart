@@ -4,6 +4,7 @@ import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/home/widgets/feature_card.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
 
 class TranslationModePage extends StatelessWidget {
   const TranslationModePage({super.key});
@@ -44,7 +45,7 @@ class TranslationModePage extends StatelessWidget {
             description:
                 'Speak and translate in real-time for seamless conversations.',
             buttonText: 'Start Speaking',
-            iconColor: const Color(0xFFA855F7), // Purple
+            iconColor: const Color(0xFFA855F7),
             onTap: () {
               Navigator.push(
                 context,
@@ -60,7 +61,7 @@ class TranslationModePage extends StatelessWidget {
             description:
                 'Enter text manually to get accurate translations in seconds.',
             buttonText: 'Type Message',
-            iconColor: const Color(0xFF22C55E), // Green
+            iconColor: const Color(0xFF22C55E),
             onTap: () {
               Navigator.push(
                 context,
@@ -72,6 +73,7 @@ class TranslationModePage extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const CommonBottomNavBar(currentIndex: 1),
     );
   }
 }

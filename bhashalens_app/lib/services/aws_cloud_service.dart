@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'aws_api_gateway_client.dart';
 import 'circuit_breaker.dart';
@@ -243,6 +244,79 @@ class AwsCloudService {
         error: e.message,
       );
     }
+  }
+
+  /// Cloud-enhanced text explanation/analysis
+  Future<Map<String, dynamic>> explainText({
+    required String text,
+    required String targetLanguage,
+    String? sourceLanguage,
+    String? userId,
+  }) async {
+    try {
+      final response = await answerQuestion(
+        question: "Explain the following text in detail. Provide context, key terms, and cultural nuances if applicable. Text: $text",
+        language: targetLanguage,
+        context: "The source language is ${sourceLanguage ?? 'unknown'}.",
+        userId: userId,
+      );
+
+      if (response.success) {
+        // Parse the answer into a map if possible, or return as 'explanation'
+        return {
+          'explanation': response.answer,
+          'confidence': response.confidence,
+          'sources': response.sources,
+          'model': 'aws-bedrock',
+        };
+      }
+      throw Exception(response.error ?? 'Unknown error');
+    } catch (e) {
+      debugPrint('Aws explainText failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getBasicGuide(String situation, String language) async {
+    final prompt = "Provide a basic cultural and linguistic guide for a $situation situation in $language. Return as JSON with 'cultural_tips' (list), 'common_phrases' (list of {phrase, translation}), and 'etiquette' (string).";
+    
+    try {
+      final response = await answerQuestion(
+        question: prompt,
+        language: language,
+        userId: null,
+      );
+      
+      if (response.success) {
+        // Attempt to parse JSON from the response
+        final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(response.answer);
+        if (jsonMatch != null) {
+          return jsonDecode(jsonMatch.group(0)!);
+        }
+      }
+      return {
+        'cultural_tips': ['Be polite', 'Observe local customs'],
+        'common_phrases': [{'phrase': 'Hello', 'translation': 'Namaste'}],
+        'etiquette': 'General professional etiquette'
+      };
+    } catch (e) {
+      debugPrint('Aws getBasicGuide error: $e');
+      return {
+        'cultural_tips': ['Error loading guide'],
+        'common_phrases': [],
+        'etiquette': 'N/A'
+      };
+    }
+  }
+
+  Future<String> startRoleplay(String situation, String goal, String language) async {
+    final response = await practiceConversation(
+      userMessage: "Let's start the roleplay. Situation: $situation. My goal: $goal.",
+      language: language,
+      conversationHistory: [],
+      userId: null,
+    );
+    return response.success ? response.response : "I'm ready for our conversation.";
   }
 
   /// Dispose resources

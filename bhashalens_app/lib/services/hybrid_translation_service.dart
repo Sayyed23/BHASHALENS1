@@ -3,23 +3,29 @@ import 'smart_hybrid_router.dart';
 import 'aws_cloud_service.dart';
 import 'ml_kit_translation_service.dart';
 import 'gemini_service.dart';
+import 'sarvam_service.dart';
+import 'local_storage_service.dart';
 
 /// Unified translation service that routes between on-device and cloud
 class HybridTranslationService {
   final SmartHybridRouter _router;
   final AwsCloudService _cloudService;
+  final SarvamService _sarvamService;
   final MlKitTranslationService _onDeviceTranslation;
   final GeminiService _onDeviceLLM;
 
   HybridTranslationService({
     SmartHybridRouter? router,
-    AwsCloudService? cloudService,
+    required AwsCloudService cloudService,
+    required SarvamService sarvamService,
+    required LocalStorageService localStorageService,
     MlKitTranslationService? onDeviceTranslation,
     GeminiService? onDeviceLLM,
   })  : _router = router ?? SmartHybridRouter(),
-        _cloudService = cloudService ?? AwsCloudService(),
+        _cloudService = cloudService,
+        _sarvamService = sarvamService,
         _onDeviceTranslation = onDeviceTranslation ?? MlKitTranslationService(),
-        _onDeviceLLM = onDeviceLLM ?? GeminiService();
+        _onDeviceLLM = onDeviceLLM ?? GeminiService(localStorageService: localStorageService);
 
   /// Translate text with hybrid routing
   Future<HybridTranslationResult> translateText({
@@ -39,7 +45,7 @@ class HybridTranslationService {
 
     try {
       if (backend == ProcessingBackend.awsCloud) {
-        // Try cloud first
+        // Try AWS cloud
         final cloudResult = await _cloudService.translateText(
           sourceText: sourceText,
           sourceLang: sourceLang,
@@ -56,22 +62,41 @@ class HybridTranslationService {
             success: true,
           );
         }
+        debugPrint('AWS Cloud translation failed, falling back...');
+      } else if (backend == ProcessingBackend.sarvam) {
+        // Try Sarvam cloud
+        try {
+          final sarvamResult = await _sarvamService.translateText(
+            sourceText,
+            _sarvamService.mapLanguageCode(targetLang),
+            sourceLanguage: sourceLang == 'auto' ? null : _sarvamService.mapLanguageCode(sourceLang),
+          );
 
-        // Cloud failed, fall back to on-device
-        debugPrint('Cloud translation failed, falling back to on-device');
+          final processingTime = DateTime.now().difference(startTime);
+
+          return HybridTranslationResult(
+            translatedText: sarvamResult,
+            confidence: 0.95,
+            backend: ProcessingBackend.sarvam,
+            processingTimeMs: processingTime.inMilliseconds,
+            success: true,
+          );
+        } catch (e) {
+          debugPrint('Sarvam translation failed: $e');
+        }
       }
 
       // Use on-device translation
-      final onDeviceResult = await _onDeviceTranslation.translateText(
-        sourceText,
-        sourceLang,
-        targetLang,
+      final onDeviceResult = await _onDeviceTranslation.translate(
+        text: sourceText,
+        sourceLanguage: sourceLang,
+        targetLanguage: targetLang,
       );
 
       final processingTime = DateTime.now().difference(startTime);
 
       return HybridTranslationResult(
-        translatedText: onDeviceResult,
+        translatedText: onDeviceResult ?? '',
         confidence: 0.85, // ML Kit doesn't provide confidence
         backend: ProcessingBackend.onDevice,
         processingTimeMs: processingTime.inMilliseconds,
@@ -128,9 +153,10 @@ class HybridTranslationService {
       }
 
       // Use on-device LLM (Gemini)
-      final prompt = 'Check the grammar of the following $language text and '
-          'provide corrections:\n\n$text';
-      final onDeviceResult = await _onDeviceLLM.generateContent(prompt);
+      final onDeviceResult = await _onDeviceLLM.refineText(
+        text,
+        style: 'polite', // Default to polite for grammar corrections
+      );
 
       final processingTime = DateTime.now().difference(startTime);
 
@@ -196,9 +222,11 @@ class HybridTranslationService {
       }
 
       // Use on-device LLM (Gemini)
-      final prompt = 'Simplify the following $language text to a '
-          '$targetComplexity level:\n\n$text';
-      final onDeviceResult = await _onDeviceLLM.generateContent(prompt);
+      final onDeviceResult = await _onDeviceLLM.explainAndSimplify(
+        text,
+        simplicity: targetComplexity,
+        targetLanguage: language,
+      );
 
       final processingTime = DateTime.now().difference(startTime);
 
@@ -218,6 +246,96 @@ class HybridTranslationService {
         processingTimeMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         error: e.toString(),
+      );
+    }
+  }
+
+
+  /// Chat with assistant with hybrid routing
+  Future<String> chat({
+    required String message,
+    List<Map<String, String>>? history,
+    String? language,
+    DataUsagePreference? userPreference,
+    String? userId,
+  }) async {
+    final context = await _router.createContext(
+      text: message,
+      history: history,
+      userPreference: userPreference,
+    );
+
+    final backend = await _router.routeAssistance(context);
+
+    try {
+      if (backend == ProcessingBackend.awsCloud) {
+        final response = await _cloudService.practiceConversation(
+          userMessage: message,
+          language: language ?? 'English',
+          conversationHistory: history ?? [],
+          userId: userId,
+        );
+        return response.success ? response.response : 'Error in cloud conversation';
+      } else if (backend == ProcessingBackend.sarvam) {
+        return await _sarvamService.chatWithAssistant(message, history: history);
+      }
+
+      // On-device fallback
+      final result = await _onDeviceLLM.refineText(message);
+      return result;
+    } catch (e) {
+      debugPrint('Hybrid chat failed, falling back to Sarvam');
+      return await _sarvamService.chatWithAssistant(message, history: history);
+    }
+  }
+
+  /// Explain text with hybrid routing
+  Future<Map<String, dynamic>> explainText({
+    required String text,
+    required String targetLanguage,
+    String? sourceLanguage,
+    DataUsagePreference? userPreference,
+    String? userId,
+  }) async {
+    final context = await _router.createContext(
+      text: text,
+      userPreference: userPreference,
+    );
+
+    final backend = await _router.routeAssistance(context);
+
+    try {
+      if (backend == ProcessingBackend.awsCloud) {
+        return await _cloudService.explainText(
+          text: text,
+          targetLanguage: targetLanguage,
+          sourceLanguage: sourceLanguage,
+          userId: userId,
+        );
+      } else if (backend == ProcessingBackend.sarvam) {
+        return await _sarvamService.explainText(
+          text,
+          targetLanguage: _sarvamService.mapLanguageCode(targetLanguage),
+          sourceLanguage: sourceLanguage != null ? _sarvamService.mapLanguageCode(sourceLanguage) : null,
+        );
+      }
+
+      // On-device fallback
+      final result = await _onDeviceLLM.explainAndSimplify(
+        text,
+        targetLanguage: targetLanguage,
+      );
+      return {
+        'explanation': result,
+        'model': 'gemini-on-device',
+        'backend': 'onDevice',
+      };
+    } catch (e) {
+      debugPrint('Hybrid explain failed, falling back to Sarvam');
+      return await _sarvamService.explainText(
+        text,
+        targetLanguage: _sarvamService.mapLanguageCode(targetLanguage),
+        sourceLanguage: sourceLanguage != null ? _sarvamService.mapLanguageCode(sourceLanguage) : null,
       );
     }
   }
