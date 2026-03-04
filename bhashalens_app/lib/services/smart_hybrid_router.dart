@@ -120,24 +120,25 @@ class SmartHybridRouter {
       return ProcessingBackend.onDevice;
     }
 
-    // Rule 7: For Indian languages, prefer SARVAM
-    final indianLanguages = ['hi', 'bn', 'ta', 'te', 'ml', 'kn', 'gu', 'mr', 'pa', 'ur'];
-    // We would need the target language here. Let's assume complexity/context analysis
-    // and if complexity is moderate and it's a known indian language area, use Sarvam.
+    // Rule 7: For Indian languages, prefer SARVAM for moderate/complex tasks
+    const indianLanguages = ['hi', 'bn', 'ta', 'te', 'ml', 'kn', 'gu', 'mr', 'pa', 'ur'];
     
-    // For now, let's use a simpler heuristic:
-    if (context.requestComplexity == ComplexityLevel.complex) {
-      debugPrint('Router: Complex request with network → AWS_CLOUD');
-      return ProcessingBackend.awsCloud;
-    }
-
-    if (context.requestComplexity == ComplexityLevel.moderate) {
+    // We should ideally have the target language in the context. 
+    // For now, let's assume we use Sarvam if it's a known indian language context
+    // and complexity is not simple.
+    
+    if (context.requestComplexity != ComplexityLevel.simple) {
+      if (context.requestComplexity == ComplexityLevel.complex) {
+        debugPrint('Router: Complex request with network → AWS_CLOUD');
+        return ProcessingBackend.awsCloud;
+      }
+      
       debugPrint('Router: Moderate request with network → SARVAM');
       return ProcessingBackend.sarvam;
     }
 
-    // Default: ON_DEVICE for simple/moderate complexity fallback
-    debugPrint('Router: Default (simple/fallback) → ON_DEVICE');
+    // Default: ON_DEVICE for simple requests
+    debugPrint('Router: Default (simple) → ON_DEVICE');
     return ProcessingBackend.onDevice;
   }
 
@@ -190,8 +191,10 @@ class SmartHybridRouter {
   /// Get battery level (placeholder - requires platform-specific implementation)
   /// Returns 100 by default (assumes full battery)
   Future<int> getBatteryLevel() async {
-    // TODO: Implement battery level detection using battery_plus package
-    // For now, return 100 to not block cloud usage
+    // TODO: Implement actual battery level detection.
+    // Recommended: Add 'battery_plus: ^6.0.0' to pubspec.yaml
+    // and use Battery().batteryLevel to implement Rule 3 properly.
+    // For now, return 100 to avoid blocking cloud processing.
     return 100;
   }
 

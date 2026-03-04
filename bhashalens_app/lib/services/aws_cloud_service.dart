@@ -288,16 +288,27 @@ class AwsCloudService {
       );
       
       if (response.success) {
-        // Attempt to parse JSON from the response
-        final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(response.answer);
-        if (jsonMatch != null) {
-          return jsonDecode(jsonMatch.group(0)!);
+        try {
+          // Attempt to parse JSON from the response
+          final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(response.answer);
+          if (jsonMatch != null) {
+            final jsonStr = jsonMatch.group(0)!;
+            return jsonDecode(jsonStr);
+          }
+          
+          // Fallback: If no JSON structure found, try parsing the whole answer
+          return jsonDecode(response.answer);
+        } catch (e) {
+          debugPrint('JSON parsing failed for guide: $e. Falling back to default guide.');
         }
       }
       return {
-        'cultural_tips': ['Be polite', 'Observe local customs'],
-        'common_phrases': [{'phrase': 'Hello', 'translation': 'Namaste'}],
-        'etiquette': 'General professional etiquette'
+        'cultural_tips': ['Be polite and respectful', 'Observe local customs and dress codes'],
+        'common_phrases': [
+          {'phrase': 'Help', 'translation': 'Madad'},
+          {'phrase': 'Thank you', 'translation': 'Vaada'},
+        ],
+        'etiquette': 'General professional and respectful etiquette'
       };
     } catch (e) {
       debugPrint('Aws getBasicGuide error: $e');

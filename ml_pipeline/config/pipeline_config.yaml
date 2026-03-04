@@ -1,0 +1,134 @@
+# BhashaLens MarianMT Training Pipeline Configuration
+# Adapted for Kaggle/Colab execution
+
+language_pairs:
+  - "hi-en"   # Hindi → English
+  - "en-hi"   # English → Hindi
+  - "mr-en"   # Marathi → English
+  - "en-mr"   # English → Marathi
+  - "ta-en"   # Tamil → English
+  - "en-ta"   # English → Tamil
+  - "gu-en"   # Gujarati → English
+  - "en-gu"   # English → Gujarati
+
+dataset_sources:
+  iit_bombay:
+    huggingface_id: "cfilt/iitb-english-hindi"
+    languages: ["hi-en"]
+  ai4bharat:
+    huggingface_id: "ai4bharat/samanantar"
+    languages: ["hi-en", "mr-en", "ta-en", "gu-en"]
+  opus:
+    corpora: ["OpenSubtitles", "Tatoeba", "WikiMatrix"]
+    languages: ["hi-en", "mr-en", "ta-en", "gu-en"]
+  custom:
+    format: "tsv"
+    path: "custom_data/"
+
+mixing_ratios:
+  hi-en:
+    iit_bombay: 0.35
+    ai4bharat: 0.40
+    opus: 0.15
+    custom: 0.10
+  mr-en:
+    ai4bharat: 0.65
+    opus: 0.20
+    custom: 0.15
+  ta-en:
+    ai4bharat: 0.65
+    opus: 0.20
+    custom: 0.15
+  gu-en:
+    ai4bharat: 0.65
+    opus: 0.20
+    custom: 0.15
+
+split_ratios:
+  train: 0.90
+  validation: 0.05
+  test: 0.05
+
+data_cleaning:
+  max_length: 512
+  max_length_ratio: 3.0
+  language_detection_confidence: 0.9
+  remove_urls: true
+  remove_emails: true
+  chunk_size: 10000
+
+model_architecture:
+  type: "transformer"
+  encoder_layers: 6
+  decoder_layers: 6
+  hidden_size: 512
+  attention_heads: 8
+  feed_forward_size: 2048
+  dropout: 0.1
+
+tokenization:
+  type: "sentencepiece"
+  vocab_size: 32000
+  model_type: "unigram"
+
+training:
+  batch_size: 32
+  learning_rate: 0.0003
+  warmup_steps: 4000
+  max_steps: 50000
+  gradient_accumulation_steps: 1
+  optimizer: "adam"
+  beta1: 0.9
+  beta2: 0.98
+  epsilon: 1.0e-9
+  label_smoothing: 0.1
+  eval_frequency: 2500
+  checkpoint_frequency: 5000
+  early_stopping_patience: 10000
+
+quality_thresholds:
+  hi-en: 25.0
+  en-hi: 25.0
+  mr-en: 20.0
+  en-mr: 20.0
+  ta-en: 20.0
+  en-ta: 20.0
+  gu-en: 20.0
+  en-gu: 20.0
+
+quantization:
+  method: "int8"
+  fallback_method: "mixed_int8_fp16"
+  max_bleu_degradation: 2.0
+  target_size_mb: 30.0
+
+onnx_export:
+  opset_version: 13
+  graph_optimizations:
+    - "constant_folding"
+    - "operator_fusion"
+    - "layout_optimization"
+  execution_providers:
+    - "CPUExecutionProvider"
+    - "NNAPIExecutionProvider"
+    - "CoreMLExecutionProvider"
+
+packaging:
+  compression: "zip"
+  max_package_size_mb: 35.0
+  versioning: "semantic"
+
+inference:
+  max_input_length: 512
+  beam_size: 4
+  length_penalty: 0.6
+  no_repeat_ngram_size: 3
+  early_stopping: true
+  num_return_sequences: 1
+
+storage:
+  # On Kaggle: /kaggle/working/
+  # On Colab: /content/drive/MyDrive/bhashalens_ml/
+  checkpoint_dir: "checkpoints/"
+  output_dir: "outputs/"
+  data_dir: "data/"

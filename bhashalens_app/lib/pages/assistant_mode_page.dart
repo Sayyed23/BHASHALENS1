@@ -23,7 +23,6 @@ class _AssistantModePageState extends State<AssistantModePage> {
   // Context-Aware State
   Map<String, dynamic>? _basicGuide;
   bool _isLoadingGuide = false;
-  bool _isListening = false;
   List<Map<String, dynamic>> _chatMessages = [];
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -203,11 +202,9 @@ class _AssistantModePageState extends State<AssistantModePage> {
       listen: false,
     );
     try {
-      if (_isListening) {
+      if (service.isListening) {
         await service.stopListening();
-        setState(() => _isListening = false);
       } else {
-        setState(() => _isListening = true);
         await service.listenOnce((text) {
           if (mounted) {
             setState(() {
@@ -215,13 +212,9 @@ class _AssistantModePageState extends State<AssistantModePage> {
             });
           }
         });
-        if (mounted) {
-          setState(() => _isListening = false);
-        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isListening = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Voice Input Failed: ${e.toString()}"),
@@ -767,8 +760,8 @@ class _AssistantModePageState extends State<AssistantModePage> {
                     children: [
                       IconButton(
                         icon: Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: _isListening ? Colors.red : primaryBlue,
+                          voiceService.isListening ? Icons.mic : Icons.mic_none,
+                          color: voiceService.isListening ? Colors.red : primaryBlue,
                         ),
                         onPressed: _startListening,
                       ),

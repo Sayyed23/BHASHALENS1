@@ -20,6 +20,7 @@ class VoiceTranslationService extends ChangeNotifier {
   final AudioRecorder _audioRecorder = AudioRecorder();
   WebSocketChannel? _sarvamSTTChannel;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription<List<int>>? _audioStreamSubscription;
 
   // API configuration
   String? _sarvamApiKey;
@@ -213,6 +214,10 @@ class VoiceTranslationService extends ChangeNotifier {
         _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
       );
       
+      // Cleanup existing channel if any
+      await _sarvamSTTChannel?.sink.close();
+      _sarvamSTTChannel = null;
+
       _sarvamSTTChannel = _sarvamService!.createStreamingSTTChannel(
         languageCode: _sarvamService!.mapLanguageCode(langCode.substring(0, 2)),
       );
@@ -230,6 +235,8 @@ class VoiceTranslationService extends ChangeNotifier {
         }
       }, onError: (err) {
         debugPrint('Sarvam STT Stream error: $err');
+        _isListening = false;
+        notifyListeners();
       });
 
       // Start recording and streaming audio
@@ -240,8 +247,12 @@ class VoiceTranslationService extends ChangeNotifier {
           numChannels: 1,
         );
 
+        // Cleanup existing recorder if any
+        await _audioRecorder.stop();
+        await _audioStreamSubscription?.cancel();
+
         final stream = await _audioRecorder.startStream(config);
-        stream.listen((data) {
+        _audioStreamSubscription = stream.listen((data) {
           _sarvamSTTChannel?.sink.add(data);
         });
       }
@@ -257,6 +268,8 @@ class VoiceTranslationService extends ChangeNotifier {
       }
     } else {
       await _audioRecorder.stop();
+      await _audioStreamSubscription?.cancel();
+      _audioStreamSubscription = null;
       _sarvamSTTChannel?.sink.close();
       _sarvamSTTChannel = null;
     }
@@ -427,6 +440,7 @@ class VoiceTranslationService extends ChangeNotifier {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _audioStreamSubscription?.cancel();
     _speechToText.cancel();
     _flutterTts.stop();
     _audioRecorder.dispose();
