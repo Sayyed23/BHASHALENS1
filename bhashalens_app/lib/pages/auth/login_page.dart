@@ -287,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: const Text(
                       "Sign Up",
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: primaryTeal,
                         fontWeight: FontWeight.bold,
                       ),
@@ -300,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _signInAsGuest,
                 child: const Text(
                   'Continue as Guest',
-                  style: const TextStyle(color: textGrey),
+                  style: TextStyle(color: textGrey),
                 ),
               ),
             ],

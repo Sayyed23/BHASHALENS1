@@ -9,6 +9,18 @@ frontend:
         - export PATH="$PATH:$HOME/flutter/bin"
         - flutter doctor
         - flutter config --enable-web
+        # Create .env file for Flutter assets (populated from Amplify environment variables)
+        - touch .env
+        - |
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+          echo "FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY" >> .env
+          echo "FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID" >> .env
+          echo "FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID" >> .env
+          echo "FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID" >> .env
+          echo "FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET" >> .env
+          echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
+          echo "AWS_REGION=$AWS_REGION" >> .env
+          echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
         # Fetch project dependencies
         - flutter pub get
     build:

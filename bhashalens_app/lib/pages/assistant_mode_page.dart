@@ -27,14 +27,14 @@ class _AssistantModePageState extends State<AssistantModePage> {
   final ScrollController _chatScrollController = ScrollController();
 
   final List<Map<String, dynamic>> _situations = const [
-    const {
+    {
       'icon': Icons.local_hospital,
       'label': 'Hospital',
-      'color': const Color(0xFF136DEC),
+      'color': Color(0xFF136DEC),
     },
-    const {'icon': Icons.apartment, 'label': 'Public Office', 'color': Colors.grey},
-    const {'icon': Icons.shopping_cart, 'label': 'Shop', 'color': Colors.grey},
-    const {'icon': Icons.school, 'label': 'School', 'color': Colors.grey},
+    {'icon': Icons.apartment, 'label': 'Public Office', 'color': Colors.grey},
+    {'icon': Icons.shopping_cart, 'label': 'Shop', 'color': Colors.grey},
+    {'icon': Icons.school, 'label': 'School', 'color': Colors.grey},
   ];
 
   final List<String> _goals = [
@@ -483,16 +483,16 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         "PRIMARY RECOMMENDATION",
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: primaryBlue,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.auto_awesome,
                         color: Colors.white54,
                         size: 16,
@@ -502,7 +502,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const SizedBox(height: 16),
                   const Text(
                     "Your language",
-                    style: const TextStyle(color: textGrey, fontSize: 12),
+                    style: TextStyle(color: textGrey, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -512,7 +512,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const SizedBox(height: 16),
                   const Text(
                     "Translation",
-                    style: const TextStyle(color: primaryBlue, fontSize: 12),
+                    style: TextStyle(color: primaryBlue, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -594,7 +594,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
 
                         messenger.showSnackBar(
                           const SnackBar(
-                            content: const Text(
+                            content: Text(
                               "Phrase saved to your collection",
                             ),
                             backgroundColor: primaryBlue,
@@ -723,9 +723,9 @@ class _AssistantModePageState extends State<AssistantModePage> {
             // Live Coaching Chat
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: const Text(
+              child: Text(
                 "LIVE COACHING",
-                style: const TextStyle(
+                style: TextStyle(
                   color: primaryBlue,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
