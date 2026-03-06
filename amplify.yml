@@ -37,7 +37,7 @@ frontend:
     build:
       commands:
         # Build Flutter web
-        - flutter build web --release
+        - flutter build web --release --no-tree-shake-icons
 
         # Verify that icon fonts exist
         - ls build/web/assets/fonts
