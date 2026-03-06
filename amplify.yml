@@ -1,0 +1,27 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Install and configure Flutter SDK
+        - if [ ! -d $HOME/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable $HOME/flutter; fi
+        - export PATH="$PATH:$HOME/flutter/bin"
+        - flutter doctor
+        - flutter config --enable-web
+        # Fetch project dependencies
+        - flutter pub get
+    build:
+      commands:
+        # Build the Flutter web project
+        - flutter build web --release
+  artifacts:
+    # Set the artifacts directory to the output of the web build
+    baseDirectory: build/web
+    files:
+      - '**/*'
+  cache:
+    paths:
+      # Cache Flutter SDK to speed up subsequent builds
+      - '$HOME/flutter'
+      - '.dart_tool'
+      - '/root/.pub-cache/**/*'
