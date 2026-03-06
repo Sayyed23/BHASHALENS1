@@ -280,14 +280,14 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       Navigator.of(context).pushNamed('/signup');
                     },
-                    style: TextButton.styleFrom(
+                    style: const TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: const Text(
                       "Sign Up",
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: primaryTeal,
                         fontWeight: FontWeight.bold,
                       ),
@@ -300,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _signInAsGuest,
                 child: const Text(
                   'Continue as Guest',
-                  style: TextStyle(color: textGrey),
+                  style: const TextStyle(color: textGrey),
                 ),
               ),
             ],

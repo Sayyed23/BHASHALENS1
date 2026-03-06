@@ -26,15 +26,15 @@ class _AssistantModePageState extends State<AssistantModePage> {
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
 
-  final List<Map<String, dynamic>> _situations = [
-    {
+  final List<Map<String, dynamic>> _situations = const [
+    const {
       'icon': Icons.local_hospital,
       'label': 'Hospital',
       'color': const Color(0xFF136DEC),
     },
-    {'icon': Icons.apartment, 'label': 'Public Office', 'color': Colors.grey},
-    {'icon': Icons.shopping_cart, 'label': 'Shop', 'color': Colors.grey},
-    {'icon': Icons.school, 'label': 'School', 'color': Colors.grey},
+    const {'icon': Icons.apartment, 'label': 'Public Office', 'color': Colors.grey},
+    const {'icon': Icons.shopping_cart, 'label': 'Shop', 'color': Colors.grey},
+    const {'icon': Icons.school, 'label': 'School', 'color': Colors.grey},
   ];
 
   final List<String> _goals = [
@@ -472,7 +472,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
             // Recommendation Card
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: cardDark,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.white10),
@@ -483,16 +483,16 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         "PRIMARY RECOMMENDATION",
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: primaryBlue,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.auto_awesome,
                         color: Colors.white54,
                         size: 16,
@@ -502,7 +502,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const SizedBox(height: 16),
                   const Text(
                     "Your language",
-                    style: TextStyle(color: textGrey, fontSize: 12),
+                    style: const TextStyle(color: textGrey, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -512,7 +512,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                   const SizedBox(height: 16),
                   const Text(
                     "Translation",
-                    style: TextStyle(color: primaryBlue, fontSize: 12),
+                    style: const TextStyle(color: primaryBlue, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -594,7 +594,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
 
                         messenger.showSnackBar(
                           const SnackBar(
-                            content: Text(
+                            content: const Text(
                               "Phrase saved to your collection",
                             ),
                             backgroundColor: primaryBlue,
@@ -723,9 +723,9 @@ class _AssistantModePageState extends State<AssistantModePage> {
             // Live Coaching Chat
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
+              child: const Text(
                 "LIVE COACHING",
-                style: TextStyle(
+                style: const TextStyle(
                   color: primaryBlue,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
