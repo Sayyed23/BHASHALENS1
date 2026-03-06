@@ -5,7 +5,7 @@ frontend:
     preBuild:
       commands:
         # Install and configure Flutter SDK
-        - if [ ! -d $HOME/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable $HOME/flutter; fi
+        - if [ ! -d $HOME/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter; fi
         - export PATH="$PATH:$HOME/flutter/bin"
         - flutter doctor
         - flutter config --enable-web
