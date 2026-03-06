@@ -4,19 +4,17 @@ frontend:
     preBuild:
       commands:
         - 'echo "Phase: preBuild"'
-        - 'PROJECT_ROOT=$(pwd)'
-        - 'if [ ! -d "flutter" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi'
-        - 'export PATH="$PATH:$PROJECT_ROOT/flutter/bin"'
+        - 'if [ ! -d "$AWS_SRC_DIR/flutter" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $AWS_SRC_DIR/flutter; fi'
+        - 'export PATH="$PATH:$AWS_SRC_DIR/flutter/bin"'
         - 'flutter config --no-analytics'
         - 'flutter precache --web'
         - 'flutter config --enable-web'
-        - 'command cd $PROJECT_ROOT/bhashalens_app && flutter pub get'
+        - 'cd $AWS_SRC_DIR/bhashalens_app && flutter pub get'
     build:
       commands:
         - 'echo "Phase: build"'
-        - 'PROJECT_ROOT=$(pwd)'
-        - 'export PATH="$PATH:$PROJECT_ROOT/flutter/bin"'
-        - 'command cd $PROJECT_ROOT/bhashalens_app && flutter build web --release'
+        - 'export PATH="$PATH:$AWS_SRC_DIR/flutter/bin"'
+        - 'cd $AWS_SRC_DIR/bhashalens_app && flutter build web --release'
   artifacts:
     baseDirectory: bhashalens_app/build/web
     files:
