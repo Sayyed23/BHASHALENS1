@@ -9,11 +9,10 @@ frontend:
         - 'df -h'
         # Download Flutter SDK using direct download (faster than git clone)
         - 'echo "Downloading Flutter SDK 3.24.0..."'
-        - 'apt-get update && apt-get install -y xz-utils'
-        - 'wget -q -O flutter.tar.xz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz'
+        - 'wget -q -O flutter.tar.gz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.gz'
         - 'echo "Extracting Flutter SDK..."'
-        - 'tar xf flutter.tar.xz'
-        - 'rm flutter.tar.xz'
+        - 'tar xzf flutter.tar.gz'
+        - 'rm flutter.tar.gz'
         # Set up Flutter environment
         - 'export PATH="$PWD/flutter/bin:$PATH"'
         - 'export PUB_CACHE="$PWD/.pub-cache"'
