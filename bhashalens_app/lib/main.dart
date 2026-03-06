@@ -87,10 +87,19 @@ void main() async {
   // Initialize services
   final localStorageService = LocalStorageService();
 
+  // Initialize Gemini Service
+  final geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  final geminiService = GeminiService(
+    apiKey: geminiApiKey,
+    localStorageService: localStorageService,
+  );
+  await geminiService.initialize();
+
   // Create provider list with conditional Firebase services
   final providers = <SingleChildWidget>[
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
     Provider<LocalStorageService>.value(value: localStorageService),
+    Provider<GeminiService>.value(value: geminiService),
     Provider<AwsApiGatewayClient>(
       create: (_) => AwsApiGatewayClient(),
     ),
@@ -137,7 +146,7 @@ void main() async {
         cloudService: awsCloud,
         localStorageService: localStorage,
         onDeviceTranslation: MlKitTranslationService(),
-        onDeviceLLM: GeminiService(localStorageService: localStorage),
+        onDeviceLLM: geminiService,
       ),
     ),
     ChangeNotifierProxyProvider<HybridTranslationService,
