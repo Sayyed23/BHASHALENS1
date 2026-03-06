@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'smart_hybrid_router.dart';
@@ -363,30 +362,22 @@ class HybridTranslationService {
       }
 
       // Fallback to Gemini
-      final result = await _onDeviceLLM.explainAndSimplify(
+      final jsonResponse = await _onDeviceLLM.explainTextWithContext(
         text,
         targetLanguage: targetLanguage,
+        sourceLanguage: sourceLanguage,
       );
       
-      try {
-        final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(result);
-        if (jsonMatch != null) {
-          final parsed = jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
-          parsed['model'] = 'gemini-on-device';
-          parsed['backend'] = 'gemini';
-          if (!parsed.containsKey('translation')) parsed['translation'] = 'N/A';
-          if (!parsed.containsKey('meaning')) parsed['meaning'] = parsed.containsKey('explanation') ? parsed['explanation'] : result;
-          return parsed;
-        }
-      } catch (_) {}
-
-      return {
-        'translation': 'N/A (Fallback mode)',
-        'meaning': result,
-        'explanation': result,
-        'model': 'gemini-on-device',
-        'backend': 'gemini',
-      };
+      jsonResponse['model'] = 'gemini-on-device';
+      jsonResponse['backend'] = 'gemini';
+      if (!jsonResponse.containsKey('translation') || jsonResponse['translation'] == null) {
+        jsonResponse['translation'] = 'N/A';
+      }
+      if (!jsonResponse.containsKey('meaning') || jsonResponse['meaning'] == null) {
+        jsonResponse['meaning'] = jsonResponse.containsKey('explanation') ? jsonResponse['explanation'] : 'Meaning unavailable.';
+      }
+      
+      return jsonResponse;
     } catch (e) {
       debugPrint('Hybrid explain failed: $e');
       return {

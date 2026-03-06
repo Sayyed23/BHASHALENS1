@@ -271,8 +271,9 @@ class GeminiService {
     }
 
     try {
+      final String targetLanguageName = _getLanguageName(targetLanguage);
       final prompt =
-          'Explain the following text in $simplicity language, translated into $targetLanguage. Break it down into key points if necessary. Avoid jargon. Input: $text';
+          'Explain the following text in $simplicity language, translated into $targetLanguageName. Break it down into key points if necessary. Avoid jargon. Input: $text';
       await _checkAndIncrementLimit();
 
       final content = [Content.text(prompt)];
@@ -323,15 +324,18 @@ class GeminiService {
     }
 
     try {
+      final String targetLanguageName = _getLanguageName(targetLanguage);
+      final String? sourceLanguageName = sourceLanguage != null ? _getLanguageName(sourceLanguage) : null;
+      
       String prompt = 'Analyze the following text provided in ';
-      if (sourceLanguage != null && sourceLanguage != 'Auto-detected') {
-        prompt += '$sourceLanguage. ';
+      if (sourceLanguageName != null && sourceLanguageName != 'Auto-detect') {
+        prompt += '$sourceLanguageName. ';
       } else {
         prompt += 'any language. ';
       }
 
       prompt +=
-          'Target Language for translation and explanation: $targetLanguage. '
+          'Target Language for translation and explanation: $targetLanguageName. '
           'Return a valid JSON object with the following keys and no markdown formatting: '
           '{'
           '"translation": "String - The text translated to $targetLanguage", '
