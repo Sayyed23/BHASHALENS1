@@ -7,12 +7,10 @@ frontend:
         - 'echo "Working directory: $(pwd)"'
         - 'echo "Available disk space:"'
         - 'df -h'
-        # Download Flutter SDK using direct download (faster than git clone)
-        - 'echo "Downloading Flutter SDK 3.24.0..."'
-        - 'wget -q -O flutter.tar.gz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.gz'
-        - 'echo "Extracting Flutter SDK..."'
-        - 'tar xzf flutter.tar.gz'
-        - 'rm flutter.tar.gz'
+        # Prevent CI pipeline 'dubious ownership' errors when executing git commands inside cached folders
+        - 'git config --global --add safe.directory "*"'
+        # Download Flutter SDK only if we don't already have it cached
+        - 'if [ -d "flutter/bin" ]; then echo "Using cached Flutter SDK"; else echo "Downloading Flutter SDK 3.24.0..." && wget -q -O flutter.tar.gz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.gz && echo "Extracting Flutter SDK..." && tar xzf flutter.tar.gz && rm flutter.tar.gz; fi'
         # Set up Flutter environment
         - 'export PATH="$PWD/flutter/bin:$PATH"'
         - 'export PUB_CACHE="$PWD/.pub-cache"'
@@ -50,4 +48,3 @@ frontend:
       # Cache pub dependencies
       - '.pub-cache/**/*'
       - 'bhashalens_app/.dart_tool/**/*'
-      - 'bhashalens_app/.packages'
