@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
 import 'dart:io';
 
 class ExplainModePage extends StatefulWidget {
@@ -125,15 +127,26 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (!mounted) return;
         setState(() => _isProcessing = true);
 
-        final mlKitService = MlKitTranslationService();
-// final bytes = await image.readAsBytes();
+        String extracted = '';
 
-        if (!mounted) return;
-        final file = File(image.path);
-        final extracted = await mlKitService.extractTextFromFile(file,
-            languageCode: _selectedInputLanguage == 'Auto-detected'
-                ? 'en'
-                : _selectedInputLanguage.toLowerCase().substring(0, 2));
+        if (kIsWeb) {
+          try {
+            final bytes = await image.readAsBytes();
+            if (!mounted) return;
+            final geminiService = Provider.of<GeminiService>(context, listen: false);
+            extracted = await geminiService.extractTextFromImage(bytes);
+          } catch (e) {
+            debugPrint("Web OCR error: $e");
+            extracted = "Error extracting text on Web";
+          }
+        } else {
+          final mlKitService = MlKitTranslationService();
+          final file = File(image.path);
+          extracted = await mlKitService.extractTextFromFile(file,
+              languageCode: _selectedInputLanguage == 'Auto-detected'
+                  ? 'en'
+                  : _selectedInputLanguage.toLowerCase().substring(0, 2));
+        }
 
         if (!mounted) return;
         setState(() {

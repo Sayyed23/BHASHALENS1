@@ -9,6 +9,8 @@ import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
 import 'dart:io';
 import 'dart:ui' as ui; // Import for ImageFilter
 import 'package:share_plus/share_plus.dart';
@@ -227,7 +229,32 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       String translated = '';
       String detectedLang = _sourceLanguageCode;
 
-      if (isOffline) {
+      if (kIsWeb) {
+        try {
+          final geminiService = Provider.of<GeminiService>(context, listen: false);
+          extracted = await geminiService.extractTextFromImage(bytes);
+        } catch (e) {
+          extracted = "Error extracting text on Web";
+          extractedIsError = true;
+        }
+
+        if (!mounted) return;
+
+        if (extracted.isNotEmpty && !extracted.startsWith('Error')) {
+          final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+          final result = await hybridService.translateText(
+            sourceText: extracted,
+            targetLang: _targetLanguageCode,
+            sourceLang: _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
+          );
+          translated = result.translatedText;
+        } else {
+          if (!extractedIsError) {
+            extracted = "No text found in image.";
+            extractedIsError = true;
+          }
+        }
+      } else if (isOffline) {
         if (_sourceLanguageCode == 'auto') {
           // Attempt offline language detection
           final detectedCode = await _mlKitService.identifyLanguage(

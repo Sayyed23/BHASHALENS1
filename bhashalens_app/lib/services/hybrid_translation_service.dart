@@ -55,13 +55,24 @@ class HybridTranslationService {
         );
 
         if (cloudResult.success) {
-          return HybridTranslationResult(
+          final result = HybridTranslationResult(
             translatedText: cloudResult.translatedText,
             confidence: cloudResult.confidence,
             backend: ProcessingBackend.awsBedrock,
             processingTimeMs: cloudResult.processingTimeMs,
             success: true,
           );
+
+          // Save to local history for sync and UI tracking
+          _saveToLocalHistory(
+            sourceText: sourceText,
+            targetText: cloudResult.translatedText,
+            sourceLang: sourceLang,
+            targetLang: targetLang,
+            backend: 'aws_bedrock',
+          );
+
+          return result;
         }
         debugPrint('AWS Bedrock translation failed, falling back to Gemini...');
       }

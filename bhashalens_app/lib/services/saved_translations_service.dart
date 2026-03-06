@@ -2,14 +2,20 @@ import 'package:flutter/foundation.dart';
 import '../models/history_item.dart'; // Reuse the same model or create a new one if different
 import 'aws_api_gateway_client.dart';
 
+import 'local_storage_service.dart';
+
 class SavedTranslationsService extends ChangeNotifier {
   final AwsApiGatewayClient _apiClient;
+  final LocalStorageService _localStorageService;
   List<HistoryItem> _savedItems = [];
   bool _isLoading = false;
   String? _error;
 
-  SavedTranslationsService({required AwsApiGatewayClient apiClient})
-      : _apiClient = apiClient;
+  SavedTranslationsService({
+    required AwsApiGatewayClient apiClient,
+    required LocalStorageService localStorageService,
+  })  : _apiClient = apiClient,
+        _localStorageService = localStorageService;
 
   List<HistoryItem> get savedItems => List.unmodifiable(_savedItems);
   bool get isLoading => _isLoading;
@@ -20,20 +26,23 @@ class SavedTranslationsService extends ChangeNotifier {
   }
 
   Future<void> fetchSavedTranslations() async {
-    if (!_apiClient.isEnabled) return;
-
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final data = await _apiClient.getSavedTranslations();
-      final List<dynamic> items = data['items'] ?? [];
-      _savedItems = items.map((json) => HistoryItem.fromJson(json)).toList();
+      final localData = await _localStorageService.getSavedTranslations();
+      _savedItems = localData.map((json) => HistoryItem(
+        id: json['id'].toString(),
+        userId: 'local',
+        sourceText: json['originalText'] ?? '',
+        targetText: json['translatedText'] ?? '',
+        sourceLang: json['sourceLanguage'] ?? '',
+        targetLang: json['targetLanguage'] ?? '',
+        timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] ?? 0),
+        type: json['category'] ?? 'translation',
+      )).toList();
       _savedItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    } on AwsApiException catch (e) {
-      _error = 'Failed to load saved translations: ${e.message}';
-      debugPrint(_error);
     } catch (e) {
       _error = 'Error fetching saved translations: $e';
       debugPrint(_error);
@@ -45,14 +54,25 @@ class SavedTranslationsService extends ChangeNotifier {
 
   Future<bool> saveItem(HistoryItem item) async {
     try {
-      await _apiClient.saveTranslation(
-        translationId: item.id,
-        sourceText: item.sourceText,
-        sourceLang: item.sourceLang,
-        translatedText: item.targetText,
-        targetLang: item.targetLang,
-      );
-      _savedItems.insert(0, item);
+      if (_apiClient.isEnabled) {
+        try {
+          await _apiClient.saveTranslation(
+            translationId: item.id,
+            sourceText: item.sourceText,
+            sourceLang: item.sourceLang,
+            translatedText: item.targetText,
+            targetLang: item.targetLang,
+          );
+        } catch (e) {
+          debugPrint('Error syncing saved translation to cloud: $e');
+        }
+      }
+      
+      await _localStorageService.updateTranslationStatus(item.id, true);
+      
+      if (!isSaved(item.id)) {
+        _savedItems.insert(0, item);
+      }
       notifyListeners();
       return true;
     } catch (e) {
@@ -62,10 +82,16 @@ class SavedTranslationsService extends ChangeNotifier {
   }
 
   Future<bool> deleteSavedItem(String id) async {
-    if (!_apiClient.isEnabled) return false;
-
     try {
-      await _apiClient.deleteSavedTranslation(id);
+      if (_apiClient.isEnabled) {
+        try {
+          await _apiClient.deleteSavedTranslation(id);
+        } catch (e) {
+          debugPrint('Error deleting cloud saved translation: $e');
+        }
+      }
+      
+      await _localStorageService.updateTranslationStatus(id, false);
       _savedItems.removeWhere((item) => item.id == id);
       notifyListeners();
       return true;

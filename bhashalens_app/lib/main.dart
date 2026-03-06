@@ -106,11 +106,13 @@ void main() async {
       )..fetchHistory(),
       update: (_, apiClient, localStorage, history) => history!,
     ),
-    ChangeNotifierProxyProvider<AwsApiGatewayClient, SavedTranslationsService>(
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        SavedTranslationsService>(
       create: (context) => SavedTranslationsService(
         apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService: Provider.of<LocalStorageService>(context, listen: false),
       )..fetchSavedTranslations(),
-      update: (_, apiClient, saved) => saved!,
+      update: (_, apiClient, localStorage, saved) => saved!,
     ),
     ChangeNotifierProxyProvider<AwsApiGatewayClient, PreferencesService>(
       create: (context) => PreferencesService(

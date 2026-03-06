@@ -1,15 +1,24 @@
 version: 1
 appRoot: bhashalens_app
+
 frontend:
   phases:
     preBuild:
       commands:
-        # Install and configure Flutter SDK
+        # Install Flutter SDK
         - if [ ! -d $HOME/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter; fi
         - export PATH="$PATH:$HOME/flutter/bin"
+
+        # Verify installation
         - flutter doctor
+
+        # Enable web support
         - flutter config --enable-web
-        # Create .env file for Flutter assets (populated from Amplify environment variables)
+
+        # Clean previous builds to ensure fonts/icons are rebuilt
+        - flutter clean
+
+        # Create environment file
         - touch .env
         - |
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
@@ -21,20 +30,25 @@ frontend:
           echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
           echo "AWS_REGION=$AWS_REGION" >> .env
           echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
-        # Fetch project dependencies
+
+        # Install dependencies
         - flutter pub get
+
     build:
       commands:
-        # Build the Flutter web project
+        # Build Flutter web
         - flutter build web --release
+
+        # Verify that icon fonts exist
+        - ls build/web/assets/fonts
+
   artifacts:
-    # Set the artifacts directory to the output of the web build
     baseDirectory: build/web
     files:
       - '**/*'
+
   cache:
     paths:
-      # Cache Flutter SDK to speed up subsequent builds
       - '$HOME/flutter'
       - '.dart_tool'
       - '/root/.pub-cache/**/*'

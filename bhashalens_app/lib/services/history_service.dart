@@ -67,21 +67,28 @@ class HistoryService extends ChangeNotifier {
   }
 
   Future<void> fetchHistory() async {
-    if (!_apiClient.isEnabled) return;
-
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final data = await _apiClient.getHistory();
-      final List<dynamic> items = data['items'] ?? [];
-      _history = items.map((json) => HistoryItem.fromJson(json)).toList();
-      // Sort by timestamp descending
+      final localData = await _localStorageService.getTranslations();
+      _history = localData.map((json) => HistoryItem(
+        id: json['id'].toString(),
+        userId: 'local',
+        sourceText: json['originalText'] ?? '',
+        targetText: json['translatedText'] ?? '',
+        sourceLang: json['sourceLanguage'] ?? '',
+        targetLang: json['targetLanguage'] ?? '',
+        timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] ?? 0),
+        type: json['category'] ?? 'translation',
+      )).toList();
       _history.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    } on AwsApiException catch (e) {
-      _error = 'Failed to load history: ${e.message}';
-      debugPrint(_error);
+      
+      // Optionally sync in the background
+      if (_apiClient.isEnabled && !_isSyncing) {
+        syncLocalHistoryWithCloud();
+      }
     } catch (e) {
       _error = 'Error fetching history: $e';
       debugPrint(_error);
@@ -93,7 +100,10 @@ class HistoryService extends ChangeNotifier {
 
   Future<bool> deleteHistoryItem(String id) async {
     try {
-      await _apiClient.deleteHistoryItem(id);
+      if (_apiClient.isEnabled) {
+        await _apiClient.deleteHistoryItem(id);
+      }
+      await _localStorageService.deleteTranslation(id);
       _history.removeWhere((item) => item.id == id);
       notifyListeners();
       return true;
