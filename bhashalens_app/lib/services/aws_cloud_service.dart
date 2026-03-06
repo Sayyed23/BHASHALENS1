@@ -44,7 +44,7 @@ class AwsCloudService {
       final processingTime = DateTime.now().difference(startTime);
 
       return CloudTranslationResult(
-        translatedText: response['translated_text'] as String,
+        translatedText: (response['translated_text'] ?? response['response'] ?? '') as String,
         confidence: (response['confidence'] as num?)?.toDouble() ?? 0.0,
         model: response['model'] as String? ?? 'unknown',
         processingTimeMs: response['processing_time_ms'] as int? ?? 
@@ -225,7 +225,7 @@ class AwsCloudService {
       final processingTime = DateTime.now().difference(startTime);
 
       return CloudSimplificationResult(
-        simplifiedText: response['simplified_text'] as String,
+        simplifiedText: (response['simplified_text'] ?? response['response'] ?? response['translated_text'] ?? '') as String,
         explanation: response['explanation'] as String?,
         complexityReduction: 
             (response['complexity_reduction'] as num?)?.toDouble() ?? 0.0,
@@ -291,6 +291,7 @@ class AwsCloudService {
         } catch (e) {
           debugPrint('JSON parsing failed for explain: $e. Falling back to default guide.');
            return {
+            'translation': 'N/A (Fallback)',
             'explanation': response.answer,
             'meaning': response.answer,
             'confidence': response.confidence,

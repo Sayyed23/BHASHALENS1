@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'smart_hybrid_router.dart';
 import 'aws_cloud_service.dart';
@@ -354,7 +356,22 @@ class HybridTranslationService {
         text,
         targetLanguage: targetLanguage,
       );
+      
+      try {
+        final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(result);
+        if (jsonMatch != null) {
+          final parsed = jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
+          parsed['model'] = 'gemini-on-device';
+          parsed['backend'] = 'gemini';
+          if (!parsed.containsKey('translation')) parsed['translation'] = 'N/A';
+          if (!parsed.containsKey('meaning')) parsed['meaning'] = parsed.containsKey('explanation') ? parsed['explanation'] : result;
+          return parsed;
+        }
+      } catch (_) {}
+
       return {
+        'translation': 'N/A (Fallback mode)',
+        'meaning': result,
         'explanation': result,
         'model': 'gemini-on-device',
         'backend': 'gemini',
