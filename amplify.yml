@@ -4,9 +4,9 @@ frontend:
     preBuild:
       commands:
         - 'echo "Phase: preBuild"'
-        - 'flutter config --no-analytics'
-        - 'git clone https://github.com/flutter/flutter.git -b stable --depth 1'
+        - 'if [ ! -d "flutter" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi'
         - 'export PATH="$PATH:$(pwd)/flutter/bin"'
+        - 'flutter config --no-analytics'
         - 'flutter precache --web'
         - 'flutter config --enable-web'
         - 'cd bhashalens_app && flutter pub get'
