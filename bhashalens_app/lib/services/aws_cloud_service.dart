@@ -273,10 +273,18 @@ class AwsCloudService {
       if (response.success) {
         try {
           // Attempt to parse JSON from the response
+          void ensureKeys(Map<String, dynamic> map) {
+            if (!map.containsKey('translation') || map['translation'] == null) map['translation'] = 'N/A';
+            if (!map.containsKey('meaning') || map['meaning'] == null) {
+              map['meaning'] = map.containsKey('explanation') ? map['explanation'] : 'Meaning not available.';
+            }
+          }
+          
           final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(response.answer);
           if (jsonMatch != null) {
             final jsonStr = jsonMatch.group(0)!;
             final parsedMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+            ensureKeys(parsedMap);
             parsedMap['confidence'] = response.confidence;
             parsedMap['sources'] = response.sources;
             parsedMap['model'] = 'aws-bedrock';
@@ -284,6 +292,7 @@ class AwsCloudService {
           }
           
           final fallbackMap = jsonDecode(response.answer) as Map<String, dynamic>;
+          ensureKeys(fallbackMap);
           fallbackMap['confidence'] = response.confidence;
           fallbackMap['sources'] = response.sources;
           fallbackMap['model'] = 'aws-bedrock';
