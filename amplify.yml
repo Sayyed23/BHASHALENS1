@@ -4,6 +4,8 @@ frontend:
     preBuild:
       commands:
         - 'echo "Phase: preBuild"'
+        - 'echo "Current directory: $(pwd)"'
+        - 'ls -la'
         - 'if [ ! -d "flutter" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi'
         - 'export PATH="$PATH:$(pwd)/flutter/bin"'
         - 'flutter config --no-analytics'
@@ -13,6 +15,8 @@ frontend:
     build:
       commands:
         - 'echo "Phase: build"'
+        - 'echo "Current directory: $(pwd)"'
+        - 'ls -la'
         - 'export PATH="$PATH:$(pwd)/flutter/bin"'
         - 'cd bhashalens_app && flutter build web --release'
   artifacts:
