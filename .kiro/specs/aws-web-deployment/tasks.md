@@ -126,7 +126,7 @@
   - [x] 20.6 Implemented pagination, search, and filtering
   - [x] 20.7 Added export functionality in UI
 
-## Phase 5: Amplify Deployment & Final Verification (In Progress)
+## Phase 5: Amplify Deployment & Final Verification (Completed)
 - [x] 21. Configure Amplify Module in Terraform
   - Created terraform/modules/amplify/ module
   - Configured build settings for Flutter web
@@ -147,7 +147,61 @@
   - Configure SSL/TLS certificates via ACM
   - Test custom domain access
 
-- [ ] 24. Run Final Verification
+## Phase 6: Bedrock Integration for Assist, Explain & Simplify Modes
+- [ ] 28. Integrate AWS Bedrock in Explain Mode
+  - [x] 28.1 AWS Cloud Service already has explainText method
+  - [ ] 28.2 Update ExplainModePage to use AWS Bedrock via AwsCloudService
+  - [ ] 28.3 Add fallback to Gemini when AWS is unavailable
+  - [ ] 28.4 Display backend indicator (Bedrock/Gemini/Offline) in UI
+  - [ ] 28.5 Test explain mode on web and mobile (APK)
+  - [ ] 28.6 Add loading states and error handling
+
+- [ ] 29. Integrate AWS Bedrock in Assistant Mode
+  - [x] 29.1 AWS Cloud Service already has practiceConversation and getBasicGuide methods
+  - [ ] 29.2 Update AssistantModePage to use AWS Bedrock for roleplay
+  - [ ] 29.3 Update chat functionality to use AWS Bedrock
+  - [ ] 29.4 Add fallback to Gemini when AWS is unavailable
+  - [ ] 29.5 Display backend indicator in UI
+  - [ ] 29.6 Test assistant mode on web and mobile (APK)
+  - [ ] 29.7 Add loading states and error handling
+
+- [ ] 30. Add Simplify Mode Page
+  - [ ] 30.1 Create simplify_mode_page.dart
+  - [ ] 30.2 Implement UI with text input and complexity selector
+  - [ ] 30.3 Integrate AWS Bedrock simplifyText method
+  - [ ] 30.4 Add fallback to Gemini when AWS is unavailable
+  - [ ] 30.5 Display simplified text with optional explanation
+  - [ ] 30.6 Add route in main.dart
+  - [ ] 30.7 Add navigation from home page
+  - [ ] 30.8 Test simplify mode on web and mobile (APK)
+
+- [ ] 31. Update Hybrid Translation Service
+  - [ ] 31.1 Add explainText method that routes to AWS/Gemini
+  - [ ] 31.2 Add simplifyText method that routes to AWS/Gemini
+  - [ ] 31.3 Add chat method that routes to AWS/Gemini
+  - [ ] 31.4 Update routing logic in SmartHybridRouter
+  - [ ] 31.5 Add circuit breaker for AWS Bedrock endpoints
+  - [ ] 31.6 Test fallback chain: Bedrock → Gemini → Offline
+
+- [ ] 32. Add Backend Indicators in UI
+  - [ ] 32.1 Create backend_indicator_widget.dart
+  - [ ] 32.2 Show "Powered by AWS Bedrock" when using AWS
+  - [ ] 32.3 Show "Powered by Gemini" when using Gemini
+  - [ ] 32.4 Show "Offline Mode" when using offline services
+  - [ ] 32.5 Add to Explain, Assistant, and Simplify modes
+  - [ ] 32.6 Make indicator dismissible or collapsible
+
+- [ ] 33. Test Cross-Platform Functionality
+  - [ ] 33.1 Test Explain mode on web browser
+  - [ ] 33.2 Test Explain mode on Android APK
+  - [ ] 33.3 Test Assistant mode on web browser
+  - [ ] 33.4 Test Assistant mode on Android APK
+  - [ ] 33.5 Test Simplify mode on web browser
+  - [ ] 33.6 Test Simplify mode on Android APK
+  - [ ] 33.7 Verify AWS Bedrock integration works on both platforms
+  - [ ] 33.8 Verify fallback to Gemini works on both platforms
+
+- [ ] 34. Run Final Verification
   - Test all API endpoints from web app
   - Verify authentication flow
   - Test translation with cloud backend
@@ -156,24 +210,27 @@
   - Test export functionality
   - Verify offline-to-online transitions
   - Check CloudWatch logs and metrics
+  - Test Explain, Assistant, and Simplify modes with Bedrock
 
-- [ ] 25. Performance Testing
+- [ ] 35. Performance Testing
   - Test web app load time (target: < 3 seconds)
   - Test API response times (target: < 5 seconds for translation)
+  - Test Bedrock response times (target: < 5 seconds)
   - Test with multiple concurrent users
   - Verify caching and CDN performance
 
-- [ ] 26. Security Audit
+- [ ] 36. Security Audit
   - Review IAM policies for least privilege
   - Verify encryption at rest and in transit
   - Test authentication and authorization
   - Check for exposed secrets or credentials
   - Review CloudTrail logs
 
-- [ ] 27. Documentation & Handoff
+- [ ] 37. Documentation & Handoff
   - Update deployment documentation
   - Document API endpoints and authentication
   - Create user guide for web app features
+  - Document Bedrock integration
   - Document troubleshooting procedures
   - Create runbook for operations team
 
