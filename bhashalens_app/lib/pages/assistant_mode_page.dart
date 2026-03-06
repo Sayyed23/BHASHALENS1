@@ -472,7 +472,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
             // Recommendation Card
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: cardDark,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.white10),

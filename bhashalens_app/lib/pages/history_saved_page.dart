@@ -123,8 +123,8 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           // Custom Tab Bar
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
