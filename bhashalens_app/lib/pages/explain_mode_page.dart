@@ -152,6 +152,18 @@ class _ExplainModePageState extends State<ExplainModePage>
     }
   }
 
+  String _getLanguageCode(String languageName) {
+    if (languageName == 'Auto-detected' || languageName == 'Auto') return 'auto';
+    try {
+      final entry = VoiceTranslationService.supportedLanguages.entries.firstWhere(
+        (e) => e.value.toLowerCase() == languageName.toLowerCase(),
+      );
+      return entry.key;
+    } catch (e) {
+      return 'en'; // default
+    }
+  }
+
   Future<void> _explainWithContext() async {
     final text = _inputController.text.trim();
     if (text.isEmpty) {
@@ -201,10 +213,10 @@ class _ExplainModePageState extends State<ExplainModePage>
         // Use online Hybrid service
         final result = await hybridService.explainText(
           text: text,
-          targetLanguage: _selectedOutputLanguage.toLowerCase().substring(0, 2),
+          targetLanguage: _getLanguageCode(_selectedOutputLanguage),
           sourceLanguage: _selectedInputLanguage == 'Auto-detected'
               ? null
-              : _selectedInputLanguage.toLowerCase().substring(0, 2),
+              : _getLanguageCode(_selectedInputLanguage),
         );
 
         if (mounted) {
@@ -238,6 +250,66 @@ class _ExplainModePageState extends State<ExplainModePage>
             context,
           ).showSnackBar(SnackBar(content: Text('Failed to explain: $e')));
         }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _simplifyText() async {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter or scan some text first.')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isProcessing = true;
+      _contextData = null;
+    });
+    FocusScope.of(context).unfocus();
+
+    final hybridService =
+        Provider.of<HybridTranslationService>(context, listen: false);
+
+    try {
+      final result = await hybridService.simplifyText(
+        text: text,
+        targetComplexity: 'simple',
+        language: _getLanguageCode(_selectedOutputLanguage),
+        includeExplanation: true,
+      );
+
+      if (mounted) {
+        if (result.success) {
+           setState(() {
+             _contextData = {
+                'translation': result.simplifiedText,
+                'meaning': result.explanation ?? 'Simplified version of your text.',
+                'when_to_use': 'Use this simplified text when you need a clear, easy-to-understand version of the original.',
+                'tone': 'Simple and direct',
+                'cultural_insight': 'Simplified to reduce complexity and improve readability.',
+             };
+          });
+        } else {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Failed to simplify: ${result.error}')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -351,10 +423,7 @@ class _ExplainModePageState extends State<ExplainModePage>
       appBar: AppBar(
         backgroundColor: bgDark.withValues(alpha: 0.9),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: primaryBlue),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, // Prevents default back button
         title: Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -883,41 +952,84 @@ class _ExplainModePageState extends State<ExplainModePage>
                                 ],
                               ),
                               const SizedBox(height: 24),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton.icon(
-                                  onPressed: _isProcessing
-                                      ? null
-                                      : _explainWithContext,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  icon: _isProcessing
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 56,
+                                      child: ElevatedButton.icon(
+                                        onPressed: _isProcessing
+                                            ? null
+                                            : _explainWithContext,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: primaryBlue,
+                                          foregroundColor: Colors.white,
+                                          elevation: 2,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
                                           ),
-                                        )
-                                      : const Icon(Icons.auto_awesome),
-                                  label: Text(
-                                    _isProcessing
-                                        ? "Analyzing..."
-                                        : "Explain Context",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                        ),
+                                        icon: _isProcessing
+                                            ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : const Icon(Icons.auto_awesome),
+                                        label: Text(
+                                          _isProcessing
+                                              ? "Analyzing..."
+                                              : "Explain Context",
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 56,
+                                      child: ElevatedButton.icon(
+                                        onPressed: _isProcessing
+                                            ? null
+                                            : _simplifyText,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.purple.withValues(alpha:0.8),
+                                          foregroundColor: Colors.white,
+                                          elevation: 2,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                        ),
+                                        icon: _isProcessing
+                                            ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : const Icon(Icons.compress),
+                                        label: Text(
+                                          _isProcessing
+                                              ? "Simplifying..."
+                                              : "Simplify Text",
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
                               ),
                             ],
                           ),

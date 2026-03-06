@@ -255,20 +255,49 @@ class AwsCloudService {
   }) async {
     try {
       final response = await answerQuestion(
-        question: "Explain the following text in detail. Provide context, key terms, and cultural nuances if applicable. Text: $text",
+        question: "Analyze and explain the following text. Return ONLY a valid JSON object. ALL JSON string values (except the translation, if the target language is different) must be written in the specified target language. The JSON must contain exactly these keys:\n"
+            "- 'translation': A direct translation of the text into the target language.\n"
+            "- 'meaning': A detailed explanation of what the text means in the target language.\n"
+            "- 'when_to_use': Situations where this text is used.\n"
+            "- 'tone': The emotional tone of the text.\n"
+            "- 'cultural_insight': Any cultural nuances or context.\n"
+            "- 'safety_note': Any warnings or important notes.\n"
+            "- 'situational_context': A JSON array of strings showing examples of usage.\n"
+            "- 'suggested_questions': A JSON array of strings with follow-up questions to ask.\n"
+            "Text: $text",
         language: targetLanguage,
         context: "The source language is ${sourceLanguage ?? 'unknown'}.",
         userId: userId,
       );
 
       if (response.success) {
-        // Parse the answer into a map if possible, or return as 'explanation'
-        return {
-          'explanation': response.answer,
-          'confidence': response.confidence,
-          'sources': response.sources,
-          'model': 'aws-bedrock',
-        };
+        try {
+          // Attempt to parse JSON from the response
+          final jsonMatch = RegExp(r'\{.*\}', dotAll: true).firstMatch(response.answer);
+          if (jsonMatch != null) {
+            final jsonStr = jsonMatch.group(0)!;
+            final parsedMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+            parsedMap['confidence'] = response.confidence;
+            parsedMap['sources'] = response.sources;
+            parsedMap['model'] = 'aws-bedrock';
+            return parsedMap;
+          }
+          
+          final fallbackMap = jsonDecode(response.answer) as Map<String, dynamic>;
+          fallbackMap['confidence'] = response.confidence;
+          fallbackMap['sources'] = response.sources;
+          fallbackMap['model'] = 'aws-bedrock';
+          return fallbackMap;
+        } catch (e) {
+          debugPrint('JSON parsing failed for explain: $e. Falling back to default guide.');
+           return {
+            'explanation': response.answer,
+            'meaning': response.answer,
+            'confidence': response.confidence,
+            'sources': response.sources,
+            'model': 'aws-bedrock',
+          };
+        }
       }
       throw Exception(response.error ?? 'Unknown error');
     } catch (e) {

@@ -145,13 +145,14 @@ def invoke_bedrock(prompt):
     request_body = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 2048, "temperature": 0.7,
+        "messages": [{"role": "user", "content": prompt}]
+    }
     response = bedrock_runtime.invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body))
     response_body = json.loads(response['body'].read())
     content = response_body.get('content', [])
     if not content or 'text' not in content[0]:
         raise ValueError("Unexpected Bedrock response format")
-    return content[0]['text'].strip()    response = bedrock_runtime.invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body))
-    return json.loads(response['body'].read())['content'][0]['text'].strip()
+    return content[0]['text'].strip()
 
 def invoke_gemini(prompt):
     res = gemini_model.generate_content(prompt)

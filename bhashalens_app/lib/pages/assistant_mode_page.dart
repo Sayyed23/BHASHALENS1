@@ -291,18 +291,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(color: cardDark, shape: BoxShape.circle),
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, // Prevents default back button
         title: const Text(
           'Assistant Mode',
           style: TextStyle(
