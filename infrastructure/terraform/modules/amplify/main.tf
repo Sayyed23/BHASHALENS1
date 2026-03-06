@@ -15,19 +15,14 @@ resource "aws_amplify_app" "bhashalens_web" {
         preBuild:
           commands:
             - echo "Phase: preBuild"
-            - echo "Installing Flutter..."
-            - git clone https://github.com/flutter/flutter.git -b stable
+            - git clone https://github.com/flutter/flutter.git -b stable --depth 1
             - export PATH="$PATH:$(pwd)/flutter/bin"
             - flutter config --enable-web
-            - echo "Resolving dependencies..."
             - cd bhashalens_app && flutter pub get
         build:
           commands:
             - echo "Phase: build"
             - export PATH="$PATH:$(pwd)/flutter/bin"
-            - echo "Checking Flutter version..."
-            - flutter --version
-            - echo "Building BhashaLens Flutter Web App..."
             - cd bhashalens_app && flutter build web --release
       artifacts:
         baseDirectory: bhashalens_app/build/web

@@ -9,9 +9,6 @@ class LocalStorageService {
   static SharedPreferences? _preferences;
 
   Future<Database> get database async {
-    if (kIsWeb) {
-      throw UnsupportedError('SQLite is not supported on the web');
-    }
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
@@ -31,6 +28,11 @@ class LocalStorageService {
   }
 
   Future<Database> _initDatabase() async {
+    if (kIsWeb) {
+      // Return a dummy operation or handle elsewhere. sqflite doesn't support web.
+      // We will ensure all SQLite calls are gated by kIsWeb.
+      throw UnsupportedError('SQLite not supported on Web');
+    }
     String path = join(await getDatabasesPath(), 'bhashalens.db');
     return openDatabase(
       path,
