@@ -1625,11 +1625,11 @@ class _ExplainModePageState extends State<ExplainModePage>
   void _speakInOutputLanguage(String? text) {
     if (text == null || text.isEmpty) return;
 
-    final sarvamService = Provider.of<SarvamService>(context, listen: false);
-    final langEntry = sarvamService.getSupportedLanguages().firstWhere(
-          (l) => l['name'] == _selectedOutputLanguage,
-          orElse: () => {'code': 'en'},
-        );
+    final langEntry =
+        MlKitTranslationService().getSupportedLanguages().firstWhere(
+              (l) => l['name'] == _selectedOutputLanguage,
+              orElse: () => {'code': 'en'},
+            );
     final langCode = langEntry['code'] ?? 'en';
 
     Provider.of<VoiceTranslationService>(

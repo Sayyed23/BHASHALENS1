@@ -29,7 +29,7 @@ class HistoryItem {
           '',
       sourceLang: json['sourceLang'] as String? ?? '',
       targetLang: json['targetLang'] as String? ?? '',
-      timestamp: _parseTimestamp(json['timestamp']),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
       type: json['type'] as String?,
     );
   }

@@ -81,3 +81,6 @@ ENV/
 # Logs
 *.log
 logs/
+
+# Data sets (Large files)
+ml_pipeline/notebooks/bhashalens_ml/data/
