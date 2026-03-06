@@ -26,7 +26,7 @@ frontend:
     build:
       commands:
         # Build the Flutter web project
-        - flutter build web --release
+        - flutter build web --release --web-renderer html --no-tree-shake-icons
   artifacts:
     # Set the artifacts directory to the output of the web build
     baseDirectory: build/web
