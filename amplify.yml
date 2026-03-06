@@ -7,35 +7,51 @@ frontend:
         - 'echo "Working directory: $(pwd)"'
         - 'echo "Available disk space:"'
         - 'df -h'
+        # Capture project root before any directory changes
+        - 'export PROJECT_ROOT="$PWD"'
         # Prevent CI pipeline 'dubious ownership' errors when executing git commands inside cached folders
         - 'git config --global --add safe.directory "*"'
-        # Download Flutter SDK only if we don't already have it cached
-        - 'if [ -d "flutter/bin" ]; then echo "Using cached Flutter SDK"; else echo "Downloading Flutter SDK 3.24.0..." && wget -q -O flutter.tar.gz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.gz && echo "Extracting Flutter SDK..." && tar xzf flutter.tar.gz && rm flutter.tar.gz; fi'
-        # Set up Flutter environment
-        - 'export PATH="$PWD/flutter/bin:$PATH"'
-        - 'export PUB_CACHE="$PWD/.pub-cache"'
+        # Install Flutter conditionally
+        - |
+          if [ ! -d "$PROJECT_ROOT/flutter/bin" ]; then
+            echo "Downloading Flutter SDK 3.24.3..."
+            wget -q -O flutter.tar.gz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.3-stable.tar.gz
+            echo "Extracting Flutter SDK..."
+            tar xzf flutter.tar.gz
+            rm flutter.tar.gz
+          else
+            echo "Using cached Flutter SDK"
+          fi
+        # Set up Flutter environment using absolute PROJECT_ROOT path
+        - 'export PATH="$PROJECT_ROOT/flutter/bin:$PATH"'
+        - 'export PUB_CACHE="$PROJECT_ROOT/.pub-cache"'
+        - 'export FLUTTER_ROOT="$PROJECT_ROOT/flutter"'
         - 'flutter --version'
-        - 'flutter doctor -v'
         - 'flutter config --no-analytics'
         - 'flutter config --enable-web'
+        # Pre-cache web artifacts to avoid timeout during build phase
+        - 'flutter precache --web'
+        - 'flutter doctor -v'
         # Navigate to app directory and install dependencies
-        - 'cd bhashalens_app'
+        - 'cd "$PROJECT_ROOT/bhashalens_app"'
         - 'echo "Installing Flutter dependencies..."'
+        - 'flutter clean'
         - 'flutter pub get'
-        - 'cd ..'
         - 'echo "=== preBuild phase complete ==="'
     build:
       commands:
         - 'echo "=== Starting build phase ==="'
-        - 'export PATH="$PWD/flutter/bin:$PATH"'
-        - 'export PUB_CACHE="$PWD/.pub-cache"'
-        - 'cd bhashalens_app'
+        - 'export PROJECT_ROOT="$PWD"'
+        - 'export PATH="$PROJECT_ROOT/flutter/bin:$PATH"'
+        - 'export PUB_CACHE="$PROJECT_ROOT/.pub-cache"'
+        - 'export FLUTTER_ROOT="$PROJECT_ROOT/flutter"'
+        - 'cd "$PROJECT_ROOT/bhashalens_app"'
         - 'echo "Building Flutter web app for release..."'
-        # Build with optimizations
-        - 'flutter build web --release --web-renderer canvaskit --dart-define=FLUTTER_WEB_USE_SKIA=true --source-maps'
+        # Build with CanvasKit renderer (stable in Flutter 3.24)
+        - 'flutter build web --release --web-renderer canvaskit --source-maps'
         - 'echo "Build complete!"'
         - 'echo "Build output:"'
-        - 'ls -lah build/web'
+        - 'ls -lah "$PROJECT_ROOT/bhashalens_app/build/web"'
         - 'echo "=== build phase complete ==="'
   artifacts:
     baseDirectory: bhashalens_app/build/web
