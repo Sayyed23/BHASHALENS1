@@ -19,7 +19,6 @@ import 'package:bhashalens_app/pages/offline_models_page.dart';
 import 'package:bhashalens_app/pages/error_fallback_page.dart';
 import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
-import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -40,9 +39,13 @@ import 'package:bhashalens_app/services/db_initializer.dart';
 import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
 import 'package:bhashalens_app/services/aws_cloud_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/history_service.dart';
+import 'package:bhashalens_app/services/saved_translations_service.dart';
+import 'package:bhashalens_app/services/preferences_service.dart';
+import 'package:bhashalens_app/services/export_service.dart';
+import 'package:bhashalens_app/services/monitoring_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,31 +91,57 @@ void main() async {
   final providers = <SingleChildWidget>[
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
     Provider<LocalStorageService>.value(value: localStorageService),
-    Provider<SarvamService>(
-      create: (_) => SarvamService(
-        apiKey: dotenv.env['SARVAM_AI_API_KEY'] ?? '',
-        localStorageService: localStorageService,
-      )..initialize(),
-    ),
     Provider<AwsApiGatewayClient>(
       create: (_) => AwsApiGatewayClient(),
     ),
     ProxyProvider<AwsApiGatewayClient, AwsCloudService>(
       update: (_, apiClient, __) => AwsCloudService(apiClient: apiClient),
     ),
-    ProxyProvider3<AwsCloudService, SarvamService, LocalStorageService, HybridTranslationService>(
-      update: (_, awsCloud, sarvam, localStorage, __) => HybridTranslationService(
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        HistoryService>(
+      create: (context) => HistoryService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
+      )..fetchHistory(),
+      update: (_, apiClient, localStorage, history) => history!,
+    ),
+    ChangeNotifierProxyProvider<AwsApiGatewayClient, SavedTranslationsService>(
+      create: (context) => SavedTranslationsService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+      )..fetchSavedTranslations(),
+      update: (_, apiClient, saved) => saved!,
+    ),
+    ChangeNotifierProxyProvider<AwsApiGatewayClient, PreferencesService>(
+      create: (context) => PreferencesService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+      )..fetchPreferences(),
+      update: (_, apiClient, prefs) => prefs!,
+    ),
+    ChangeNotifierProxyProvider<AwsApiGatewayClient, ExportService>(
+      create: (context) => ExportService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+      ),
+      update: (_, apiClient, export) => export!,
+    ),
+    Provider<MonitoringService>(
+      create: (context) => MonitoringService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+      ),
+    ),
+    ProxyProvider2<AwsCloudService, LocalStorageService,
+        HybridTranslationService>(
+      update: (_, awsCloud, localStorage, __) => HybridTranslationService(
         cloudService: awsCloud,
-        sarvamService: sarvam,
         localStorageService: localStorage,
         onDeviceTranslation: MlKitTranslationService(),
         onDeviceLLM: GeminiService(localStorageService: localStorage),
       ),
     ),
-    ChangeNotifierProxyProvider<HybridTranslationService, VoiceTranslationService>(
+    ChangeNotifierProxyProvider<HybridTranslationService,
+        VoiceTranslationService>(
       create: (context) => VoiceTranslationService(
         localStorageService: localStorageService,
-        sarvamApiKey: dotenv.env['SARVAM_AI_API_KEY'] ?? '',
       ),
       update: (context, hybrid, voice) => voice!..hybridService = hybrid,
     ),

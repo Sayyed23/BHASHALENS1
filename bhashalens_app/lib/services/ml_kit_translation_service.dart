@@ -58,6 +58,11 @@ class MlKitTranslationService {
           return null;
         }
 
+        if (!(await isModelDownloaded('en'))) {
+          debugPrint('ML Kit: Model NOT downloaded for English language');
+          return null;
+        }
+
         debugPrint(
             'ML Kit: Starting direct translation ($sourceLanguage -> $targetLanguage)');
         final onDeviceTranslator = OnDeviceTranslator(
@@ -82,6 +87,12 @@ class MlKitTranslationService {
         return null;
       }
 
+      if (!(await isModelDownloaded('en'))) {
+        debugPrint(
+            'ML Kit: English model not downloaded (required for intermediate step)');
+        return null;
+      }
+
       final toEnglishTranslator = OnDeviceTranslator(
         sourceLanguage: sourceLang,
         targetLanguage: TranslateLanguage.english,
@@ -101,12 +112,6 @@ class MlKitTranslationService {
       // Step 2: English -> Target language
       if (!(await isModelDownloaded(targetLanguage))) {
         debugPrint('ML Kit: Target model not downloaded: $targetLanguage');
-        return null;
-      }
-
-      if (!(await isModelDownloaded('en'))) {
-        debugPrint(
-            'ML Kit: English model not downloaded (required for intermediate step)');
         return null;
       }
 

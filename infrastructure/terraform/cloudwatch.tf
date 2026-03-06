@@ -3,16 +3,16 @@
 # CloudWatch Dashboard
 resource "aws_cloudwatch_dashboard" "bhashalens_dashboard" {
   dashboard_name = "${var.project_name}-dashboard"
-  
+
   dashboard_body = jsonencode({
     widgets = [
       {
         type = "metric"
         properties = {
           metrics = [
-            ["AWS/Lambda", "Invocations", { stat = "Sum", label = "Translation Invocations" }],
-            [".", ".", { stat = "Sum", label = "Assistance Invocations" }],
-            [".", ".", { stat = "Sum", label = "Simplification Invocations" }]
+            ["AWS/Lambda", "Invocations", "FunctionName", aws_lambda_function.translation.function_name, { stat = "Sum", label = "Translation Invocations" }],
+            ["AWS/Lambda", "Invocations", "FunctionName", aws_lambda_function.assistance.function_name, { stat = "Sum", label = "Assistance Invocations" }],
+            ["AWS/Lambda", "Invocations", "FunctionName", aws_lambda_function.simplification.function_name, { stat = "Sum", label = "Simplification Invocations" }]
           ]
           period = 300
           stat   = "Sum"
@@ -92,9 +92,9 @@ resource "aws_cloudwatch_dashboard" "bhashalens_dashboard" {
         type = "metric"
         properties = {
           metrics = [
-            ["BhashaLens", "ProcessingTime", { stat = "Average", dimensions = { Operation = "Translation" } }],
-            [".", ".", { stat = "Average", dimensions = { Operation = "Assistance_grammar" } }],
-            [".", ".", { stat = "Average", dimensions = { Operation = "Simplification" } }]
+            ["BhashaLens", "ProcessingTime", "Operation", "Translation"],
+            [".", ".", "Operation", "Assistance_grammar"],
+            [".", ".", "Operation", "Simplification"]
           ]
           period = 300
           stat   = "Average"
@@ -120,11 +120,11 @@ resource "aws_cloudwatch_metric_alarm" "translation_lambda_errors" {
   threshold           = "5"
   alarm_description   = "Alert when translation Lambda has errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     FunctionName = aws_lambda_function.translation.function_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-translation-lambda-errors"
   }
@@ -139,14 +139,14 @@ resource "aws_cloudwatch_metric_alarm" "translation_lambda_duration" {
   namespace           = "AWS/Lambda"
   period              = "300"
   statistic           = "Average"
-  threshold           = "5000"  # 5 seconds
+  threshold           = "5000" # 5 seconds
   alarm_description   = "Alert when translation Lambda duration exceeds 5 seconds"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     FunctionName = aws_lambda_function.translation.function_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-translation-lambda-duration"
   }
@@ -164,11 +164,11 @@ resource "aws_cloudwatch_metric_alarm" "assistance_lambda_errors" {
   threshold           = "5"
   alarm_description   = "Alert when assistance Lambda has errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     FunctionName = aws_lambda_function.assistance.function_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-assistance-lambda-errors"
   }
@@ -186,11 +186,11 @@ resource "aws_cloudwatch_metric_alarm" "simplification_lambda_errors" {
   threshold           = "5"
   alarm_description   = "Alert when simplification Lambda has errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     FunctionName = aws_lambda_function.simplification.function_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-simplification-lambda-errors"
   }
@@ -210,11 +210,11 @@ resource "aws_cloudwatch_metric_alarm" "api_gateway_5xx_errors" {
   threshold           = "10"
   alarm_description   = "Alert when API Gateway has 5XX errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ApiName = aws_api_gateway_rest_api.bhashalens_api.name
   }
-  
+
   tags = {
     Name = "${var.project_name}-api-gateway-5xx-errors"
   }
@@ -229,14 +229,14 @@ resource "aws_cloudwatch_metric_alarm" "api_gateway_latency" {
   namespace           = "AWS/ApiGateway"
   period              = "300"
   statistic           = "Average"
-  threshold           = "5000"  # 5 seconds
+  threshold           = "5000" # 5 seconds
   alarm_description   = "Alert when API Gateway latency exceeds 5 seconds"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ApiName = aws_api_gateway_rest_api.bhashalens_api.name
   }
-  
+
   tags = {
     Name = "${var.project_name}-api-gateway-latency"
   }
@@ -256,11 +256,11 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb_user_errors" {
   threshold           = "10"
   alarm_description   = "Alert when DynamoDB has user errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
-    TableName = aws_dynamodb_table.translation_history.name
+    TableName = module.dynamodb.translation_history_table_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-dynamodb-user-errors"
   }
@@ -278,11 +278,11 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb_system_errors" {
   threshold           = "5"
   alarm_description   = "Alert when DynamoDB has system errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
-    TableName = aws_dynamodb_table.translation_history.name
+    TableName = module.dynamodb.translation_history_table_name
   }
-  
+
   tags = {
     Name = "${var.project_name}-dynamodb-system-errors"
   }

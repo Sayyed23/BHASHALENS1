@@ -3,29 +3,28 @@ import 'smart_hybrid_router.dart';
 import 'aws_cloud_service.dart';
 import 'ml_kit_translation_service.dart';
 import 'gemini_service.dart';
-import 'sarvam_service.dart';
 import 'local_storage_service.dart';
 
 /// Unified translation service that routes between on-device and cloud
 class HybridTranslationService {
   final SmartHybridRouter _router;
   final AwsCloudService _cloudService;
-  final SarvamService _sarvamService;
   final MlKitTranslationService _onDeviceTranslation;
   final GeminiService _onDeviceLLM;
+  final LocalStorageService _localStorageService;
 
   HybridTranslationService({
     SmartHybridRouter? router,
     required AwsCloudService cloudService,
-    required SarvamService sarvamService,
     required LocalStorageService localStorageService,
     MlKitTranslationService? onDeviceTranslation,
     GeminiService? onDeviceLLM,
   })  : _router = router ?? SmartHybridRouter(),
         _cloudService = cloudService,
-        _sarvamService = sarvamService,
+        _localStorageService = localStorageService,
         _onDeviceTranslation = onDeviceTranslation ?? MlKitTranslationService(),
-        _onDeviceLLM = onDeviceLLM ?? GeminiService(localStorageService: localStorageService);
+        _onDeviceLLM = onDeviceLLM ??
+            GeminiService(localStorageService: localStorageService);
 
   /// Translate text with hybrid routing
   Future<HybridTranslationResult> translateText({
@@ -44,8 +43,8 @@ class HybridTranslationService {
     final startTime = DateTime.now();
 
     try {
-      if (backend == ProcessingBackend.awsCloud) {
-        // Try AWS cloud
+      if (backend == ProcessingBackend.awsBedrock) {
+        // Try AWS Bedrock
         final cloudResult = await _cloudService.translateText(
           sourceText: sourceText,
           sourceLang: sourceLang,
@@ -57,36 +56,50 @@ class HybridTranslationService {
           return HybridTranslationResult(
             translatedText: cloudResult.translatedText,
             confidence: cloudResult.confidence,
-            backend: ProcessingBackend.awsCloud,
+            backend: ProcessingBackend.awsBedrock,
             processingTimeMs: cloudResult.processingTimeMs,
             success: true,
           );
         }
-        debugPrint('AWS Cloud translation failed, falling back...');
-      } else if (backend == ProcessingBackend.sarvam) {
-        // Try Sarvam cloud
+        debugPrint('AWS Bedrock translation failed, falling back to Gemini...');
+      }
+
+      if (backend == ProcessingBackend.awsBedrock ||
+          backend == ProcessingBackend.gemini) {
+        // Try Gemini (either as primary choice or fallback from Bedrock)
         try {
-          final sarvamResult = await _sarvamService.translateText(
+          final geminiResult = await _onDeviceLLM.translateText(
             sourceText,
-            _sarvamService.mapLanguageCode(targetLang),
-            sourceLanguage: sourceLang == 'auto' ? null : _sarvamService.mapLanguageCode(sourceLang),
+            targetLang,
           );
 
           final processingTime = DateTime.now().difference(startTime);
 
-          return HybridTranslationResult(
-            translatedText: sarvamResult,
-            confidence: 0.95,
-            backend: ProcessingBackend.sarvam,
+          final result = HybridTranslationResult(
+            translatedText: geminiResult,
+            confidence: 0.90, // Gemini estimated confidence
+            backend: ProcessingBackend.gemini,
             processingTimeMs: processingTime.inMilliseconds,
             success: true,
           );
+
+          // Save to local history for sync
+          _saveToLocalHistory(
+            sourceText: sourceText,
+            targetText: geminiResult,
+            sourceLang: sourceLang,
+            targetLang: targetLang,
+            backend: 'gemini',
+          );
+
+          return result;
         } catch (e) {
-          debugPrint('Sarvam translation failed: $e');
+          debugPrint(
+              'Gemini translation failed: $e, falling back to ML Kit...');
         }
       }
 
-      // Use on-device translation
+      // Use ML Kit translation (either as primary choice or fallback from Gemini)
       final onDeviceResult = await _onDeviceTranslation.translate(
         text: sourceText,
         sourceLanguage: sourceLang,
@@ -94,14 +107,28 @@ class HybridTranslationService {
       );
 
       final processingTime = DateTime.now().difference(startTime);
+      final translatedText = onDeviceResult ?? '';
 
-      return HybridTranslationResult(
-        translatedText: onDeviceResult ?? '',
+      final result = HybridTranslationResult(
+        translatedText: translatedText,
         confidence: 0.85, // ML Kit doesn't provide confidence
-        backend: ProcessingBackend.onDevice,
+        backend: ProcessingBackend.mlKit,
         processingTimeMs: processingTime.inMilliseconds,
         success: true,
       );
+
+      // Save to local history for sync
+      if (translatedText.isNotEmpty) {
+        _saveToLocalHistory(
+          sourceText: sourceText,
+          targetText: translatedText,
+          sourceLang: sourceLang,
+          targetLang: targetLang,
+          backend: 'ml_kit',
+        );
+      }
+
+      return result;
     } catch (e) {
       debugPrint('Translation error: $e');
       return HybridTranslationResult(
@@ -131,8 +158,8 @@ class HybridTranslationService {
     final startTime = DateTime.now();
 
     try {
-      if (backend == ProcessingBackend.awsCloud) {
-        // Try cloud first
+      if (backend == ProcessingBackend.awsBedrock) {
+        // Try AWS Bedrock first
         final cloudResult = await _cloudService.checkGrammar(
           text: text,
           language: language,
@@ -143,16 +170,16 @@ class HybridTranslationService {
           return HybridGrammarResult(
             response: cloudResult.response,
             corrections: cloudResult.corrections,
-            backend: ProcessingBackend.awsCloud,
+            backend: ProcessingBackend.awsBedrock,
             processingTimeMs: cloudResult.processingTimeMs,
             success: true,
           );
         }
 
-        debugPrint('Cloud grammar check failed, falling back to on-device');
+        debugPrint('AWS Bedrock grammar check failed, falling back to Gemini');
       }
 
-      // Use on-device LLM (Gemini)
+      // Use Gemini (either as primary choice or fallback)
       final onDeviceResult = await _onDeviceLLM.refineText(
         text,
         style: 'polite', // Default to polite for grammar corrections
@@ -163,7 +190,7 @@ class HybridTranslationService {
       return HybridGrammarResult(
         response: onDeviceResult,
         corrections: [], // Gemini returns text, not structured corrections
-        backend: ProcessingBackend.onDevice,
+        backend: ProcessingBackend.gemini,
         processingTimeMs: processingTime.inMilliseconds,
         success: true,
       );
@@ -198,8 +225,8 @@ class HybridTranslationService {
     final startTime = DateTime.now();
 
     try {
-      if (backend == ProcessingBackend.awsCloud) {
-        // Try cloud first
+      if (backend == ProcessingBackend.awsBedrock) {
+        // Try AWS Bedrock first
         final cloudResult = await _cloudService.simplifyText(
           text: text,
           targetComplexity: targetComplexity,
@@ -212,16 +239,16 @@ class HybridTranslationService {
           return HybridSimplificationResult(
             simplifiedText: cloudResult.simplifiedText,
             explanation: cloudResult.explanation,
-            backend: ProcessingBackend.awsCloud,
+            backend: ProcessingBackend.awsBedrock,
             processingTimeMs: cloudResult.processingTimeMs,
             success: true,
           );
         }
 
-        debugPrint('Cloud simplification failed, falling back to on-device');
+        debugPrint('AWS Bedrock simplification failed, falling back to Gemini');
       }
 
-      // Use on-device LLM (Gemini)
+      // Use Gemini
       final onDeviceResult = await _onDeviceLLM.explainAndSimplify(
         text,
         simplicity: targetComplexity,
@@ -233,7 +260,7 @@ class HybridTranslationService {
       return HybridSimplificationResult(
         simplifiedText: onDeviceResult,
         explanation: null,
-        backend: ProcessingBackend.onDevice,
+        backend: ProcessingBackend.gemini,
         processingTimeMs: processingTime.inMilliseconds,
         success: true,
       );
@@ -249,7 +276,6 @@ class HybridTranslationService {
       );
     }
   }
-
 
   /// Chat with assistant with hybrid routing
   Future<String> chat({
@@ -268,24 +294,29 @@ class HybridTranslationService {
     final backend = await _router.routeAssistance(context);
 
     try {
-      if (backend == ProcessingBackend.awsCloud) {
+      if (backend == ProcessingBackend.awsBedrock) {
         final response = await _cloudService.practiceConversation(
           userMessage: message,
           language: language ?? 'English',
           conversationHistory: history ?? [],
           userId: userId,
         );
-        return response.success ? response.response : 'Error in cloud conversation';
-      } else if (backend == ProcessingBackend.sarvam) {
-        return await _sarvamService.chatWithAssistant(message, history: history);
+        if (response.success) {
+          return response.response;
+        }
       }
 
-      // On-device fallback
+      // Fallback to Gemini
       final result = await _onDeviceLLM.refineText(message);
       return result;
     } catch (e) {
-      debugPrint('Hybrid chat failed, falling back to Sarvam');
-      return await _sarvamService.chatWithAssistant(message, history: history);
+      debugPrint('Hybrid chat failed, falling back to Gemini');
+      try {
+        return await _onDeviceLLM.refineText(message);
+      } catch (fallbackError) {
+        debugPrint('Gemini fallback also failed: $fallbackError');
+        return 'Chat service is currently unavailable. Please try again later.';
+      }
     }
   }
 
@@ -305,22 +336,20 @@ class HybridTranslationService {
     final backend = await _router.routeAssistance(context);
 
     try {
-      if (backend == ProcessingBackend.awsCloud) {
-        return await _cloudService.explainText(
-          text: text,
-          targetLanguage: targetLanguage,
-          sourceLanguage: sourceLanguage,
-          userId: userId,
-        );
-      } else if (backend == ProcessingBackend.sarvam) {
-        return await _sarvamService.explainText(
-          text,
-          targetLanguage: _sarvamService.mapLanguageCode(targetLanguage),
-          sourceLanguage: sourceLanguage != null ? _sarvamService.mapLanguageCode(sourceLanguage) : null,
-        );
+      if (backend == ProcessingBackend.awsBedrock) {
+        try {
+          return await _cloudService.explainText(
+            text: text,
+            targetLanguage: targetLanguage,
+            sourceLanguage: sourceLanguage,
+            userId: userId,
+          );
+        } catch (e) {
+          debugPrint('AWS Bedrock explain failed, falling back to Gemini');
+        }
       }
 
-      // On-device fallback
+      // Fallback to Gemini
       final result = await _onDeviceLLM.explainAndSimplify(
         text,
         targetLanguage: targetLanguage,
@@ -328,21 +357,44 @@ class HybridTranslationService {
       return {
         'explanation': result,
         'model': 'gemini-on-device',
-        'backend': 'onDevice',
+        'backend': 'gemini',
       };
     } catch (e) {
-      debugPrint('Hybrid explain failed, falling back to Sarvam');
-      return await _sarvamService.explainText(
-        text,
-        targetLanguage: _sarvamService.mapLanguageCode(targetLanguage),
-        sourceLanguage: sourceLanguage != null ? _sarvamService.mapLanguageCode(sourceLanguage) : null,
-      );
+      debugPrint('Hybrid explain failed: $e');
+      return {
+        'explanation': 'Explanation failed to generate.',
+        'model': 'error',
+        'backend': 'error',
+      };
     }
   }
 
   /// Dispose resources
   void dispose() {
     _router.dispose();
+  }
+
+  /// Helper to save offline translations to local history for cloud synchronization
+  void _saveToLocalHistory({
+    required String sourceText,
+    required String targetText,
+    required String sourceLang,
+    required String targetLang,
+    required String backend,
+    String? category,
+  }) {
+    _localStorageService.insertTranslation({
+      'originalText': sourceText,
+      'translatedText': targetText,
+      'sourceLanguage': sourceLang,
+      'targetLanguage': targetLang,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'isSynced': 0, // Mark for sync
+      'category': category ?? 'General',
+    }).catchError((e) {
+      debugPrint('Error saving local history for sync: $e');
+      return 0;
+    });
   }
 }
 

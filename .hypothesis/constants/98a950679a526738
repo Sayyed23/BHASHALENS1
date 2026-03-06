@@ -1,0 +1,4 @@
+# file: d:\BHASHALENS1\infrastructure\lambda\layers\shared\python\shared\error_handling.py
+# hypothesis_version: 6.151.9
+
+[500, '*', 'Content-Type', 'application/json', 'aws_request_id', 'body', 'details', 'error', 'headers', 'requestId', 'statusCode', 'unknown']

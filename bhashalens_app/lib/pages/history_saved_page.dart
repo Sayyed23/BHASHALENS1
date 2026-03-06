@@ -1,6 +1,6 @@
-import 'package:bhashalens_app/models/saved_translation.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart';
-
+import 'package:bhashalens_app/models/history_item.dart';
+import 'package:bhashalens_app/services/history_service.dart';
+import 'package:bhashalens_app/services/saved_translations_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 
 import 'package:flutter/material.dart';
@@ -21,7 +21,6 @@ class HistorySavedPage extends StatefulWidget {
 class _HistorySavedPageState extends State<HistorySavedPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late LocalStorageService _localStorageService;
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
@@ -41,15 +40,13 @@ class _HistorySavedPageState extends State<HistorySavedPage>
       initialIndex: widget.initialIndex,
     );
     _tabController.addListener(_handleTabSelection);
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _localStorageService = Provider.of<LocalStorageService>(
-      context,
-      listen: false,
-    );
+    // Fetch data on init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<HistoryService>(context, listen: false).fetchHistory();
+      Provider.of<SavedTranslationsService>(context, listen: false)
+          .fetchSavedTranslations();
+    });
   }
 
   @override
@@ -64,14 +61,17 @@ class _HistorySavedPageState extends State<HistorySavedPage>
     }
   }
 
-  Future<void> _toggleStar(SavedTranslation item) async {
-    if (item.id == null) return;
+  Future<void> _toggleSave(HistoryItem item) async {
+    final savedService =
+        Provider.of<SavedTranslationsService>(context, listen: false);
+    final isSaved = savedService.savedItems.any((i) => i.id == item.id);
+
     try {
-      await _localStorageService.updateTranslationStatus(
-        item.id!,
-        !item.isStarred,
-      );
-      setState(() {}); // Trigger rebuild
+      if (isSaved) {
+        await savedService.deleteSavedItem(item.id);
+      } else {
+        await savedService.saveItem(item);
+      }
     } catch (e) {
       debugPrint('Failed to toggle saved status: $e');
       if (mounted) {
@@ -82,17 +82,17 @@ class _HistorySavedPageState extends State<HistorySavedPage>
     }
   }
 
-  List<SavedTranslation> _filterList(List<SavedTranslation> source) {
+  List<HistoryItem> _filterList(List<HistoryItem> source) {
     return source.where((item) {
-      final matchesSearch =
-          item.originalText.toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          item.translatedText.toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-      final matchesFilter =
-          _selectedFilter == 'All' || item.category == _selectedFilter;
+      final matchesSearch = item.sourceText
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          item.targetText.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      // Match category by type for now, or assume General
+      final matchesFilter = _selectedFilter == 'All' ||
+          (item.type?.toLowerCase() == _selectedFilter.toLowerCase());
+
       return matchesSearch && matchesFilter;
     }).toList();
   }
@@ -257,73 +257,110 @@ class _HistorySavedPageState extends State<HistorySavedPage>
 
           // List Content
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _localStorageService.getSavedTranslations(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "No items found",
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  );
-                }
-
-                List<SavedTranslation> items = snapshot.data!
-                    .map((map) => SavedTranslation.fromMap(map))
-                    .toList();
-
-                // Filter by tab: History (all) vs Saved (isStarred)
-                if (_tabController.index == 1) {
-                  items = items.where((item) => item.isStarred).toList();
-                }
-
-                List<SavedTranslation> filteredItems = _filterList(items);
-
-                if (filteredItems.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "No matching items",
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: filteredItems.length,
-                  itemBuilder: (context, index) {
-                    final item = filteredItems[index];
-                    return _buildItemCard(item, cardColor);
-                  },
-                );
-              },
-            ),
+            child: _tabController.index == 0
+                ? Consumer<HistoryService>(
+                    builder: (context, service, _) {
+                      if (service.isLoading && service.history.isEmpty) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final filtered = _filterList(service.history);
+                      if (filtered.isEmpty) {
+                        return const Center(
+                            child: Text("No history items",
+                                style: TextStyle(color: Colors.white70)));
+                      }
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          await service.fetchHistory();
+                          await service.syncLocalHistoryWithCloud();
+                        },
+                        child: Stack(
+                          children: [
+                            ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) =>
+                                  _buildItemCard(filtered[index], cardColor),
+                            ),
+                            if (service.isSyncing)
+                              Positioned(
+                                top: 10,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF136DEC),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          "Syncing with cloud...",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  )
+                : Consumer<SavedTranslationsService>(
+                    builder: (context, service, _) {
+                      if (service.isLoading && service.savedItems.isEmpty) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final filtered = _filterList(service.savedItems);
+                      if (filtered.isEmpty) {
+                        return const Center(
+                            child: Text("No saved items",
+                                style: TextStyle(color: Colors.white70)));
+                      }
+                      return RefreshIndicator(
+                        onRefresh: () => service.fetchSavedTranslations(),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) =>
+                              _buildItemCard(filtered[index], cardColor),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildItemCard(SavedTranslation item, Color cardColor) {
-    // Grouping headers logic could go here if needed as per mock "TODAY"
-    // For simplicity, just the card for now.
+  Widget _buildItemCard(HistoryItem item, Color cardColor) {
+    bool isSaved = Provider.of<SavedTranslationsService>(context)
+        .savedItems
+        .any((i) => i.id == item.id);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -350,7 +387,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      "${item.fromLanguage.length >= 2 ? item.fromLanguage.substring(0, 2).toUpperCase() : item.fromLanguage.toUpperCase()} \u2192 ${item.toLanguage.length >= 2 ? item.toLanguage.substring(0, 2).toUpperCase() : item.toLanguage.toUpperCase()}",
+                      "${item.sourceLang.toUpperCase()} \u2192 ${item.targetLang.toUpperCase()}",
                       style: const TextStyle(
                         color: Color(0xFF3B82F6),
                         fontSize: 10,
@@ -360,9 +397,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    DateFormat.yMMMd().format(
-                      item.dateTime,
-                    ), // or 2 mins ago logic
+                    DateFormat.yMMMd().format(item.timestamp),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.4),
                       fontSize: 12,
@@ -379,24 +414,22 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () {
-                  // Options: Delete, Share
                   _showOptionsMs(item);
                 },
               ),
             ],
           ),
-          // Category Tag (Mock shows icons like Hospital, Restaurant)
           const SizedBox(height: 8),
           Row(
             children: [
               Icon(
-                _getCategoryIcon(item.category),
+                _getCategoryIcon(item.type ?? 'General'),
                 color: const Color(0xFF22C55E),
                 size: 14,
               ),
               const SizedBox(width: 4),
               Text(
-                item.category.toUpperCase(),
+                (item.type ?? 'General').toUpperCase(),
                 style: const TextStyle(
                   color: Color(0xFF22C55E),
                   fontSize: 11,
@@ -415,7 +448,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              item.originalText,
+              item.sourceText,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 14,
@@ -424,7 +457,6 @@ class _HistorySavedPageState extends State<HistorySavedPage>
             ),
           ),
           const SizedBox(height: 12),
-          // Left Bordered Result
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(left: 12),
@@ -434,7 +466,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               ),
             ),
             child: Text(
-              item.translatedText,
+              item.targetText,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -449,15 +481,10 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Speak
                     final voiceService = Provider.of<VoiceTranslationService>(
-                      context,
-                      listen: false,
-                    );
-                    voiceService.speakText(
-                      item.translatedText,
-                      item.toLanguage,
-                    );
+                        context,
+                        listen: false);
+                    voiceService.speakText(item.targetText, item.targetLang);
                   },
                   icon: const Icon(Icons.volume_up, size: 18),
                   label: const Text("Speak"),
@@ -471,26 +498,22 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    // Explain
-                    Navigator.pushNamed(
-                      context,
-                      '/explain_mode',
-                      arguments: item.originalText,
-                    ); // Pass text
-                  },
-                  icon: const Icon(Icons.psychology, size: 18),
-                  label: const Text("Explain"),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.8),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+              GestureDetector(
+                onTap: () => _toggleSave(item),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSaved
+                        ? const Color(0xFF136DEC)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
               ),
@@ -501,7 +524,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
     );
   }
 
-  void _showOptionsMs(SavedTranslation item) {
+  void _showOptionsMs(HistoryItem item) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E293B),
@@ -514,54 +537,26 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           children: [
             ListTile(
               leading: const Icon(Icons.copy, color: Colors.white),
-              title: const Text(
-                "Copy Translation",
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: item.translatedText));
+              title: const Text("Copy Translation",
+                  style: TextStyle(color: Colors.white)),
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: item.targetText));
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Translation copied to clipboard'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                item.isStarred ? Icons.bookmark_remove : Icons.bookmark_add,
-                color: Colors.white,
-              ),
-              title: Text(
-                item.isStarred ? "Unsave" : "Save",
-                style: const TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _toggleStar(item);
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Copied!')));
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
               title: const Text("Delete", style: TextStyle(color: Colors.red)),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(ctx);
-                if (item.id != null) {
-                  try {
-                    await _localStorageService.deleteTranslation(item.id!);
-                    setState(() {}); // Trigger rebuild
-                  } catch (e) {
-                    debugPrint('Failed to delete translation: $e');
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to delete translation'),
-                        ),
-                      );
-                    }
-                  }
+                if (_tabController.index == 0) {
+                  Provider.of<HistoryService>(context, listen: false)
+                      .deleteHistoryItem(item.id);
+                } else {
+                  Provider.of<SavedTranslationsService>(context, listen: false)
+                      .deleteSavedItem(item.id);
                 }
               },
             ),

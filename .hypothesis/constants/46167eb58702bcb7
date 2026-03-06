@@ -1,0 +1,4 @@
+# file: d:\BHASHALENS1\infrastructure\lambda\layers\shared\python\shared\logging_utils.py
+# hypothesis_version: 6.151.9
+
+[5000, 'AWS_REGION', 'BhashaLens', 'Count', 'Dimensions', 'Latency', 'MetricName', 'Milliseconds', 'Name', 'Operation', 'PerformanceTargetMet', 'ProcessingTime', 'RequestCount', 'Success', 'Time', 'Unit', 'Value', 'cloudwatch', 'us-east-1']

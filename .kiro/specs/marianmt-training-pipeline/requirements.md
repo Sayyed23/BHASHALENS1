@@ -2,44 +2,51 @@
 
 ## Introduction
 
-This document specifies the requirements for building an end-to-end machine learning pipeline to train, optimize, and deploy MarianMT neural machine translation models for the BhashaLens offline-first translation application. The pipeline will handle data collection from multiple sources, model training on AWS infrastructure, quantization for mobile deployment, and packaging for offline use in the Flutter app. The system supports five Indian languages (Hindi, Marathi, Tamil, Gujarati, and English) with bidirectional translation capabilities and potential cross-Indic language pairs. The system must produce models under 30MB per language pair with sub-1000ms inference time while maintaining translation quality suitable for accessibility use cases.
+This document specifies the requirements for building an end-to-end machine learning pipeline to train, optimize, and deploy MarianMT neural machine translation models for the BhashaLens offline-first translation application. The pipeline will handle data collection from multiple sources, model training on local GPU/CPU infrastructure, quantization for mobile deployment, and packaging for offline use in the Flutter app. The system supports five Indian languages (Hindi, Marathi, Tamil, Gujarati, and English) with bidirectional translation capabilities and potential cross-Indic language pairs. The system must produce models under 30MB per language pair with sub-1000ms inference time while maintaining translation quality suitable for accessibility use cases.
 
 ## Glossary
 
 - **MarianMT**: A neural machine translation framework based on the Marian NMT toolkit, optimized for efficient inference
 - **Dataset_Collector**: The component responsible for gathering and aggregating translation data from multiple sources
 - **Data_Cleaner**: The component that preprocesses and validates translation pairs before training
-- **Training_Pipeline**: The AWS-based infrastructure that trains MarianMT models using prepared datasets
+- **Training_Pipeline**: Local/offline-first training pipeline running on local machines with GPUs that trains MarianMT models using prepared datasets
 - **Quantizer**: The component that compresses trained models using quantization techniques
 - **Model_Optimizer**: The component that converts and optimizes models for mobile deployment (ONNX format)
 - **Model_Packager**: The component that bundles optimized models with metadata for app deployment
-- **S3_Storage**: AWS S3 bucket structure for storing datasets, checkpoints, and trained models
+- **S3_Storage**: Legacy/optional - AWS S3 bucket structure for storing datasets, checkpoints, and trained models
+- **Local_Storage**: Local filesystem paths used for storing downloaded datasets, intermediate files, checkpoints, and final models
 - **Language_Pair**: A bidirectional translation configuration (e.g., Hindi↔English)
 - **BLEU_Score**: Bilingual Evaluation Understudy score, a metric for translation quality (0-100 scale)
 - **ONNX**: Open Neural Network Exchange format for cross-platform model deployment
 - **Quantization**: Model compression technique reducing precision (e.g., FP32 to INT8)
 - **IIT_Bombay_Dataset**: Hindi-English parallel corpus from IIT Bombay CFILT
-- **AI4Bharat_Dataset**: Indic language datasets from AI4Bharat initiative
+- **Samanantar_Dataset**: AI4Bharat Samanantar parallel corpus for Indian languages
+- **IndicTrans2_Dataset**: AI4Bharat IndicTrans2 parallel data (IN22-Gen & IN22-Conv benchmarks)
+- **IndicCorp_Dataset**: AI4Bharat IndicCorp monolingual corpus for Indian languages
+- **PMIndia_Dataset**: PMIndia parallel corpus from PM speeches translated to Indian languages
 - **OPUS_Dataset**: Open parallel corpus from OPUS project
 - **Custom_Domain_Dataset**: Application-specific translation pairs for accessibility contexts
-- **Training_Instance**: AWS EC2 GPU instance (p3.2xlarge or similar) used for model training
+- **Training_Instance**: Local machine with NVIDIA GPU (recommended) or CPU
 - **Inference_Time**: Time taken to translate a single sentence on target mobile device
 
 ## Requirements
 
 ### Requirement 1: Dataset Collection from Multiple Sources
 
-**User Story:** As an ML engineer, I want to collect translation datasets from IIT Bombay, AI4Bharat, OPUS, and custom sources, so that I can build a comprehensive training corpus with domain diversity.
+**User Story:** As an ML engineer, I want to collect translation datasets from IIT Bombay, Samanantar, IndicTrans2, IndicCorp, PMIndia, OPUS, and custom sources, so that I can build a comprehensive training corpus with domain diversity.
 
 #### Acceptance Criteria
 
 1. THE Dataset_Collector SHALL download IIT_Bombay_Dataset for Hindi-English language pairs
-2. THE Dataset_Collector SHALL download AI4Bharat_Dataset for Hindi-English, Marathi-English, Tamil-English, and Gujarati-English language pairs
-3. THE Dataset_Collector SHALL download OPUS_Dataset subsets relevant to Indian language translation including Tamil and Gujarati pairs
-4. THE Dataset_Collector SHALL accept Custom_Domain_Dataset files in TSV or JSON format with source-target pairs
-5. WHEN all datasets are collected, THE Dataset_Collector SHALL store raw data in S3_Storage under the path `s3://bhashalens-datasets/raw/{language_pair}/{source_name}/`
-6. THE Dataset_Collector SHALL generate a manifest file listing all collected datasets with row counts and checksums
-7. FOR ALL downloaded datasets, THE Dataset_Collector SHALL verify file integrity using MD5 checksums
+2. THE Dataset_Collector SHALL download Samanantar_Dataset for Hindi-English, Marathi-English, Tamil-English, and Gujarati-English language pairs
+3. THE Dataset_Collector SHALL download IndicTrans2_Dataset (IN22-Gen and IN22-Conv) for all supported language pairs
+4. THE Dataset_Collector SHALL download IndicCorp_Dataset monolingual data for all supported Indic languages
+5. THE Dataset_Collector SHALL download PMIndia_Dataset parallel corpus for all supported language pairs
+6. THE Dataset_Collector SHALL download OPUS_Dataset subsets relevant to Indian language translation including Tamil and Gujarati pairs
+7. THE Dataset_Collector SHALL accept Custom_Domain_Dataset files in TSV or JSON format with source-target pairs
+8. WHEN all datasets are collected, THE Dataset_Collector SHALL store raw data under the local path `./bhashalens_ml/data/raw/{language_pair}/{source_name}/`
+9. THE Dataset_Collector SHALL generate a manifest file listing all collected datasets with row counts and checksums
+10. FOR ALL downloaded datasets, THE Dataset_Collector SHALL verify file integrity using MD5 checksums
 
 ### Requirement 2: Dataset Mixing and Composition
 
@@ -47,14 +54,14 @@ This document specifies the requirements for building an end-to-end machine lear
 
 #### Acceptance Criteria
 
-1. FOR Hindi-English language pairs, THE Dataset_Collector SHALL mix datasets with 35% IIT_Bombay_Dataset, 40% AI4Bharat_Dataset, 15% OPUS_Dataset, and 10% Custom_Domain_Dataset
-2. FOR Marathi-English language pairs, THE Dataset_Collector SHALL mix datasets with 65% AI4Bharat_Dataset, 20% OPUS_Dataset (filtered), and 15% Custom_Domain_Dataset
-3. FOR Tamil-English language pairs, THE Dataset_Collector SHALL mix datasets with 65% AI4Bharat_Dataset, 20% OPUS_Dataset (filtered), and 15% Custom_Domain_Dataset
-4. FOR Gujarati-English language pairs, THE Dataset_Collector SHALL mix datasets with 65% AI4Bharat_Dataset, 20% OPUS_Dataset (filtered), and 15% Custom_Domain_Dataset
+1. FOR Hindi-English language pairs, THE Dataset_Collector SHALL mix datasets with 20% IIT_Bombay_Dataset, 25% Samanantar_Dataset, 15% IndicTrans2_Dataset, 10% IndicCorp_Dataset, 10% PMIndia_Dataset, 10% OPUS_Dataset, and 10% Custom_Domain_Dataset
+2. FOR Marathi-English language pairs, THE Dataset_Collector SHALL mix datasets with 25% Samanantar_Dataset, 20% IndicTrans2_Dataset, 15% IndicCorp_Dataset, 15% PMIndia_Dataset, 15% OPUS_Dataset, and 10% Custom_Domain_Dataset
+3. FOR Tamil-English language pairs, THE Dataset_Collector SHALL mix datasets with 25% Samanantar_Dataset, 20% IndicTrans2_Dataset, 15% IndicCorp_Dataset, 15% PMIndia_Dataset, 15% OPUS_Dataset, and 10% Custom_Domain_Dataset
+4. FOR Gujarati-English language pairs, THE Dataset_Collector SHALL mix datasets with 25% Samanantar_Dataset, 20% IndicTrans2_Dataset, 15% IndicCorp_Dataset, 15% PMIndia_Dataset, 15% OPUS_Dataset, and 10% Custom_Domain_Dataset
 5. WHEN mixing datasets, THE Dataset_Collector SHALL randomly sample from each source to achieve target ratios
 6. THE Dataset_Collector SHALL create separate train, validation, and test splits with 90%, 5%, and 5% ratios respectively
 7. THE Dataset_Collector SHALL ensure no sentence pair appears in multiple splits
-8. THE Dataset_Collector SHALL store mixed datasets in S3_Storage under `s3://bhashalens-datasets/mixed/{language_pair}/`
+8. THE Dataset_Collector SHALL store mixed datasets locally under `./bhashalens_ml/data/mixed/{language_pair}/`
 
 ### Requirement 3: Data Cleaning and Preprocessing
 
@@ -72,21 +79,21 @@ This document specifies the requirements for building an end-to-end machine lear
 8. THE Data_Cleaner SHALL remove translation pairs where source text is not in the expected source language (using language detection)
 9. THE Data_Cleaner SHALL remove translation pairs where target text is not in the expected target language
 10. WHEN cleaning is complete, THE Data_Cleaner SHALL generate a cleaning report with statistics on removed pairs and reasons
-11. THE Data_Cleaner SHALL store cleaned datasets in S3_Storage under `s3://bhashalens-datasets/cleaned/{language_pair}/`
+11. THE Data_Cleaner SHALL store cleaned datasets locally under `./bhashalens_ml/data/cleaned/{language_pair}/`
 
-### Requirement 4: AWS Training Infrastructure Setup
+### Requirement 4: Local Training Infrastructure Setup
 
-**User Story:** As an ML engineer, I want to provision AWS infrastructure for model training, so that I can train models efficiently with GPU acceleration.
+**User Story:** As an ML engineer, I want to set up local infrastructure for model training, so that I can train models efficiently with GPU acceleration if available.
 
 #### Acceptance Criteria
 
-1. THE Training_Pipeline SHALL provision Training_Instance with at least 1 NVIDIA V100 GPU and 61GB RAM
-2. THE Training_Pipeline SHALL install MarianMT framework version 1.11 or later on Training_Instance
-3. THE Training_Pipeline SHALL install required dependencies including SentencePiece, PyYAML, and CUDA 11.8
-4. THE Training_Pipeline SHALL configure S3_Storage access with read permissions for datasets and write permissions for checkpoints
-5. THE Training_Pipeline SHALL configure CloudWatch logging for training metrics and errors
-6. WHEN Training_Instance is provisioned, THE Training_Pipeline SHALL validate GPU availability and CUDA installation
-7. THE Training_Pipeline SHALL support automatic instance termination after training completion to minimize costs
+1. THE Training_Pipeline SHALL detect local NVIDIA GPU via CUDA and fall back to CPU if unavailable
+2. THE Training_Pipeline SHALL install MarianMT framework version 1.11 or later
+3. THE Training_Pipeline SHALL install required dependencies including SentencePiece, PyYAML, and CUDA (if GPU available)
+4. THE Training_Pipeline SHALL read datasets from and write checkpoints to local filesystem paths
+5. THE Training_Pipeline SHALL log training metrics and errors to local log files
+6. WHEN training starts, THE Training_Pipeline SHALL validate GPU availability and CUDA installation if applicable
+7. THE Training_Pipeline SHALL support checkpoint-based resume after interruptions
 
 ### Requirement 5: MarianMT Model Training
 
@@ -237,19 +244,19 @@ This document specifies the requirements for building an end-to-end machine lear
 6. THE S3_Storage SHALL encrypt all datasets and models at rest using AES-256 encryption
 7. THE S3_Storage SHALL restrict access to training data using IAM policies with least privilege principle
 
-### Requirement 15: Cost Optimization and Resource Management
+### Requirement 15: Local Resource Management
 
-**User Story:** As a project manager, I want to optimize AWS costs for model training, so that the pipeline remains economically sustainable for regular retraining.
+**User Story:** As an ML engineer, I want to manage local compute and storage resources efficiently, so that training runs smoothly on my machine.
 
 #### Acceptance Criteria
 
-1. THE Training_Pipeline SHALL use AWS Spot Instances for Training_Instance when available to reduce costs by up to 70%
-2. WHEN Spot Instance is interrupted, THE Training_Pipeline SHALL save checkpoint and resume training on a new instance
-3. THE Training_Pipeline SHALL automatically terminate Training_Instance within 5 minutes of training completion
-4. THE Training_Pipeline SHALL use S3 Intelligent-Tiering for dataset storage to optimize storage costs
-5. THE Training_Pipeline SHALL delete intermediate checkpoints older than 30 days to reduce storage costs
-6. THE Training_Pipeline SHALL estimate total training cost before starting and require confirmation for costs exceeding $100
-7. THE Training_Pipeline SHALL generate a cost report after training completion showing breakdown by service (EC2, S3, data transfer)
+1. THE Training_Pipeline SHALL detect available GPU memory and adjust batch size if needed
+2. WHEN training is interrupted, THE Training_Pipeline SHALL save checkpoint and support resuming
+3. THE Training_Pipeline SHALL monitor disk space and warn if below 10GB during training
+4. THE Training_Pipeline SHALL support configuring the local data and output directories
+5. THE Training_Pipeline SHALL delete intermediate checkpoints older than 30 days to reduce disk usage
+6. THE Training_Pipeline SHALL estimate total training time before starting based on dataset size and hardware
+7. THE Training_Pipeline SHALL generate a resource usage report after training completion showing time and disk usage
 
 ### Requirement 16: Model Testing and Validation Suite
 

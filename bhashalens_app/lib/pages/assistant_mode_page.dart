@@ -1,5 +1,4 @@
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/aws_cloud_service.dart';
 import 'package:flutter/material.dart';
@@ -102,7 +101,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
   Future<void> _fetchBasicGuide() async {
     setState(() => _isLoadingGuide = true);
     try {
-      final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+// final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
       final awsService = Provider.of<AwsCloudService>(context, listen: false);
       
       final situation = _situations[_selectedSituationIndex]['label'];

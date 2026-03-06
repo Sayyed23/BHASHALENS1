@@ -1,12 +1,15 @@
+library encrypted_local_storage_example;
+// ignore_for_file: avoid_print
 /// Example usage of EncryptedLocalStorage
-/// 
+///
 /// This file demonstrates how to use the encrypted local storage service
 /// for storing translation history, preferences, cached translations, and
 /// conversation history with AES-256 encryption.
 
+import 'package:bhashalens_app/models/language_pair.dart';
+
 import 'encrypted_local_storage.dart';
 import '../models/translation_history_entry.dart';
-import '../models/cached_translation.dart';
 import '../models/conversation_message.dart';
 
 /// Example: Save and retrieve translation history
@@ -36,9 +39,8 @@ Future<void> exampleTranslationHistory() async {
   print('Found ${searchResults.length} matching translations');
 
   // Delete old translations (older than 30 days)
-  final thirtyDaysAgo = DateTime.now()
-      .subtract(const Duration(days: 30))
-      .millisecondsSinceEpoch;
+  final thirtyDaysAgo =
+      DateTime.now().subtract(const Duration(days: 30)).millisecondsSinceEpoch;
   await storage.deleteTranslationHistory(beforeTimestamp: thirtyDaysAgo);
 }
 

@@ -1,4 +1,3 @@
-import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/offline_explain_service.dart';
@@ -127,14 +126,14 @@ class _ExplainModePageState extends State<ExplainModePage>
         setState(() => _isProcessing = true);
 
         final mlKitService = MlKitTranslationService();
-        final bytes = await image.readAsBytes();
+// final bytes = await image.readAsBytes();
 
         if (!mounted) return;
         final file = File(image.path);
-        final extracted = await mlKitService.extractTextFromFile(
-          file, 
-          languageCode: _selectedInputLanguage == 'Auto-detected' ? 'en' : _selectedInputLanguage.toLowerCase().substring(0, 2)
-        );
+        final extracted = await mlKitService.extractTextFromFile(file,
+            languageCode: _selectedInputLanguage == 'Auto-detected'
+                ? 'en'
+                : _selectedInputLanguage.toLowerCase().substring(0, 2));
 
         if (!mounted) return;
         setState(() {
@@ -171,8 +170,8 @@ class _ExplainModePageState extends State<ExplainModePage>
     FocusScope.of(context).unfocus();
 
     // Get service references before async operations to avoid context issues
-    final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
-    final sarvamService = Provider.of<SarvamService>(context, listen: false);
+    final hybridService =
+        Provider.of<HybridTranslationService>(context, listen: false);
 
     final connectivityResult = await Connectivity().checkConnectivity();
     final isOffline = connectivityResult.contains(ConnectivityResult.none);
@@ -203,8 +202,8 @@ class _ExplainModePageState extends State<ExplainModePage>
         final result = await hybridService.explainText(
           text: text,
           targetLanguage: _selectedOutputLanguage.toLowerCase().substring(0, 2),
-          sourceLanguage: _selectedInputLanguage == 'Auto-detected' 
-              ? null 
+          sourceLanguage: _selectedInputLanguage == 'Auto-detected'
+              ? null
               : _selectedInputLanguage.toLowerCase().substring(0, 2),
         );
 
@@ -250,8 +249,10 @@ class _ExplainModePageState extends State<ExplainModePage>
   }
 
   void _showLanguagePicker({bool isInput = false}) {
-    final voiceService = Provider.of<VoiceTranslationService>(context, listen: false);
-    final languages = VoiceTranslationService.supportedLanguages.entries.map((e) => {'code': e.key, 'name': e.value}).toList();
+// final voiceService = Provider.of<VoiceTranslationService>(context, listen: false);
+    final languages = VoiceTranslationService.supportedLanguages.entries
+        .map((e) => {'code': e.key, 'name': e.value})
+        .toList();
 
     var displayLanguages = languages;
     if (isInput) {

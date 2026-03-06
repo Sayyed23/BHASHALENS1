@@ -4,9 +4,9 @@ import 'aws_cloud_service.dart';
 
 /// Processing backend options
 enum ProcessingBackend {
-  onDevice,
-  awsCloud,
-  sarvam,
+  mlKit,
+  awsBedrock,
+  gemini,
 }
 
 /// Network status
@@ -50,7 +50,7 @@ class RoutingContext {
 class SmartHybridRouter {
   final AwsCloudService _cloudService;
   final Connectivity _connectivity;
-  
+
   // Configurable thresholds
   final int batteryThreshold;
   final Duration cloudTimeout;
@@ -83,70 +83,65 @@ class SmartHybridRouter {
   Future<ProcessingBackend> _makeRoutingDecision(
     RoutingContext context,
   ) async {
-    // Rule 1: If network is offline → ON_DEVICE
+    // Rule 1: If network is offline → ML_KIT
     if (context.networkStatus == NetworkStatus.offline) {
-      debugPrint('Router: Offline → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: Offline → ML_KIT');
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 2: If user preference is OFFLINE_ONLY → ON_DEVICE
+    // Rule 2: If user preference is OFFLINE_ONLY → ML_KIT
     if (context.userPreference == DataUsagePreference.offlineOnly) {
-      debugPrint('Router: User preference offline-only → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: User preference offline-only → ML_KIT');
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 3: If battery < threshold → ON_DEVICE
+    // Rule 3: If battery < threshold → ML_KIT
     if (context.batteryLevel < batteryThreshold) {
-      debugPrint('Router: Low battery (${context.batteryLevel}%) → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: Low battery (${context.batteryLevel}%) → ML_KIT');
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 4: If user preference is WIFI_ONLY and network is CELLULAR → ON_DEVICE
+    // Rule 4: If user preference is WIFI_ONLY and network is CELLULAR → ML_KIT
     if (context.userPreference == DataUsagePreference.wifiOnly &&
         context.networkStatus == NetworkStatus.cellular) {
-      debugPrint('Router: WiFi-only preference with cellular → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: WiFi-only preference with cellular → ML_KIT');
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 5: If request complexity is SIMPLE → ON_DEVICE
+    // Rule 5: If request complexity is SIMPLE → ML_KIT
     if (context.requestComplexity == ComplexityLevel.simple) {
-      debugPrint('Router: Simple request → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: Simple request → ML_KIT');
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 6: If cloud service is unavailable → ON_DEVICE
+    // Rule 6: If cloud service is unavailable → ML_KIT
     if (!_cloudService.isAvailable) {
-      debugPrint('Router: Cloud unavailable → ON_DEVICE');
-      return ProcessingBackend.onDevice;
+      debugPrint('Router: AWS Cloud unavailable, fallback preferred');
+      // We could try Gemini, but if we don't know Gemini's availability, fallback to ML Kit
+      return ProcessingBackend.mlKit;
     }
 
-    // Rule 7: For Indian languages, prefer SARVAM for moderate/complex tasks
-    const indianLanguages = ['hi', 'bn', 'ta', 'te', 'ml', 'kn', 'gu', 'mr', 'pa', 'ur'];
-    
-    // We should ideally have the target language in the context. 
-    // For now, let's assume we use Sarvam if it's a known indian language context
-    // and complexity is not simple.
-    
+    // Rule 7: Prefer GEMINI for moderate complexity tasks and AWS_BEDROCK for complex tasks
     if (context.requestComplexity != ComplexityLevel.simple) {
       if (context.requestComplexity == ComplexityLevel.complex) {
-        debugPrint('Router: Complex request with network → AWS_CLOUD');
-        return ProcessingBackend.awsCloud;
+        debugPrint('Router: Complex request with network → AWS_BEDROCK');
+        return ProcessingBackend.awsBedrock;
       }
-      
-      debugPrint('Router: Moderate request with network → SARVAM');
-      return ProcessingBackend.sarvam;
+
+      debugPrint('Router: Moderate request with network → GEMINI');
+      return ProcessingBackend.gemini;
     }
 
-    // Default: ON_DEVICE for simple requests
-    debugPrint('Router: Default (simple) → ON_DEVICE');
-    return ProcessingBackend.onDevice;
+    // Default: ML_KIT for simple requests
+    debugPrint('Router: Default (simple) → ML_KIT');
+    return ProcessingBackend.mlKit;
   }
 
   /// Get current network status
   Future<NetworkStatus> getNetworkStatus() async {
     try {
       final connectivityResult = await _connectivity.checkConnectivity();
-      
+
       if (connectivityResult.contains(ConnectivityResult.none)) {
         return NetworkStatus.offline;
       } else if (connectivityResult.contains(ConnectivityResult.wifi) ||

@@ -1,36 +1,26 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
-import 'package:record/record.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
-import 'dart:convert';
-import 'dart:io';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
-  final AudioRecorder _audioRecorder = AudioRecorder();
-  WebSocketChannel? _sarvamSTTChannel;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  StreamSubscription<List<int>>? _audioStreamSubscription;
 
   // API configuration
-  String? _sarvamApiKey;
-  final bool _useOpenAI = false; 
+  final bool _useOpenAI = false;
 
-  SarvamService? _sarvamService;
   HybridTranslationService? _hybridService;
-  
-  set hybridService(HybridTranslationService? service) => _hybridService = service;
-  
+
+  set hybridService(HybridTranslationService? service) =>
+      _hybridService = service;
+
   final LocalStorageService localStorageService;
 
   // ML Kit for offline translation
@@ -43,7 +33,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String _lastWords = '';
   String _currentTranscript = '';
   String _currentTranslatedText = '';
-  bool _isTranslating = false; 
+  bool _isTranslating = false;
 
   // Translation state
   String _userALanguage = 'en'; // Default to English
@@ -63,9 +53,9 @@ class VoiceTranslationService extends ChangeNotifier {
   String get userBLanguage => _userBLanguage;
   String get currentSpeaker => _currentSpeaker;
   List<ConversationMessage> get conversationHistory => _conversationHistory;
-  bool get useOpenAI => _useOpenAI; 
-  bool get isTranslating => _isTranslating; 
-  bool get isOfflineMode => _isOfflineMode; 
+  bool get useOpenAI => _useOpenAI;
+  bool get isTranslating => _isTranslating;
+  bool get isOfflineMode => _isOfflineMode;
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -94,28 +84,12 @@ class VoiceTranslationService extends ChangeNotifier {
 
   VoiceTranslationService({
     required this.localStorageService,
-    String? sarvamApiKey,
     HybridTranslationService? hybridService,
-  }) : _sarvamApiKey = sarvamApiKey,
-       _hybridService = hybridService {
+  }) : _hybridService = hybridService {
     _initializeServices();
   }
 
   Future<void> _initializeServices() async {
-    _sarvamApiKey ??= dotenv.env['SARVAM_AI_API_KEY'];
-
-    debugPrint(
-      'VoiceTranslationService: Loaded SARVAM_AI_API_KEY: ${_sarvamApiKey != null ? "Present" : "Missing"}',
-    );
-
-    if (_sarvamApiKey != null && _sarvamApiKey!.isNotEmpty) {
-      _sarvamService = SarvamService(
-        apiKey: _sarvamApiKey,
-        localStorageService: localStorageService,
-      );
-      await _sarvamService!.initialize();
-    }
-
     // Initialize speech recognition
     _speechEnabled = await _speechToText.initialize(
       onStatus: (status) {
@@ -175,103 +149,43 @@ class VoiceTranslationService extends ChangeNotifier {
 
     await checkConnectivity();
 
-    if (_isOfflineMode) {
-      if (!_speechEnabled) return;
-      String localeId = _getLanguageCode(
-        _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
-      );
-      await _speechToText.listen(
-        onResult: (result) {
-          _currentTranscript = result.recognizedWords;
-          _lastWords = result.recognizedWords;
-          notifyListeners();
-          if (result.finalResult) {
-            processConversationTurn();
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 5),
-        localeId: localeId,
-        listenOptions: SpeechListenOptions(
-          onDevice: true,
-          cancelOnError: true,
-        ),
-      );
-    } else {
-      // Online: Use Sarvam Streaming STT
-      await _startSarvamStreamingSTT();
-    }
-    
+    if (!_speechEnabled) return;
+
+    String localeId = _getLanguageCode(
+      _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
+    );
+
+    await _speechToText.listen(
+      onResult: (result) {
+        _currentTranscript = result.recognizedWords;
+        _lastWords = result.recognizedWords;
+        notifyListeners();
+        if (result.finalResult) {
+          processConversationTurn();
+        }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 5),
+      localeId: localeId,
+      listenOptions: SpeechListenOptions(
+        onDevice: _isOfflineMode,
+        cancelOnError: true,
+      ),
+    );
+
     _isListening = true;
     notifyListeners();
   }
 
-  Future<void> _startSarvamStreamingSTT() async {
-    if (_sarvamService == null) return;
-
-    try {
-      final langCode = _getLanguageCode(
-        _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
-      );
-      
-      // Cleanup existing channel if any
-      await _sarvamSTTChannel?.sink.close();
-      _sarvamSTTChannel = null;
-
-      _sarvamSTTChannel = _sarvamService!.createStreamingSTTChannel(
-        languageCode: _sarvamService!.mapLanguageCode(langCode.substring(0, 2)),
-      );
-
-      _sarvamSTTChannel!.stream.listen((event) {
-        final data = jsonDecode(event);
-        if (data['transcript'] != null) {
-          _currentTranscript = data['transcript'];
-          _lastWords = data['transcript'];
-          notifyListeners();
-        }
-        if (data['is_final'] == true) {
-          processConversationTurn();
-          stopListening();
-        }
-      }, onError: (err) {
-        debugPrint('Sarvam STT Stream error: $err');
-        _isListening = false;
-        notifyListeners();
-      });
-
-      // Start recording and streaming audio
-      if (await _audioRecorder.hasPermission()) {
-        const config = RecordConfig(
-          encoder: AudioEncoder.pcm16bits,
-          sampleRate: 16000,
-          numChannels: 1,
-        );
-
-        // Cleanup existing recorder if any
-        await _audioRecorder.stop();
-        await _audioStreamSubscription?.cancel();
-
-        final stream = await _audioRecorder.startStream(config);
-        _audioStreamSubscription = stream.listen((data) {
-          _sarvamSTTChannel?.sink.add(data);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error starting Sarvam streaming: $e');
-    }
-  }
+  // Removed Sarvam streaming STT logic as it is being decommissioned in favor of Hybrid/AWS stack.
+  // Future<void> _startSarvamStreamingSTT() async { ... }
 
   Future<void> stopListening() async {
-    if (_isOfflineMode) {
-      if (_speechToText.isListening) {
-        await _speechToText.stop();
+    if (_speechToText.isListening) {
+      await _speechToText.stop();
+      if (_currentTranscript.trim().isNotEmpty && !_isTranslating) {
+        processConversationTurn();
       }
-    } else {
-      await _audioRecorder.stop();
-      await _audioStreamSubscription?.cancel();
-      _audioStreamSubscription = null;
-      _sarvamSTTChannel?.sink.close();
-      _sarvamSTTChannel = null;
     }
     _isListening = false;
     notifyListeners();
@@ -301,7 +215,8 @@ class VoiceTranslationService extends ChangeNotifier {
   }
 
   // Translation using Sarvam AI for online
-  Future<String> translateText(String text, String toLanguage, {String? fromLanguage}) async {
+  Future<String> translateText(String text, String toLanguage,
+      {String? fromLanguage}) async {
     if (text.trim().isEmpty) return '';
 
     try {
@@ -312,22 +227,20 @@ class VoiceTranslationService extends ChangeNotifier {
       if (_isOfflineMode) {
         if (fromLanguage == 'auto') {
           actualSourceLanguage = await _mlKitService.identifyLanguage(text);
-          if (actualSourceLanguage == 'und') return 'Offline: Language detection failed.';
+          if (actualSourceLanguage == 'und') {
+            return 'Offline: Language detection failed.';
+          }
         }
         return await _mlKitService.translate(
-          text: text,
-          sourceLanguage: actualSourceLanguage,
-          targetLanguage: toLanguage,
-        ) ?? 'Offline translation failed';
+              text: text,
+              sourceLanguage: actualSourceLanguage,
+              targetLanguage: toLanguage,
+            ) ??
+            'Offline translation failed';
       } else {
         // Online: Use Hybrid Translation Service
         if (_hybridService == null) {
-          debugPrint('Hybrid Service not available, falling back to Sarvam direct');
-          return await _sarvamService!.translateText(
-            text,
-            _sarvamService!.mapLanguageCode(toLanguage),
-            sourceLanguage: fromLanguage == 'auto' ? null : _sarvamService!.mapLanguageCode(actualSourceLanguage),
-          );
+          return 'Translation Service not initialized';
         }
 
         final result = await _hybridService!.translateText(
@@ -379,26 +292,19 @@ class VoiceTranslationService extends ChangeNotifier {
       await speakText(translatedText, targetLanguage);
 
       _isTranslating = false;
+      _currentTranscript = ''; // Clear to prevent duplicate processing
       notifyListeners();
     } catch (e) {
       _currentTranslatedText = 'Translation failed';
       _isTranslating = false;
+      _currentTranscript = ''; // Clear to prevent duplicate processing
       notifyListeners();
     }
   }
 
-  Future<void> speakText(String text, String languageCode, {bool slow = false}) async {
+  Future<void> speakText(String text, String languageCode,
+      {bool slow = false}) async {
     try {
-      if (!_isOfflineMode && _sarvamService != null && _sarvamService!.isInitialized) {
-        // Use Sarvam TTS for better quality in Indian languages
-        final audioBytes = await _sarvamService!.textToSpeech(
-          text, 
-          _sarvamService!.mapLanguageCode(languageCode)
-        );
-        // Note: Playing raw bytes might require a specific plugin like audioplayers.
-        // For now, falling back to flutter_tts until audioplayers is confirmed.
-      }
-      
       await _flutterTts.setLanguage(_getLanguageCode(languageCode));
       await _flutterTts.setSpeechRate(slow ? 0.3 : 0.5);
       await _flutterTts.speak(text);
@@ -409,18 +315,50 @@ class VoiceTranslationService extends ChangeNotifier {
 
   String _getLanguageCode(String languageCode) {
     switch (languageCode) {
-      case 'en': return 'en-US';
-      case 'hi': return 'hi-IN';
-      case 'bn': return 'bn-IN';
-      case 'ta': return 'ta-IN';
-      case 'te': return 'te-IN';
-      case 'ml': return 'ml-IN';
-      case 'kn': return 'kn-IN';
-      case 'gu': return 'gu-IN';
-      case 'mr': return 'mr-IN';
-      case 'pa': return 'pa-IN';
-      case 'ur': return 'ur-PK';
-      default: return 'en-US';
+      case 'en':
+        return 'en-US';
+      case 'es':
+        return 'es-ES';
+      case 'fr':
+        return 'fr-FR';
+      case 'de':
+        return 'de-DE';
+      case 'it':
+        return 'it-IT';
+      case 'pt':
+        return 'pt-BR';
+      case 'ru':
+        return 'ru-RU';
+      case 'ja':
+        return 'ja-JP';
+      case 'ko':
+        return 'ko-KR';
+      case 'zh':
+        return 'zh-CN';
+      case 'ar':
+        return 'ar-SA';
+      case 'hi':
+        return 'hi-IN';
+      case 'bn':
+        return 'bn-IN';
+      case 'ta':
+        return 'ta-IN';
+      case 'te':
+        return 'te-IN';
+      case 'ml':
+        return 'ml-IN';
+      case 'kn':
+        return 'kn-IN';
+      case 'gu':
+        return 'gu-IN';
+      case 'mr':
+        return 'mr-IN';
+      case 'pa':
+        return 'pa-IN';
+      case 'ur':
+        return 'ur-PK';
+      default:
+        return 'en-US';
     }
   }
 
@@ -440,11 +378,8 @@ class VoiceTranslationService extends ChangeNotifier {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
-    _audioStreamSubscription?.cancel();
     _speechToText.cancel();
     _flutterTts.stop();
-    _audioRecorder.dispose();
-    _sarvamSTTChannel?.sink.close();
     super.dispose();
   }
 }
@@ -468,4 +403,3 @@ class ConversationMessage {
     required this.targetLanguage,
   });
 }
-

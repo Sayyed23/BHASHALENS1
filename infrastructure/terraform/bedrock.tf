@@ -29,7 +29,7 @@ locals {
 resource "aws_cloudwatch_log_group" "bedrock_logs" {
   name              = "/aws/bedrock/${var.project_name}"
   retention_in_days = var.cloudwatch_log_retention_days
-  
+
   tags = {
     Name = "${var.project_name}-bedrock-logs"
   }
@@ -47,11 +47,11 @@ resource "aws_cloudwatch_metric_alarm" "bedrock_throttling" {
   threshold           = "10"
   alarm_description   = "Alert when Bedrock model invocations are being throttled"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ModelId = var.bedrock_model_ids.claude_sonnet
   }
-  
+
   tags = {
     Name = "${var.project_name}-bedrock-throttling-alarm"
   }
@@ -68,11 +68,11 @@ resource "aws_cloudwatch_metric_alarm" "bedrock_errors" {
   threshold           = "5"
   alarm_description   = "Alert when Bedrock model invocations have client errors"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ModelId = var.bedrock_model_ids.claude_sonnet
   }
-  
+
   tags = {
     Name = "${var.project_name}-bedrock-errors-alarm"
   }

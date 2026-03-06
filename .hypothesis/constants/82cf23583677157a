@@ -1,0 +1,4 @@
+# file: d:\BHASHALENS1\infrastructure\lambda\functions\translation_handler.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.3, 0.75, 0.85, 0.9, 200, 400, 1000, 2048, 5000, 'AWS_REGION', 'BEDROCK_MODEL_ID', 'BedrockLatency', 'English', 'GEMINI_API_KEY', 'Hindi', 'Marathi', 'Translation', 'Translation_Error', 'anthropic_version', 'aws_request_id', 'backend', 'bedrock-2023-05-31', 'bedrock-runtime', 'body', 'confidence', 'content', 'dynamodb', 'en', 'end_turn', 'error', 'gemini-1.5-flash', 'hi', 'max_tokens', 'messages', 'model', 'mr', 'processingTime', 'processing_time_ms', 'role', 'sourceLang', 'sourceText', 'source_lang', 'source_text', 'stop_reason', 'targetLang', 'targetText', 'target_lang', 'temperature', 'text', 'timestamp', 'translated_text', 'unknown', 'us-east-1', 'user', 'userId', 'user_id']

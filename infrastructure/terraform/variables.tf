@@ -7,15 +7,27 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, production)"
+  description = "Environment name (dev, staging, prod)"
   type        = string
-  default     = "production"
+  default     = "dev"
 }
 
 variable "project_name" {
-  description = "Project name"
+  description = "Project name prefix for all resources"
   type        = string
   default     = "bhashalens"
+}
+
+variable "firebase_project_id" {
+  description = "Firebase project ID for token validation"
+  type        = string
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
 }
 
 variable "lambda_runtime" {
@@ -36,16 +48,30 @@ variable "lambda_memory_size" {
   default     = 512
 }
 
-variable "dynamodb_billing_mode" {
-  description = "DynamoDB billing mode"
-  type        = string
-  default     = "PAY_PER_REQUEST"
+variable "bedrock_model_ids" {
+  description = "Amazon Bedrock model IDs"
+  type = object({
+    claude_sonnet    = string
+    titan_text       = string
+    titan_embeddings = string
+  })
+  default = {
+    claude_sonnet    = "anthropic.claude-3-sonnet-20240229-v1:0"
+    titan_text       = "amazon.titan-text-express-v1"
+    titan_embeddings = "amazon.titan-embed-text-v2:0"
+  }
 }
 
-variable "s3_lifecycle_glacier_days" {
-  description = "Days before transitioning to Glacier"
+variable "api_throttle_rate_limit" {
+  description = "API Gateway throttle steady-state rate (req/sec)"
   type        = number
-  default     = 90
+  default     = 500
+}
+
+variable "api_throttle_burst_limit" {
+  description = "API Gateway throttle burst limit"
+  type        = number
+  default     = 1000
 }
 
 variable "cloudwatch_log_retention_days" {
@@ -54,28 +80,25 @@ variable "cloudwatch_log_retention_days" {
   default     = 30
 }
 
-variable "bedrock_model_ids" {
-  description = "Amazon Bedrock model IDs to use"
-  type = object({
-    claude_sonnet    = string
-    titan_text       = string
-    titan_embeddings = string
-  })
-  default = {
-    claude_sonnet    = "anthropic.claude-3-sonnet-20240229-v1:0"
-    titan_text       = "amazon.titan-text-premier-v1:0"
-    titan_embeddings = "amazon.titan-embed-text-v2:0"
+variable "cors_allowed_origins" {
+  description = "Allowed origins for CORS"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.cors_allowed_origins) > 0
+    error_message = "cors_allowed_origins must be explicitly configured."
   }
 }
-
-variable "api_throttle_rate_limit" {
-  description = "API Gateway throttle rate limit (requests per second)"
-  type        = number
-  default     = 100
+variable "github_repository" {
+  description = "GitHub repository URL for Amplify"
+  type        = string
+  default     = ""
 }
 
-variable "api_throttle_burst_limit" {
-  description = "API Gateway throttle burst limit"
-  type        = number
-  default     = 200
+variable "github_token" {
+  description = "GitHub personal access token for Amplify"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

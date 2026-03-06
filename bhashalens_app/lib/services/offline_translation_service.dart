@@ -2,22 +2,21 @@ import 'package:flutter/foundation.dart';
 import 'package:bhashalens_app/models/language_pair.dart';
 import 'package:bhashalens_app/models/translation_result.dart';
 import 'package:bhashalens_app/models/translation_history_entry.dart';
-import 'package:bhashalens_app/models/cached_translation.dart';
 import 'package:bhashalens_app/services/translation_engine.dart';
 import 'package:bhashalens_app/services/tflite_translation_engine.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart';
+import 'package:bhashalens_app/services/encrypted_local_storage.dart';
 
 /// Offline translation service with caching and history management
-/// Integrates TranslationEngine with LocalStorage for production-ready offline translation
+/// Integrates TranslationEngine with EncryptedLocalStorage for production-ready offline translation
 class OfflineTranslationService {
   final TranslationEngine _engine;
-  final LocalStorageService _storage;
+  final EncryptedLocalStorage _storage;
 
   // Singleton pattern
   static final OfflineTranslationService _instance =
       OfflineTranslationService._internal(
     TFLiteTranslationEngine(),
-    LocalStorageService(),
+    EncryptedLocalStorage(),
   );
 
   factory OfflineTranslationService() => _instance;

@@ -1,3 +1,4 @@
+import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
@@ -5,9 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart';
-import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
@@ -338,19 +337,22 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         // Use ML Kit for OCR as requested
         extracted = await _mlKitService.extractTextFromFile(
           File(_capturedImage!.path),
-          languageCode: _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
+          languageCode:
+              _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
         );
-        
+
         if (!mounted) return;
 
         if (extracted.isNotEmpty && !extracted.startsWith('Error')) {
           if (_sourceLanguageCode == 'auto') {
-            detectedLang = 'auto'; 
+            // Don't update detectedLang - keep null badge for online auto-detect
+            // since we don't have reliable detection info
           }
           final result = await hybridService.translateText(
             sourceText: extracted,
             targetLang: _targetLanguageCode,
-            sourceLang: _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
+            sourceLang:
+                _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
           );
           translated = result.translatedText;
         } else {
@@ -416,9 +418,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         final result = await hybridService.translateText(
           sourceText: _extractedText,
           targetLang: _targetLanguageCode,
-          sourceLang: _sourceLanguageCode == 'auto'
-              ? 'en'
-              : _sourceLanguageCode,
+          sourceLang:
+              _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
         );
         translated = result.translatedText;
       }

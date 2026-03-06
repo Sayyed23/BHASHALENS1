@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 
 class LocalStorageService {
   static Database? _database;
@@ -29,19 +29,17 @@ class LocalStorageService {
       throw Exception('Failed to initialize SharedPreferences: $e');
     }
   }
+
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'bhashalens.db');
     return openDatabase(
       path,
-      version: 2, // Incremented version
+      version: 3, // Incremented version for sync support
       onCreate: (db, version) async {
         await _createTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          // Add new columns to existing table
-          // SQLite doesn't support adding multiple columns in one statement easily or IF NOT EXISTS nicely for columns
-          // So we do one by one.
           try {
             await db.execute(
               "ALTER TABLE translations ADD COLUMN isStarred INTEGER DEFAULT 0",
@@ -49,8 +47,18 @@ class LocalStorageService {
             await db.execute(
               "ALTER TABLE translations ADD COLUMN category TEXT DEFAULT 'General'",
             );
+          } catch (e) {}
+        }
+        if (oldVersion < 3) {
+          try {
+            await db.execute(
+              "ALTER TABLE translations ADD COLUMN isSynced INTEGER DEFAULT 1",
+            );
+            await db.execute(
+              "ALTER TABLE translations ADD COLUMN cloudId TEXT",
+            );
           } catch (e) {
-            // Columns might already exist if we messed up dev, ignore
+            debugPrint("Schema update error: $e");
           }
         }
       },
@@ -59,7 +67,7 @@ class LocalStorageService {
 
   Future<void> _createTables(Database db) async {
     await db.execute(
-      "CREATE TABLE translations(id INTEGER PRIMARY KEY AUTOINCREMENT, originalText TEXT, translatedText TEXT, sourceLanguage TEXT, targetLanguage TEXT, timestamp INTEGER, isStarred INTEGER DEFAULT 0, category TEXT DEFAULT 'General')",
+      "CREATE TABLE translations(id INTEGER PRIMARY KEY AUTOINCREMENT, originalText TEXT, translatedText TEXT, sourceLanguage TEXT, targetLanguage TEXT, timestamp INTEGER, isStarred INTEGER DEFAULT 0, category TEXT DEFAULT 'General', isSynced INTEGER DEFAULT 1, cloudId TEXT)",
     );
     await db.execute(
       "CREATE TABLE languagePacks(id INTEGER PRIMARY KEY AUTOINCREMENT, languageCode TEXT, data TEXT)",
@@ -209,5 +217,30 @@ class LocalStorageService {
       whereArgs: [languageCode],
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  // --- Synchronization Methods ---
+
+  Future<List<Map<String, dynamic>>> getUnsyncedTranslations() async {
+    if (kIsWeb) return [];
+    final db = await database;
+    return await db.query(
+      'translations',
+      where: 'isSynced = ?',
+      whereArgs: [0],
+    );
+  }
+
+  Future<int> markAsSynced(String id) async {
+    if (kIsWeb) return 0;
+    final intId = int.tryParse(id);
+    if (intId == null) return 0;
+    final db = await database;
+    return await db.update(
+      'translations',
+      {'isSynced': 1},
+      where: 'id = ?',
+      whereArgs: [intId],
+    );
   }
 }

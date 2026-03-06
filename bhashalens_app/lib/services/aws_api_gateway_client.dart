@@ -9,6 +9,7 @@ import 'retry_policy.dart';
 class AwsApiGatewayClient {
   final String baseUrl;
   final String region;
+  final bool _enableCloud;
   final Duration timeout;
   final http.Client _httpClient;
   final FirebaseAuth _auth;
@@ -17,19 +18,29 @@ class AwsApiGatewayClient {
   AwsApiGatewayClient({
     String? baseUrl,
     String? region,
+    bool? enableCloud,
     this.timeout = const Duration(seconds: 5),
     http.Client? httpClient,
     FirebaseAuth? auth,
     this.retryPolicy = RetryPolicy.defaultPolicy,
-  })  : baseUrl = baseUrl ?? dotenv.env['AWS_API_GATEWAY_URL'] ?? '',
-        region = region ?? dotenv.env['AWS_REGION'] ?? 'us-east-1',
+  })  : baseUrl = baseUrl ??
+            (dotenv.isInitialized
+                ? dotenv.env['AWS_API_GATEWAY_URL'] ?? ''
+                : ''),
+        region = region ??
+            (dotenv.isInitialized
+                ? dotenv.env['AWS_REGION'] ?? 'us-east-1'
+                : 'us-east-1'),
+        _enableCloud = enableCloud ??
+            (dotenv.isInitialized
+                ? dotenv.env['AWS_ENABLE_CLOUD']?.toLowerCase() == 'true'
+                : false),
         _httpClient = httpClient ?? http.Client(),
         _auth = auth ?? FirebaseAuth.instance;
 
   /// Check if AWS cloud integration is enabled
   bool get isEnabled {
-    final enabled = dotenv.env['AWS_ENABLE_CLOUD']?.toLowerCase() == 'true';
-    return enabled && baseUrl.isNotEmpty;
+    return _enableCloud && baseUrl.isNotEmpty;
   }
 
   /// POST request to translation endpoint
@@ -108,13 +119,148 @@ class AwsApiGatewayClient {
     // Execute with retry policy
     return retryPolicy.execute(() async {
       final url = Uri.parse('$baseUrl$endpoint');
-      
+
       // Get Firebase ID token for authentication
       final headers = await _buildHeaders();
-      
+
       try {
         final response = await _httpClient
             .post(
+              url,
+              headers: headers,
+              body: jsonEncode(body),
+            )
+            .timeout(timeout);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (response.body.isEmpty) {
+            return <String, dynamic>{'success': true};
+          }
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } else {
+          throw AwsApiException(
+            'API request failed: ${response.body}',
+            statusCode: response.statusCode,
+            responseBody: response.body,
+          );
+        }
+      } catch (e) {
+        if (e is AwsApiException) rethrow;
+        throw AwsApiException(
+          'Network error: ${e.toString()}',
+          statusCode: 0,
+          originalError: e,
+        );
+      }
+    });
+  }
+
+  /// Generic GET request handler
+  Future<Map<String, dynamic>> _get(
+    String endpoint, {
+    Map<String, String>? queryParameters,
+  }) async {
+    if (!isEnabled) {
+      throw AwsApiException(
+        'AWS cloud integration is not enabled',
+        statusCode: 0,
+      );
+    }
+
+    return retryPolicy.execute(() async {
+      final uri = Uri.parse('$baseUrl$endpoint');
+      final url = uri.replace(queryParameters: queryParameters);
+
+      final headers = await _buildHeaders();
+
+      try {
+        final response = await _httpClient
+            .get(
+              url,
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } else {
+          throw AwsApiException(
+            'API request failed: ${response.body}',
+            statusCode: response.statusCode,
+            responseBody: response.body,
+          );
+        }
+      } catch (e) {
+        if (e is AwsApiException) rethrow;
+        throw AwsApiException(
+          'Network error: ${e.toString()}',
+          statusCode: 0,
+          originalError: e,
+        );
+      }
+    });
+  }
+
+  /// Generic DELETE request handler
+  Future<Map<String, dynamic>> _delete(String endpoint) async {
+    if (!isEnabled) {
+      throw AwsApiException(
+        'AWS cloud integration is not enabled',
+        statusCode: 0,
+      );
+    }
+
+    return retryPolicy.execute(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _buildHeaders();
+
+      try {
+        final response = await _httpClient
+            .delete(
+              url,
+              headers: headers,
+            )
+            .timeout(timeout);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } else {
+          throw AwsApiException(
+            'API request failed: ${response.body}',
+            statusCode: response.statusCode,
+            responseBody: response.body,
+          );
+        }
+      } catch (e) {
+        if (e is AwsApiException) rethrow;
+        throw AwsApiException(
+          'Network error: ${e.toString()}',
+          statusCode: 0,
+          originalError: e,
+        );
+      }
+    });
+  }
+
+  /// Generic PUT request handler
+  Future<Map<String, dynamic>> _put(
+    String endpoint, {
+    required Map<String, dynamic> body,
+  }) async {
+    if (!isEnabled) {
+      throw AwsApiException(
+        'AWS cloud integration is not enabled',
+        statusCode: 0,
+      );
+    }
+
+    return retryPolicy.execute(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _buildHeaders();
+
+      try {
+        final response = await _httpClient
+            .put(
               url,
               headers: headers,
               body: jsonEncode(body),
@@ -139,6 +285,136 @@ class AwsApiGatewayClient {
         );
       }
     });
+  }
+
+  // --- History Endpoints ---
+
+  /// GET request to fetch translation history
+  Future<Map<String, dynamic>> getHistory({
+    int page = 1,
+    int pageSize = 20,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    };
+    return _get('/history', queryParameters: queryParams);
+  }
+
+  /// DELETE request to remove a specific history item
+  Future<Map<String, dynamic>> deleteHistoryItem(String id) async {
+    return _delete('/history/$id');
+  }
+
+  /// POST request to manually add a history item (manual sync)
+  Future<Map<String, dynamic>> addHistoryItem({
+    required String sourceText,
+    required String sourceLang,
+    required String targetText,
+    required String targetLang,
+    int? timestamp,
+    String? type,
+    String? backend,
+    int? processingTime,
+  }) async {
+    return _post(
+      '/history',
+      body: {
+        'sourceText': sourceText,
+        'sourceLang': sourceLang,
+        'targetText': targetText,
+        'targetLang': targetLang,
+        if (timestamp != null) 'timestamp': timestamp,
+        if (type != null) 'type': type,
+        if (backend != null) 'backend': backend,
+        if (processingTime != null) 'processingTime': processingTime,
+      },
+    );
+  }
+
+  // --- Saved Translations Endpoints ---
+
+  /// GET request to fetch saved translations
+  Future<Map<String, dynamic>> getSavedTranslations({
+    int page = 1,
+    int pageSize = 20,
+    String? search,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+      if (search != null) 'search': search,
+    };
+    return _get('/saved', queryParameters: queryParams);
+  }
+
+  /// POST request to save a translation
+  Future<Map<String, dynamic>> saveTranslation({
+    required String translationId,
+    required String sourceText,
+    required String sourceLang,
+    required String translatedText,
+    required String targetLang,
+    List<String>? tags,
+  }) async {
+    return _post(
+      '/saved',
+      body: {
+        'translation_id': translationId,
+        'source_text': sourceText,
+        'source_lang': sourceLang,
+        'translated_text': translatedText,
+        'target_lang': targetLang,
+        if (tags != null) 'tags': tags,
+      },
+    );
+  }
+
+  /// DELETE request to remove a saved translation
+  Future<Map<String, dynamic>> deleteSavedTranslation(String id) async {
+    return _delete('/saved/$id');
+  }
+
+  // --- Preferences Endpoints ---
+
+  /// GET request to fetch user preferences
+  Future<Map<String, dynamic>> getPreferences() async {
+    return _get('/preferences');
+  }
+
+  /// PUT request to update user preferences
+  Future<Map<String, dynamic>> updatePreferences(
+      Map<String, dynamic> preferences) async {
+    return _put(
+      '/preferences',
+      body: {
+        'preferences': preferences,
+      },
+    );
+  }
+
+  // --- Export Endpoint ---
+
+  /// POST request to export data
+  Future<Map<String, dynamic>> exportData({
+    required String exportType,
+    required String format,
+    String? startDate,
+    String? endDate,
+  }) async {
+    return _post(
+      '/export',
+      body: {
+        'exportType': exportType,
+        'format': format,
+        if (startDate != null) 'startDate': startDate,
+        if (endDate != null) 'endDate': endDate,
+      },
+    );
   }
 
   /// Build request headers with authentication

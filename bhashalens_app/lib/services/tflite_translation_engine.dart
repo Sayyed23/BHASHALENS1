@@ -209,7 +209,8 @@ class TFLiteTranslationEngine implements TranslationEngine {
       final modelsDir = Directory('${appDir.path}/language_packs');
 
       // Model file path
-      final modelPath = '${modelsDir.path}/${pair.key}/translation_model.tflite';
+      final modelPath =
+          '${modelsDir.path}/${pair.key}/translation_model.tflite';
 
       // Check if model exists
       final file = File(modelPath);
@@ -244,8 +245,7 @@ class TFLiteTranslationEngine implements TranslationEngine {
 
       // Get vocabulary file path
       final appDir = await getApplicationDocumentsDirectory();
-      final vocabPath =
-          '${appDir.path}/language_packs/${pair.key}/vocab.txt';
+      final vocabPath = '${appDir.path}/language_packs/${pair.key}/vocab.txt';
 
       final file = File(vocabPath);
       if (!await file.exists()) {
@@ -310,6 +310,7 @@ class TFLiteTranslationEngine implements TranslationEngine {
   }
 
   /// Tokenize text using vocabulary
+  // ignore: unused_element
   List<int> _tokenize(String text, String pairKey) {
     final vocab = _vocabMaps[pairKey];
     if (vocab == null) {
@@ -330,6 +331,7 @@ class TFLiteTranslationEngine implements TranslationEngine {
   }
 
   /// Detokenize output tokens to text
+  // ignore: unused_element
   String _detokenize(List<int> tokens, String pairKey) {
     final vocab = _vocabMaps[pairKey];
     if (vocab == null) {

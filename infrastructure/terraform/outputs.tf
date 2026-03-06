@@ -1,125 +1,61 @@
-# Terraform Outputs for BhashaLens Infrastructure
+# Outputs for BhashaLens AWS Infrastructure
 
-# API Gateway Outputs
-output "api_endpoint" {
-  description = "Base URL for API Gateway endpoints"
-  value       = "${aws_api_gateway_stage.production.invoke_url}/v1"
+# DynamoDB
+output "translation_history_table_name" {
+  description = "Name of the translation history DynamoDB table"
+  value       = module.dynamodb.translation_history_table_name
 }
 
-output "api_endpoints" {
-  description = "All API endpoints"
-  value = {
-    translate = "${aws_api_gateway_stage.production.invoke_url}/v1/translate"
-    assist    = "${aws_api_gateway_stage.production.invoke_url}/v1/assist"
-    simplify  = "${aws_api_gateway_stage.production.invoke_url}/v1/simplify"
-  }
+output "saved_translations_table_name" {
+  description = "Name of the saved translations DynamoDB table"
+  value       = module.dynamodb.saved_translations_table_name
 }
 
-# Lambda Function Outputs
-output "lambda_functions" {
-  description = "Lambda function details"
-  value = {
-    translation = {
-      name = aws_lambda_function.translation.function_name
-      arn  = aws_lambda_function.translation.arn
-    }
-    assistance = {
-      name = aws_lambda_function.assistance.function_name
-      arn  = aws_lambda_function.assistance.arn
-    }
-    simplification = {
-      name = aws_lambda_function.simplification.function_name
-      arn  = aws_lambda_function.simplification.arn
-    }
-  }
+output "user_preferences_table_name" {
+  description = "Name of the user preferences DynamoDB table"
+  value       = module.dynamodb.user_preferences_table_name
 }
 
-# DynamoDB Outputs
-output "dynamodb_tables" {
-  description = "DynamoDB table details"
-  value = {
-    user_preferences = {
-      name = aws_dynamodb_table.user_preferences.name
-      arn  = aws_dynamodb_table.user_preferences.arn
-    }
-    translation_history = {
-      name = aws_dynamodb_table.translation_history.name
-      arn  = aws_dynamodb_table.translation_history.arn
-    }
-    language_pack_metadata = {
-      name = aws_dynamodb_table.language_pack_metadata.name
-      arn  = aws_dynamodb_table.language_pack_metadata.arn
-    }
-  }
+# S3
+output "static_assets_bucket_name" {
+  description = "Name of the static assets S3 bucket"
+  value       = module.s3.static_assets_bucket_name
 }
 
-# S3 Outputs
-output "s3_buckets" {
-  description = "S3 bucket details"
-  value = {
-    language_packs = {
-      name = aws_s3_bucket.language_packs.bucket
-      arn  = aws_s3_bucket.language_packs.arn
-    }
-    logs = {
-      name = aws_s3_bucket.logs.bucket
-      arn  = aws_s3_bucket.logs.arn
-    }
-  }
+output "translation_exports_bucket_name" {
+  description = "Name of the translation exports S3 bucket"
+  value       = module.s3.translation_exports_bucket_name
 }
 
-# IAM Outputs
-output "iam_roles" {
-  description = "IAM role details"
-  value = {
-    lambda_execution = {
-      name = aws_iam_role.lambda_execution_role.name
-      arn  = aws_iam_role.lambda_execution_role.arn
-    }
-    api_gateway_cloudwatch = {
-      name = aws_iam_role.api_gateway_cloudwatch_role.name
-      arn  = aws_iam_role.api_gateway_cloudwatch_role.arn
-    }
-  }
+# KMS
+output "kms_key_arn" {
+  description = "ARN of the KMS key used for encryption"
+  value       = module.security.kms_key_arn
 }
 
-# CloudWatch Outputs
-output "cloudwatch_resources" {
-  description = "CloudWatch resource details"
-  value = {
-    dashboard_name = aws_cloudwatch_dashboard.bhashalens_dashboard.dashboard_name
-    dashboard_url  = "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.bhashalens_dashboard.dashboard_name}"
-    log_groups = {
-      api_gateway     = aws_cloudwatch_log_group.api_gateway_logs.name
-      translation     = aws_cloudwatch_log_group.translation_logs.name
-      assistance      = aws_cloudwatch_log_group.assistance_logs.name
-      simplification  = aws_cloudwatch_log_group.simplification_logs.name
-      bedrock         = aws_cloudwatch_log_group.bedrock_logs.name
-    }
-  }
+# Amplify
+output "amplify_app_id" {
+  description = "ID of the Amplify App"
+  value       = module.amplify.amplify_app_id
 }
 
-# Bedrock Outputs
-output "bedrock_configuration" {
-  description = "Bedrock model configuration"
-  value = {
-    models = {
-      claude_sonnet    = var.bedrock_model_ids.claude_sonnet
-      titan_text       = var.bedrock_model_ids.titan_text
-      titan_embeddings = var.bedrock_model_ids.titan_embeddings
-    }
-    region = var.aws_region
-  }
+output "amplify_default_domain" {
+  description = "Default domain for the Amplify App"
+  value       = module.amplify.amplify_default_domain
 }
 
-# Summary Output
-output "deployment_summary" {
-  description = "Summary of deployed resources"
-  value = {
-    environment     = var.environment
-    region          = var.aws_region
-    api_endpoint    = "${aws_api_gateway_stage.production.invoke_url}/v1"
-    dashboard_url   = "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.bhashalens_dashboard.dashboard_name}"
-    s3_bucket       = aws_s3_bucket.language_packs.bucket
-  }
+output "amplify_branch_url" {
+  description = "URL of the deployed branch"
+  value       = module.amplify.amplify_branch_url
+}
+
+# Monitoring
+output "dashboard_arn" {
+  description = "ARN of the CloudWatch dashboard"
+  value       = module.monitoring.dashboard_arn
+}
+
+output "sns_alerts_topic_arn" {
+  description = "ARN of the SNS topic for alerts"
+  value       = module.monitoring.sns_alerts_topic_arn
 }

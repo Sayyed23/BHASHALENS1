@@ -63,7 +63,7 @@ class TranslationEngineExample {
   Future<void> cachedTranslation() async {
     debugPrint('\n=== Example 3: Cached Translation ===');
 
-    final text = 'Good morning';
+    const text = 'Good morning';
 
     // First translation - will be cached
     final start1 = DateTime.now();
@@ -106,7 +106,8 @@ class TranslationEngineExample {
 
       debugPrint('${pair.key}:');
       debugPrint('  Available: $isAvailable');
-      debugPrint('  Model size: ${(modelSize / 1024 / 1024).toStringAsFixed(2)} MB');
+      debugPrint(
+          '  Model size: ${(modelSize / 1024 / 1024).toStringAsFixed(2)} MB');
       debugPrint('  Loaded in memory: $isLoaded');
     }
   }
@@ -148,7 +149,7 @@ class TranslationEngineExample {
   Future<void> initializeLanguagePair() async {
     debugPrint('\n=== Example 6: Initialize Language Pair ===');
 
-    final pair = LanguagePair(
+    const pair = LanguagePair(
       source: Language.hindi,
       target: Language.english,
     );
@@ -179,7 +180,7 @@ class TranslationEngineExample {
 
     for (final text in testTexts) {
       final start = DateTime.now();
-      final result = await _service.translate(
+      await _service.translate(
         text: text,
         sourceLang: Language.english,
         targetLang: Language.hindi,

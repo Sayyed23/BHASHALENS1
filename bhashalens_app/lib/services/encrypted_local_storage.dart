@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bhashalens_app/models/language_pair.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
@@ -28,7 +29,7 @@ class EncryptedLocalStorage {
   Future<Database> _initDatabase() async {
     // Get or create encryption key from secure storage
     String? encryptionKey = await _secureStorage.read(key: _encryptionKeyName);
-    
+
     if (encryptionKey == null) {
       // Generate a new 256-bit encryption key (64 hex characters)
       encryptionKey = _generateEncryptionKey();
@@ -36,7 +37,7 @@ class EncryptedLocalStorage {
     }
 
     String path = join(await getDatabasesPath(), 'bhashalens_encrypted.db');
-    
+
     return openDatabase(
       path,
       version: 1,
