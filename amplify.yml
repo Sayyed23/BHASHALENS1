@@ -3,24 +3,51 @@ frontend:
   phases:
     preBuild:
       commands:
-        - 'echo "Phase: preBuild"'
-        - 'if [ ! -d "$PWD/flutter" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$PWD/flutter"; fi'
-        - 'export PATH="$PATH:$PWD/flutter/bin"'
+        - 'echo "=== Starting preBuild phase ==="'
+        - 'echo "Working directory: $(pwd)"'
+        - 'echo "Available disk space:"'
+        - 'df -h'
+        # Download Flutter SDK using direct download (faster than git clone)
+        - 'echo "Downloading Flutter SDK 3.24.0..."'
+        - 'wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz'
+        - 'echo "Extracting Flutter SDK..."'
+        - 'tar xf flutter.tar.xz'
+        - 'rm flutter.tar.xz'
+        # Set up Flutter environment
+        - 'export PATH="$PWD/flutter/bin:$PATH"'
+        - 'export PUB_CACHE="$PWD/.pub-cache"'
+        - 'flutter --version'
+        - 'flutter doctor -v'
         - 'flutter config --no-analytics'
-        - 'flutter precache --web'
         - 'flutter config --enable-web'
-        - 'cd bhashalens_app && flutter pub get'
+        # Navigate to app directory and install dependencies
+        - 'cd bhashalens_app'
+        - 'echo "Installing Flutter dependencies..."'
+        - 'flutter pub get'
+        - 'cd ..'
+        - 'echo "=== preBuild phase complete ==="'
     build:
       commands:
-        - 'echo "Phase: build"'
-        - 'export PATH="$PATH:$PWD/flutter/bin"'
-        - 'cd bhashalens_app && flutter build web --release'
+        - 'echo "=== Starting build phase ==="'
+        - 'export PATH="$PWD/flutter/bin:$PATH"'
+        - 'export PUB_CACHE="$PWD/.pub-cache"'
+        - 'cd bhashalens_app'
+        - 'echo "Building Flutter web app for release..."'
+        # Build with optimizations
+        - 'flutter build web --release --web-renderer canvaskit --dart-define=FLUTTER_WEB_USE_SKIA=true --source-maps'
+        - 'echo "Build complete!"'
+        - 'echo "Build output:"'
+        - 'ls -lah build/web'
+        - 'echo "=== build phase complete ==="'
   artifacts:
     baseDirectory: bhashalens_app/build/web
     files:
       - '**/*'
   cache:
     paths:
-      - 'flutter/.pub-cache/**/*'
-      - 'flutter/bin/cache/**/*'
-      - 'bhashalens_app/.pub-cache/**/*'
+      # Cache Flutter SDK
+      - 'flutter/**/*'
+      # Cache pub dependencies
+      - '.pub-cache/**/*'
+      - 'bhashalens_app/.dart_tool/**/*'
+      - 'bhashalens_app/.packages'
