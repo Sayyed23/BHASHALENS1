@@ -540,9 +540,10 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               title: const Text("Copy Translation",
                   style: TextStyle(color: Colors.white)),
               onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 await Clipboard.setData(ClipboardData(text: item.targetText));
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context)
+                if (ctx.mounted) Navigator.pop(ctx);
+                messenger
                     .showSnackBar(const SnackBar(content: Text('Copied!')));
               },
             ),

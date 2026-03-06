@@ -73,18 +73,18 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (shouldLogout == true) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       try {
         final authService =
             Provider.of<FirebaseAuthService?>(context, listen: false);
         if (authService != null) {
           await authService.signOut();
-          if (mounted) {
+          if (context.mounted) {
             Navigator.of(context)
                 .pushNamedAndRemoveUntil('/login', (route) => false);
           }
         } else {
-          if (mounted) {
+          if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                   content: Text('Unable to logout. Please try again.')),
@@ -93,7 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       } catch (e) {
         debugPrint('Error during logout: $e');
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Logout failed. Please try again.')),
           );
@@ -120,8 +120,8 @@ class _SettingsPageState extends State<SettingsPage> {
             onPressed: () async {
               await Provider.of<HistoryService>(context, listen: false)
                   .clearHistory();
-              Navigator.pop(context);
-              if (mounted) {
+              if (context.mounted) {
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('History cleared')));
               }

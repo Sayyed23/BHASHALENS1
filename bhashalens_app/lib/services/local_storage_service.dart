@@ -28,11 +28,6 @@ class LocalStorageService {
   }
 
   Future<Database> _initDatabase() async {
-    if (kIsWeb) {
-      // Return a dummy operation or handle elsewhere. sqflite doesn't support web.
-      // We will ensure all SQLite calls are gated by kIsWeb.
-      throw UnsupportedError('SQLite not supported on Web');
-    }
     String path = join(await getDatabasesPath(), 'bhashalens.db');
     return openDatabase(
       path,
@@ -49,7 +44,9 @@ class LocalStorageService {
             await db.execute(
               "ALTER TABLE translations ADD COLUMN category TEXT DEFAULT 'General'",
             );
-          } catch (e) {}
+          } catch (e) {
+            debugPrint("Schema upgrade error (v1 to v2): $e");
+          }
         }
         if (oldVersion < 3) {
           try {
@@ -151,7 +148,6 @@ class LocalStorageService {
 
   // SQLite methods for translations
   Future<int> insertTranslation(Map<String, dynamic> translation) async {
-    if (kIsWeb) return 0; // No-op on web
     final db = await database;
     return await db.insert(
       'translations',
@@ -161,14 +157,12 @@ class LocalStorageService {
   }
 
   Future<List<Map<String, dynamic>>> getTranslations() async {
-    if (kIsWeb) return []; // Return empty list on web
     final db = await database;
     // Get all (History)
     return await db.query('translations', orderBy: 'timestamp DESC');
   }
 
   Future<List<Map<String, dynamic>>> getSavedTranslations() async {
-    if (kIsWeb) return []; // Return empty list on web
     final db = await database;
     return await db.query(
       'translations',
@@ -179,7 +173,6 @@ class LocalStorageService {
   }
 
   Future<int> updateTranslationStatus(String id, bool isStarred) async {
-    if (kIsWeb) return 0;
     final intId = int.tryParse(id);
     if (intId == null) return 0;
     final db = await database;
@@ -192,7 +185,6 @@ class LocalStorageService {
   }
 
   Future<int> deleteTranslation(String id) async {
-    if (kIsWeb) return 0;
     final intId = int.tryParse(id);
     if (intId == null) return 0;
     final db = await database;
@@ -201,7 +193,6 @@ class LocalStorageService {
 
   // SQLite methods for language packs
   Future<int> insertLanguagePack(Map<String, dynamic> languagePack) async {
-    if (kIsWeb) return 0;
     final db = await database;
     return await db.insert(
       'languagePacks',
@@ -211,7 +202,6 @@ class LocalStorageService {
   }
 
   Future<Map<String, dynamic>?> getLanguagePack(String languageCode) async {
-    if (kIsWeb) return null;
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(
       'languagePacks',
@@ -224,7 +214,6 @@ class LocalStorageService {
   // --- Synchronization Methods ---
 
   Future<List<Map<String, dynamic>>> getUnsyncedTranslations() async {
-    if (kIsWeb) return [];
     final db = await database;
     return await db.query(
       'translations',
@@ -234,7 +223,6 @@ class LocalStorageService {
   }
 
   Future<int> markAsSynced(String id) async {
-    if (kIsWeb) return 0;
     final intId = int.tryParse(id);
     if (intId == null) return 0;
     final db = await database;

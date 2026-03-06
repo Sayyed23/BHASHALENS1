@@ -15,8 +15,9 @@ class MlKitTranslationService {
 
   MlKitTranslationService._internal();
 
-  final _modelManager = OnDeviceTranslatorModelManager();
-  final _languageIdentifier = LanguageIdentifier(confidenceThreshold: 0.5);
+  final _modelManager = kIsWeb ? null : OnDeviceTranslatorModelManager();
+  final _languageIdentifier =
+      kIsWeb ? null : LanguageIdentifier(confidenceThreshold: 0.5);
 
   /// Translates text from source language to target language.
   /// Returns null if translation fails.
@@ -27,6 +28,10 @@ class MlKitTranslationService {
     required String sourceLanguage, // e.g., 'en', 'hi'
     required String targetLanguage,
   }) async {
+    if (kIsWeb) {
+      debugPrint('ML Kit Translation is not supported on Web');
+      return null;
+    }
     try {
       final sourceLang = _getTranslateLanguage(sourceLanguage);
       final targetLang = _getTranslateLanguage(targetLanguage);
@@ -140,6 +145,10 @@ class MlKitTranslationService {
   /// tries multiple recognizers and picks the best result.
   Future<String> extractTextFromFile(File file,
       {String languageCode = 'en'}) async {
+    if (kIsWeb) {
+      debugPrint('ML Kit OCR is not supported on Web');
+      return '';
+    }
     try {
       final inputImage = InputImage.fromFile(file);
       final script = _getScriptForLanguage(languageCode);
@@ -250,15 +259,18 @@ class MlKitTranslationService {
 
   /// Release resources
   Future<void> dispose() async {
-    await _languageIdentifier.close();
+    if (kIsWeb) return;
+    await _languageIdentifier?.close();
   }
 
   /// Identifies the language of the given text offline.
   /// Returns the language code (e.g., 'en', 'hi') or 'und' if unidentified.
   Future<String> identifyLanguage(String text) async {
+    if (kIsWeb) return 'und';
     try {
       if (text.trim().isEmpty) return 'und';
-      final languageCode = await _languageIdentifier.identifyLanguage(text);
+      final languageCode =
+          await _languageIdentifier?.identifyLanguage(text) ?? 'und';
       debugPrint('ML Kit Offline Identified Language: $languageCode');
       return languageCode;
     } catch (e) {
@@ -270,6 +282,7 @@ class MlKitTranslationService {
   /// Downloads the translation model for the given language code.
   /// Also ensures English model is available for bidirectional translation.
   Future<bool> downloadModel(String languageCode) async {
+    if (kIsWeb) return false;
     try {
       final lang = _getTranslateLanguage(languageCode);
       if (lang == null) return false;
@@ -279,11 +292,12 @@ class MlKitTranslationService {
         final englishAvailable = await isModelDownloaded('en');
         if (!englishAvailable) {
           debugPrint('Downloading English model for bidirectional translation');
-          await _modelManager.downloadModel('en');
+          await _modelManager?.downloadModel('en');
         }
       }
 
-      final success = await _modelManager.downloadModel(_getBcp47Code(lang));
+      final success =
+          await _modelManager?.downloadModel(_getBcp47Code(lang)) ?? false;
       if (success) {
         debugPrint('Successfully downloaded model for $languageCode');
       } else {
@@ -299,11 +313,12 @@ class MlKitTranslationService {
 
   /// Deletes the translation model for the given language code.
   Future<bool> deleteModel(String languageCode) async {
+    if (kIsWeb) return false;
     try {
       final lang = _getTranslateLanguage(languageCode);
       if (lang == null) return false;
 
-      return await _modelManager.deleteModel(_getBcp47Code(lang));
+      return await _modelManager?.deleteModel(_getBcp47Code(lang)) ?? false;
     } catch (e) {
       debugPrint('Error deleting model for $languageCode: $e');
       return false;
@@ -382,6 +397,7 @@ class MlKitTranslationService {
   }
 
   Future<bool> isModelDownloaded(String languageCode) async {
+    if (kIsWeb) return false;
     try {
       final lang = _getTranslateLanguage(languageCode);
       if (lang == null) {
@@ -396,7 +412,8 @@ class MlKitTranslationService {
         return false;
       }
 
-      final isDownloaded = await _modelManager.isModelDownloaded(bcpCode);
+      final isDownloaded =
+          await _modelManager?.isModelDownloaded(bcpCode) ?? false;
       debugPrint(
           'isModelDownloaded: $languageCode ($bcpCode) -> $isDownloaded');
       return isDownloaded;
@@ -408,6 +425,7 @@ class MlKitTranslationService {
 
   /// Returns a list of language codes for downloaded models.
   Future<List<String>> getDownloadedModels() async {
+    if (kIsWeb) return [];
     try {
       // Iterate over supported languages and check status
       final List<String> downloaded = [];
@@ -422,7 +440,7 @@ class MlKitTranslationService {
       }
 
       for (var bcp in codesToCheck) {
-        if (await _modelManager.isModelDownloaded(bcp)) {
+        if (await _modelManager?.isModelDownloaded(bcp) ?? false) {
           downloaded.add(bcp);
         }
       }
