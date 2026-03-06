@@ -8,31 +8,7 @@ resource "aws_amplify_app" "bhashalens_web" {
   access_token = var.github_token
 
   # Build Spec for Flutter Web
-  build_spec = <<-EOT
-    version: 1
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - echo "Phase: preBuild"
-            - git clone https://github.com/flutter/flutter.git -b stable --depth 1
-            - export PATH="$PATH:$(pwd)/flutter/bin"
-            - flutter config --enable-web
-            - cd bhashalens_app && flutter pub get
-        build:
-          commands:
-            - echo "Phase: build"
-            - export PATH="$PATH:$(pwd)/flutter/bin"
-            - cd bhashalens_app && flutter build web --release
-      artifacts:
-        baseDirectory: bhashalens_app/build/web
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - "flutter/.pub-cache/**/*"
-          - "flutter/bin/cache/**/*"
-  EOT
+  build_spec = file("${path.module}/../../../../amplify.yml")
 
   # Environment variables accessible during build and optionally at runtime
   environment_variables = {
