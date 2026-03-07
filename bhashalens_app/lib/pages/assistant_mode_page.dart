@@ -1,6 +1,7 @@
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:bhashalens_app/widgets/main_bottom_navbar.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/firestore_service.dart';
 
@@ -785,6 +786,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
           ],
         ),
       ),
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 4),
     );
   }
 

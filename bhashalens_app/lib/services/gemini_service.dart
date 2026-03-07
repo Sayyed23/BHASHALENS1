@@ -52,7 +52,7 @@ class GeminiService {
       }
 
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -63,7 +63,7 @@ class GeminiService {
       );
 
       _visionModel = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.3,
@@ -260,28 +260,54 @@ class GeminiService {
     }
   }
 
-  // Explain and Simplify text
-  Future<String> explainAndSimplify(
+  // Explain and Simplify text with detailed context
+  Future<Map<String, dynamic>> explainAndSimplifyWithContext(
     String text, {
     String simplicity = 'Simple',
     String targetLanguage = 'English',
+    String sourceLanguage = 'Hindi',
   }) async {
     if (!_isInitialized) {
       throw Exception('Gemini service not initialized');
     }
 
     try {
-      final prompt =
-          'Explain the following text in $simplicity language, translated into $targetLanguage. Break it down into key points if necessary. Avoid jargon. Input: $text';
+      final prompt = 'Analyze and explain the following text. '
+          'Source Language: $sourceLanguage. '
+          'Simplicity Level: $simplicity. '
+          'Target Language for both simplified text and explanation: $targetLanguage. '
+          '\n\n'
+          'Input Text: "$text"'
+          '\n\n'
+          'Return a valid JSON object (no markdown, no backticks) with these keys: '
+          '{'
+          '"simplified_text": "The input text rewritten to be $simplicity in $targetLanguage", '
+          '"explanation": "A simple, jargon-free explanation of the SUBJECT MATTER in $targetLanguage", '
+          '"key_points": ["Point 1 in $targetLanguage", "Point 2 in $targetLanguage"], '
+          '"tone": "Description of the tone in $targetLanguage", '
+          '"suggested_questions": ["Question 1 in $targetLanguage", "Question 2 in $targetLanguage"]'
+          '}';
+
       await _checkAndIncrementLimit();
 
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
-      final simplifiedText = response.text ?? 'Simplification failed';
+      final responseText = response.text;
 
-      return simplifiedText.trim();
+      if (responseText == null) {
+        throw Exception('Empty response from Gemini');
+      }
+
+      String jsonString = responseText.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replaceAll('```', '');
+      }
+
+      return jsonDecode(jsonString);
     } catch (e) {
-      debugPrint('Error simplifying text: $e');
+      debugPrint('Error in explainAndSimplifyWithContext: $e');
       throw Exception('Failed to simplify text: $e');
     }
   }
@@ -332,17 +358,22 @@ class GeminiService {
 
       prompt +=
           'Target Language for translation and explanation: $targetLanguage. '
+          'INSTRUCTION: Do NOT just describe the grammar or sentence type (e.g., do not say "This is a statement"). '
+          'Instead, focus on the SUBJECT MATTER and CONTEXT of the text. '
+          'Explain the CONCEPTS, FACTS, and MEANING of the actual words. '
+          'IMPORTANT: Every single value in the JSON response MUST be written in $targetLanguage. '
+          'For the "meaning" field, use the ELI5 (Explain Like I\'m 5) method to explain the CONTENT of the text simply. '
           'Return a valid JSON object with the following keys and no markdown formatting: '
           '{'
-          '"translation": "String - The text translated to $targetLanguage", '
-          '"analysis": "String - A brief contextual summary (1-2 sentences). Who is speaking? What is the main topic?", '
-          '"meaning": "String - A very simple, jargon-free explanation of what this means. Imagine explaining to a child (ELI5). Use clear, short sentences.", '
-          '"suggested_questions": ["String", "String"], '
-          '"when_to_use": "String", '
-          '"tone": "String", '
-          '"situational_context": ["String", "String"], '
-          '"cultural_insight": "String", '
-          '"safety_note": "String or null"'
+          '"translation": "The input text translated to $targetLanguage", '
+          '"analysis": "A brief contextual summary of the CONTENT (1-2 sentences). Who is involved? What is the core topic?", '
+          '"meaning": "A very simple, jargon-free explanation of the SUBJECT MATTER in $targetLanguage. (ELI5 approach)", '
+          '"suggested_questions": ["Question 1 in $targetLanguage", "Question 2 in $targetLanguage"], '
+          '"when_to_use": "Description in $targetLanguage", '
+          '"tone": "Description in $targetLanguage", '
+          '"situational_context": ["Context 1 in $targetLanguage", "Context 2 in $targetLanguage"], '
+          '"cultural_insight": "Insight in $targetLanguage or null", '
+          '"safety_note": "Safety advice in $targetLanguage or null"'
           '} '
           'Input Text: "$text"';
 

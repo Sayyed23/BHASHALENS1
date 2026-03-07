@@ -4,6 +4,7 @@ import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/home/widgets/feature_card.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
+import 'package:bhashalens_app/widgets/main_bottom_navbar.dart';
 
 class TranslationModePage extends StatelessWidget {
   const TranslationModePage({super.key});
@@ -72,6 +73,7 @@ class TranslationModePage extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 1),
     );
   }
 }

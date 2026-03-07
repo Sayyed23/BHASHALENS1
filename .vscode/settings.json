@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/BHASHALENS1/bhashalens_app/windows/flutter"
+    "cmake.sourceDirectory": "D:/BHASHALENS1/bhashalens_app/windows/flutter",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

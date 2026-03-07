@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:bhashalens_app/widgets/main_bottom_navbar.dart';
 
 class HistorySavedPage extends StatefulWidget {
   final int initialIndex;
@@ -316,6 +317,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           ),
         ],
       ),
+      bottomNavigationBar: const MainBottomNavBar(currentIndex: 3),
     );
   }
 

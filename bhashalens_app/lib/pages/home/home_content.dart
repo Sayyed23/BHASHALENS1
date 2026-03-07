@@ -20,9 +20,7 @@ class HomeContent extends StatelessWidget {
             _buildHeader(context),
             const SizedBox(height: 24),
             RecentActivityCard(
-              onTap: () {
-                // TODO: Navigate to recent activity details
-              },
+              onTap: () => Navigator.pushNamed(context, '/history_saved', arguments: 0),
             ),
             const SizedBox(height: 24),
             _buildFeatureCards(context),
@@ -143,15 +141,7 @@ class HomeContent extends StatelessWidget {
               label: 'SOS',
               icon: Icons.campaign,
               color: AppColors.sosRed,
-              onTap: () {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('SOS Feature Coming Soon'),
-                    backgroundColor: AppColors.sosRed,
-                  ),
-                );
-              },
+              onTap: () => Navigator.pushNamed(context, '/emergency'),
             ),
             const SizedBox(width: 12),
             QuickAccessButton(
