@@ -8,9 +8,14 @@ frontend:
   phases:
     preBuild:
       commands:
-        # 1. Create environment file in the app directory
-        - 'PROJECT_ROOT="${AMPLIFY_SOURCE_DIRECTORY}/bhashalens_app"'
-        - 'cd $PROJECT_ROOT || cd bhashalens_app || true'
+        # 1. Install Flutter efficiently (Shallow clone saves ~10 mins)
+        - if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi
+        - export PATH="$PATH:$HOME/flutter/bin"
+        - flutter config --enable-web --no-analytics
+        - flutter doctor -v
+
+        # 2. Setup project environment
+        - cd bhashalens_app || exit 1
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
@@ -21,12 +26,6 @@ frontend:
         - 'echo "VERIFIED: .env created at $(pwd)/.env"'
         - ls -l .env
 
-        # 2. Install Flutter efficiently (Shallow clone saves ~10 mins)
-        - if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi
-        - export PATH="$PATH:$HOME/flutter/bin"
-        - flutter config --enable-web --no-analytics
-        - flutter doctor -v
-
         # 3. Install dependencies and provision SQLite assets
         - flutter pub get
         - dart run sqflite_common_ffi_web:setup
@@ -34,17 +33,15 @@ frontend:
 
     build:
       commands:
-        - 'PROJECT_ROOT="${AMPLIFY_SOURCE_DIRECTORY}/bhashalens_app"'
-        - 'cd $PROJECT_ROOT || cd bhashalens_app || true'
-        # Build Flutter Web with optimizations
-        - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none --no-wasm-dry-run
+        - export PATH="$PATH:$HOME/flutter/bin"
+        - cd bhashalens_app || exit 1
+        # Build Flutter Web with optimizations for Flutter 3.41.3
+        # Note: --web-renderer and --pwa-strategy are deprecated/removed
+        - flutter build web --release --no-tree-shake-icons --no-wasm-dry-run
+        
         # Final verification
         - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
-
         - ls -l build/web/index.html
-
-
-
 
   artifacts:
     baseDirectory: bhashalens_app/build/web
@@ -55,4 +52,4 @@ frontend:
     paths:
       - $HOME/flutter
       - $HOME/.pub-cache
-      - .dart_tool
+      - bhashalens_app/.dart_tool
