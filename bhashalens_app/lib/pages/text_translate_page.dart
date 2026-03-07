@@ -480,6 +480,7 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
 
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
     if (data?.text != null) {
       setState(() {
         _textController.text = data!.text!;
@@ -491,11 +492,13 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
     if (image == null) return;
+    if (!mounted) return;
 
     setState(() => _isTranslating = true);
 
     try {
       final bytes = await image.readAsBytes();
+      if (!mounted) return;
       final base64Image = base64Encode(bytes);
       final sarvamService = Provider.of<SarvamService>(context, listen: false);
       final extractedText = await sarvamService.performOCR(base64Image);
@@ -506,12 +509,12 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
           _isTranslating = false;
         });
         _translateText();
-      } else {
+      } else if (mounted) {
         setState(() => _isTranslating = false);
       }
     } catch (e) {
-      setState(() => _isTranslating = false);
       if (mounted) {
+        setState(() => _isTranslating = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("OCR Error: $e")),
         );

@@ -64,7 +64,8 @@ void main() async {
 
   bool firebaseInitialized = false;
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
     firebaseInitialized = true;
   } catch (e) {
     debugPrint("Firebase init error: $e");
@@ -90,24 +91,30 @@ void main() async {
     ProxyProvider<AwsApiGatewayClient, AwsCloudService>(
       update: (_, apiClient, __) => AwsCloudService(apiClient: apiClient),
     ),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService, HistoryService>(
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        HistoryService>(
       create: (context) => HistoryService(
         apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService: Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
       )..fetchHistory(),
       update: (_, apiClient, localStorage, history) => history!,
     ),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService, SavedTranslationsService>(
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        SavedTranslationsService>(
       create: (context) => SavedTranslationsService(
         apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService: Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
       )..fetchSavedTranslations(),
       update: (_, apiClient, localStorage, saved) => saved!,
     ),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService, PreferencesService>(
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        PreferencesService>(
       create: (context) => PreferencesService(
         apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService: Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
       )..fetchPreferences(),
       update: (_, apiClient, localStorage, prefs) => prefs!,
     ),
@@ -122,7 +129,8 @@ void main() async {
         apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
       ),
     ),
-    ProxyProvider2<AwsCloudService, LocalStorageService, HybridTranslationService>(
+    ProxyProvider2<AwsCloudService, LocalStorageService,
+        HybridTranslationService>(
       update: (_, awsCloud, localStorage, __) => HybridTranslationService(
         cloudService: awsCloud,
         localStorageService: localStorage,
@@ -130,7 +138,8 @@ void main() async {
         onDeviceLLM: geminiService,
       ),
     ),
-    ChangeNotifierProxyProvider<HybridTranslationService, VoiceTranslationService>(
+    ChangeNotifierProxyProvider<HybridTranslationService,
+        VoiceTranslationService>(
       create: (context) => VoiceTranslationService(
         localStorageService: localStorageService,
       ),
@@ -178,9 +187,10 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   }
 
   Future<void> _initializeApp() async {
-    final localStorage = Provider.of<LocalStorageService>(context, listen: false);
+    final localStorage =
+        Provider.of<LocalStorageService>(context, listen: false);
     final completed = await localStorage.isOnboardingCompleted();
-    
+
     if (mounted) {
       setState(() {
         _isOnboardingCompleted = completed;
@@ -197,34 +207,76 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
 
   Route<dynamic> _onGenerateRoute(RouteSettings settings) {
     final routeName = _normalizeRouteName(settings.name);
-    
+
     Widget builder;
     switch (routeName) {
       case '/':
-        builder = _showSplash
-            ? SplashScreen(onComplete: () => setState(() => _showSplash = false))
-            : (_isOnboardingCompleted ? const HomePage() : const OnboardingPage());
+        // The root route is now handled by the 'home' property for better reactivity
+        builder = _isOnboardingCompleted
+            ? const HomePage()
+            : const OnboardingPage();
         break;
-      case '/onboarding': builder = const OnboardingPage(); break;
-      case '/login': builder = const LoginPage(); break;
-      case '/signup': builder = const SignupPage(); break;
-      case '/forgot_password': builder = const ForgotPasswordPage(); break;
-      case '/home': builder = const HomePage(); break;
-      case '/camera_translate': builder = const CameraTranslatePage(); break;
-      case '/voice_translate': builder = const VoiceTranslatePage(); break;
-      case '/saved_translations': builder = const SavedTranslationsPage(); break;
-      case '/history_saved': builder = HistorySavedPage(initialIndex: settings.arguments as int? ?? 0); break;
-      case '/settings': builder = const SettingsPage(); break;
-      case '/help_support': builder = const HelpSupportPage(); break;
-      case '/emergency': builder = const EmergencyPage(); break;
-      case '/offline_models': builder = const OfflineModelsPage(); break;
-      case '/translation_mode': builder = const TranslationModePage(); break;
-      case '/explain_mode': builder = const ExplainModePage(); break;
-      case '/assistant_mode': builder = const AssistantModePage(); break;
-      case '/text_translate': builder = const TextTranslatePage(); break;
-      case '/simplify_mode': builder = const SimplifyModePage(); break;
-      case '/error': builder = ErrorFallbackPage(error: settings.arguments as String? ?? 'Unknown error'); break;
-      default: builder = ErrorFallbackPage(error: 'Route not found: $routeName');
+      case '/onboarding':
+        builder = const OnboardingPage();
+        break;
+      case '/login':
+        builder = const LoginPage();
+        break;
+      case '/signup':
+        builder = const SignupPage();
+        break;
+      case '/forgot_password':
+        builder = const ForgotPasswordPage();
+        break;
+      case '/home':
+        builder = const HomePage();
+        break;
+      case '/camera_translate':
+        builder = const CameraTranslatePage();
+        break;
+      case '/voice_translate':
+        builder = const VoiceTranslatePage();
+        break;
+      case '/saved_translations':
+        builder = const SavedTranslationsPage();
+        break;
+      case '/history_saved':
+        builder =
+            HistorySavedPage(initialIndex: settings.arguments as int? ?? 0);
+        break;
+      case '/settings':
+        builder = const SettingsPage();
+        break;
+      case '/help_support':
+        builder = const HelpSupportPage();
+        break;
+      case '/emergency':
+        builder = const EmergencyPage();
+        break;
+      case '/offline_models':
+        builder = const OfflineModelsPage();
+        break;
+      case '/translation_mode':
+        builder = const TranslationModePage();
+        break;
+      case '/explain_mode':
+        builder = const ExplainModePage();
+        break;
+      case '/assistant_mode':
+        builder = const AssistantModePage();
+        break;
+      case '/text_translate':
+        builder = const TextTranslatePage();
+        break;
+      case '/simplify_mode':
+        builder = const SimplifyModePage();
+        break;
+      case '/error':
+        builder = ErrorFallbackPage(
+            error: settings.arguments as String? ?? 'Unknown error');
+        break;
+      default:
+        builder = ErrorFallbackPage(error: 'Route not found: $routeName');
     }
 
     return MaterialPageRoute(builder: (_) => builder, settings: settings);
@@ -239,6 +291,11 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
+      home: _showSplash
+          ? SplashScreen(onComplete: () => setState(() => _showSplash = false))
+          : (_isOnboardingCompleted
+              ? const HomePage()
+              : const OnboardingPage()),
       onGenerateRoute: _onGenerateRoute,
     );
   }
