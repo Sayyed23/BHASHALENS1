@@ -46,6 +46,36 @@ class RoutingContext {
   });
 }
 
+/// Routing context for translation requests
+class TranslationRoutingContext extends RoutingContext {
+  const TranslationRoutingContext({
+    required super.networkStatus,
+    required super.batteryLevel,
+    required super.userPreference,
+    required super.requestComplexity,
+  });
+}
+
+/// Routing context for assistance requests (Explain, Chat, Grammar)
+class AssistanceRoutingContext extends RoutingContext {
+  const AssistanceRoutingContext({
+    required super.networkStatus,
+    required super.batteryLevel,
+    required super.userPreference,
+    required super.requestComplexity,
+  });
+}
+
+/// Routing context for simplification requests
+class SimplificationRoutingContext extends RoutingContext {
+  const SimplificationRoutingContext({
+    required super.networkStatus,
+    required super.batteryLevel,
+    required super.userPreference,
+    required super.requestComplexity,
+  });
+}
+
 /// Smart Hybrid Router - decides between on-device and cloud processing
 /// Implements the routing logic defined in the design document
 class SmartHybridRouter {
@@ -109,27 +139,29 @@ class SmartHybridRouter {
       return ProcessingBackend.mlKit;
     }
 
-    // Rule 5: If request complexity is SIMPLE → ML_KIT
-    if (context.requestComplexity == ComplexityLevel.simple) {
-      debugPrint('Router: Simple request → ML_KIT');
+    // Rule 5: If request complexity is SIMPLE → ML_KIT (only for standard translation)
+    if (context.requestComplexity == ComplexityLevel.simple && 
+        context is TranslationRoutingContext) {
+      debugPrint('Router: Simple translation request → ML_KIT');
       return ProcessingBackend.mlKit;
     }
 
     // Rule 6: If cloud service is unavailable → ML_KIT
     if (!_cloudService.isAvailable) {
       debugPrint('Router: AWS Cloud unavailable, fallback preferred');
-      // We could try Gemini, but if we don't know Gemini's availability, fallback to ML Kit
       return ProcessingBackend.mlKit;
     }
 
-    // Rule 7: Prefer GEMINI for moderate complexity tasks and AWS_BEDROCK for complex tasks
-    if (context.requestComplexity != ComplexityLevel.simple) {
-      if (context.requestComplexity == ComplexityLevel.complex) {
-        debugPrint('Router: Complex request with network → AWS_BEDROCK');
-        return ProcessingBackend.awsBedrock;
-      }
+    // Rule 7: Prefer AWS_BEDROCK for AI modes or complex tasks, GEMINI for moderate ones
+    if (context is AssistanceRoutingContext || 
+        context is SimplificationRoutingContext ||
+        context.requestComplexity == ComplexityLevel.complex) {
+      debugPrint('Router: AI mode or complex request → AWS_BEDROCK');
+      return ProcessingBackend.awsBedrock;
+    }
 
-      debugPrint('Router: Moderate request with network → GEMINI');
+    if (context.requestComplexity == ComplexityLevel.moderate) {
+      debugPrint('Router: Moderate request → GEMINI');
       return ProcessingBackend.gemini;
     }
 
@@ -200,6 +232,7 @@ class SmartHybridRouter {
     String? context,
     List<dynamic>? history,
     DataUsagePreference? userPreference,
+    String mode = 'translation',
   }) async {
     final networkStatus = await getNetworkStatus();
     final batteryLevel = await getBatteryLevel();
@@ -209,7 +242,23 @@ class SmartHybridRouter {
       history: history,
     );
 
-    return RoutingContext(
+    if (mode == 'assistance' || mode == 'explain') {
+      return AssistanceRoutingContext(
+        networkStatus: networkStatus,
+        batteryLevel: batteryLevel,
+        userPreference: userPreference ?? DataUsagePreference.cellularAllowed,
+        requestComplexity: complexity,
+      );
+    } else if (mode == 'simplification' || mode == 'simplify') {
+      return SimplificationRoutingContext(
+        networkStatus: networkStatus,
+        batteryLevel: batteryLevel,
+        userPreference: userPreference ?? DataUsagePreference.cellularAllowed,
+        requestComplexity: complexity,
+      );
+    }
+
+    return TranslationRoutingContext(
       networkStatus: networkStatus,
       batteryLevel: batteryLevel,
       userPreference: userPreference ?? DataUsagePreference.cellularAllowed,

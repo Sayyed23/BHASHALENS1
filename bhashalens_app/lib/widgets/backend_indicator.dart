@@ -19,6 +19,7 @@ class BackendIndicator extends StatelessWidget {
 
     switch (backend.toLowerCase()) {
       case 'bedrock':
+      case 'awsbedrock':
         color = Colors.orange;
         icon = Icons.bolt;
         label = 'Claude 3.7 (AWS)';
@@ -29,6 +30,7 @@ class BackendIndicator extends StatelessWidget {
         label = 'Gemini 2.0 (Fallback)';
         break;
       case 'offline':
+      case 'mlkit':
         color = Colors.green;
         icon = Icons.offline_bolt;
         label = 'ML Kit (Offline)';

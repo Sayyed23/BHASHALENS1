@@ -205,6 +205,7 @@ class HybridTranslationService {
     final context = await _router.createContext(
       text: text,
       userPreference: userPreference,
+      mode: 'assistance',
     );
 
     final backend = await _router.routeAssistance(context);
@@ -272,6 +273,7 @@ class HybridTranslationService {
     final context = await _router.createContext(
       text: text,
       userPreference: userPreference,
+      mode: 'simplification',
     );
 
     final backend = await _router.routeSimplification(context);
@@ -342,6 +344,7 @@ class HybridTranslationService {
       text: message,
       history: history,
       userPreference: userPreference,
+      mode: 'assistance',
     );
 
     final backend = await _router.routeAssistance(context);
@@ -403,6 +406,7 @@ class HybridTranslationService {
     final context = await _router.createContext(
       text: text,
       userPreference: userPreference,
+      mode: 'assistance',
     );
 
     final backend = await _router.routeAssistance(context);
@@ -460,6 +464,7 @@ class HybridTranslationService {
     final context = await _router.createContext(
       text: text,
       userPreference: userPreference,
+      mode: mode == 'simplify' ? 'simplification' : 'assistance',
     );
 
     final backend = await _router.routeAssistance(context);
