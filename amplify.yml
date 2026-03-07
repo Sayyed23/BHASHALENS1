@@ -1,5 +1,4 @@
 version: 1
-appRoot: bhashalens_app
 
 env:
   variables:
@@ -21,8 +20,8 @@ frontend:
         # Enable web support
         - flutter config --enable-web
 
-        # Go to project directory
-        - cd $CODEBUILD_SRC_DIR/bhashalens_app
+        # Ensure we are in repo root (no appRoot – app is at root)
+        - cd $CODEBUILD_SRC_DIR
 
         # Install dependencies
         - flutter pub get
@@ -30,7 +29,6 @@ frontend:
         # Create environment file
         - rm -f .env
         - touch .env
-
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
@@ -47,17 +45,15 @@ frontend:
 
     build:
       commands:
-        - cd $CODEBUILD_SRC_DIR/bhashalens_app
-
+        - cd $CODEBUILD_SRC_DIR
         # Build Flutter Web (stable for icons & fonts)
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
-
         # Verify output
         - ls build/web
         - ls build/web/assets || echo "Assets folder missing"
 
   artifacts:
-    baseDirectory: bhashalens_app/build/web
+    baseDirectory: build/web
     files:
       - '**/*'
 
@@ -65,4 +61,4 @@ frontend:
     paths:
       - $HOME/flutter
       - $HOME/.pub-cache
-      - bhashalens_app/.dart_tool
+      - .dart_tool
