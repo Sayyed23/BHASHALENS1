@@ -79,6 +79,7 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
   }
 
   Future<void> _scanText() async {
+    final sarvamService = Provider.of<SarvamService>(context, listen: false);
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
     if (image == null) return;
 
@@ -88,7 +89,6 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
       
-      final sarvamService = Provider.of<SarvamService>(context, listen: false);
       final extractedText = await sarvamService.performOCR(base64Image);
 
       if (!mounted) return;
