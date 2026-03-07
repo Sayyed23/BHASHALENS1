@@ -67,11 +67,11 @@ class _ExplainModePageState extends State<ExplainModePage>
     });
 
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      final isOffline = connectivityResult.contains(ConnectivityResult.none);
-
       final geminiService = Provider.of<GeminiService>(context, listen: false);
       final offlineService = Provider.of<OfflineExplainService>(context, listen: false);
+
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       final Map<String, dynamic> result;
       if (isOffline) {
