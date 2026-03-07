@@ -9,7 +9,7 @@ frontend:
     preBuild:
       commands:
         # Save Amplify's starting directory (app root when Root directory is set)
-        - pwd > .amplify_app_root
+        - export AMPLIFY_APP_ROOT=$(pwd)
 
         # Install Flutter only if not cached
         - if [ ! -d "$HOME/flutter" ]; then git clone https://github.com/flutter/flutter.git $HOME/flutter; fi
@@ -24,7 +24,7 @@ frontend:
         - flutter config --enable-web
 
         # Return to app root and enter bhashalens_app
-        - cd $(cat .amplify_app_root)/bhashalens_app
+        - cd $AMPLIFY_APP_ROOT/bhashalens_app
 
         # Install dependencies
         - flutter pub get
@@ -48,7 +48,7 @@ frontend:
 
     build:
       commands:
-        - cd $(cat .amplify_app_root)/bhashalens_app
+        - cd $AMPLIFY_APP_ROOT/bhashalens_app
         # Build Flutter Web (stable for icons & fonts)
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
         # Verify output
