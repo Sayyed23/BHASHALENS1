@@ -7,15 +7,20 @@ frontend:
       commands:
         # Install Flutter SDK if not cached
         - if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi
-        - export PATH="$PATH:/root/flutter/bin"
+        
+        # PRIORITIZE the cloned Flutter SDK at the FRONT of the PATH
+        - export PATH="/root/flutter/bin:$PATH"
+        
+        # Verify which flutter version we are using
+        - flutter --version
 
-        # Download only web-related binaries
+        # Download web-related binaries
         - flutter precache --web
 
-        # Enable web support
+        # Enable web support explicitly
         - flutter config --enable-web
 
-        # Clean only if necessary
+        # Clean build artifacts
         - flutter clean
 
         # Create environment file and verify variables
@@ -38,7 +43,9 @@ frontend:
 
     build:
       commands:
-        # Build Flutter web with HTML renderer
+        # Build Flutter web
+        # Re-verify path here just in case of sub-shells
+        - export PATH="/root/flutter/bin:$PATH"
         - flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
 
         # Verify build output
