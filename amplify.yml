@@ -27,9 +27,9 @@ frontend:
           echo "FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID" >> .env
           echo "FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID" >> .env
           echo "FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET" >> .env
-          echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
-          echo "AWS_REGION=$AWS_REGION" >> .env
-          echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
+          echo "AWS_API_GATEWAY_URL=$GATEWAY_URL" >> .env
+          echo "AWS_REGION=$APP_REGION" >> .env
+          echo "AWS_ENABLE_CLOUD=$CLOUD_ENABLED" >> .env
 
         # Install dependencies
         - flutter pub get
