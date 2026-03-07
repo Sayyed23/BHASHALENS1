@@ -51,14 +51,22 @@ frontend:
         # Get dependencies using the modern binary
         - /root/flutter/bin/flutter pub get
 
+        # Setup Web Assets for SQLite (Required for sqflite_common_ffi_web)
+        - mkdir -p web/
+        # Search the pub cache for the required sqlite assets and copy them to web/
+        - find /root/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \; || echo "sqlite3.wasm not found"
+        - find /root/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \; || echo "sqflite_sw.js not found"
+        - find /root/.pub-cache -name "sqlite3.js" -exec cp {} web/ \; || echo "sqlite3.js not found"
+
     build:
       commands:
-        # Build for web using the absolute path to the modern Flutter binary
-        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --pwa-strategy=none --base-href /
+        # Build for web using MANDATORY html renderer for icon/font stability
+        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --pwa-strategy=none --base-href / --web-renderer html
 
         # Verify build artifacts
         - ls -R build/web/assets || echo "No assets found"
         - ls build/web/FontManifest.json || echo "No FontManifest found"
+        - ls build/web/sqlite3.wasm || echo "Warning: sqlite3.wasm missing (Settings page might fail)"
 
   artifacts:
     baseDirectory: build/web
