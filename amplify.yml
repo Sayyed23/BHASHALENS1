@@ -9,7 +9,8 @@ frontend:
     preBuild:
       commands:
         # 1. Create environment file in the app directory
-        - cd bhashalens_app
+        - 'PROJECT_ROOT="${AMPLIFY_SOURCE_DIRECTORY}/bhashalens_app"'
+        - 'cd $PROJECT_ROOT || cd bhashalens_app || true'
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
@@ -33,11 +34,13 @@ frontend:
 
     build:
       commands:
-        - cd bhashalens_app
+        - 'PROJECT_ROOT="${AMPLIFY_SOURCE_DIRECTORY}/bhashalens_app"'
+        - 'cd $PROJECT_ROOT || cd bhashalens_app || true'
         # Build Flutter Web with optimizations
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none --no-wasm-dry-run
         # Final verification
         - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
+
         - ls -l build/web/index.html
 
 
