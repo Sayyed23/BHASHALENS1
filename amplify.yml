@@ -8,14 +8,15 @@ frontend:
   phases:
     preBuild:
       commands:
-        # 1. Install Flutter efficiently (Shallow clone saves ~10 mins)
+        # 1. Install Flutter efficiently
         - if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi
         - export PATH="$PATH:$HOME/flutter/bin"
         - flutter config --enable-web --no-analytics
         - flutter doctor -v
 
-        # 2. Setup project environment
-        - cd bhashalens_app || exit 1
+        # 2. Setup project environment with robust path handling
+        - echo "CURRENT DIRECTORY: $(pwd)"
+        - if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
@@ -34,9 +35,9 @@ frontend:
     build:
       commands:
         - export PATH="$PATH:$HOME/flutter/bin"
-        - cd bhashalens_app || exit 1
+        - echo "CURRENT DIRECTORY: $(pwd)"
+        - if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        # Note: --web-renderer and --pwa-strategy are deprecated/removed
         - flutter build web --release --no-tree-shake-icons --no-wasm-dry-run
         
         # Final verification
