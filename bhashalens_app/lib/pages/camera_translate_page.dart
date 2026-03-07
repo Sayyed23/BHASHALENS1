@@ -6,8 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/pages/explain_mode_page.dart'; // Import ExplainModePage
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/services/amplify_data_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
 import 'dart:ui' as ui; // Import for ImageFilter
@@ -366,6 +366,19 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               _sourceLanguageCode == 'auto' ? detectedLang : null;
           _isProcessing = false;
         });
+        
+        // Auto save to history
+        if (!extractedIsError && translated.isNotEmpty) {
+          amplifyDataService.saveHistoryItem({
+            'originalText': extracted,
+            'translatedText': translated,
+            'fromLanguage': detectedLang,
+            'toLanguage': _targetLanguageCode,
+            'type': 'camera_translate',
+            'backend': isOffline ? 'mlkit' : 'gemini',
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }).catchError((e) => debugPrint("Failed to save history: $e"));
+        }
       }
     } catch (e) {
       debugPrint('Processing error: $e');
@@ -425,6 +438,19 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           _translatedText = translated;
           _isProcessing = false;
         });
+
+        // Auto save to history
+        if (translated.isNotEmpty && !translated.startsWith("Error")) {
+          amplifyDataService.saveHistoryItem({
+            'originalText': _extractedText,
+            'translatedText': translated,
+            'fromLanguage': _sourceLanguageCode == 'auto' ? _detectedLanguageCode : _sourceLanguageCode,
+            'toLanguage': _targetLanguageCode,
+            'type': 'camera_translate',
+            'backend': isOffline ? 'mlkit' : 'gemini',
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }).catchError((e) => debugPrint("Failed to save history: $e"));
+        }
       }
     } catch (e) {
       debugPrint('Re-translation error: $e');
@@ -1017,16 +1043,15 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   void _saveTranslation() async {
     if (_extractedText.isEmpty || _translatedText.isEmpty) return;
     try {
-      final localStorage = Provider.of<LocalStorageService>(
-        context,
-        listen: false,
-      );
-      await localStorage.insertTranslation({
+      await amplifyDataService.saveTranslation({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'originalText': _extractedText,
         'translatedText': _translatedText,
-        'sourceLanguage': _sourceLanguageCode,
-        'targetLanguage': _targetLanguageCode,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'fromLanguage': _sourceLanguageCode == 'auto' 
+          ? (_detectedLanguageCode ?? 'Auto-detect') 
+          : _sourceLanguageCode,
+        'toLanguage': _targetLanguageCode,
+        'category': 'Camera',
       });
       if (mounted) {
         ScaffoldMessenger.of(
@@ -1038,6 +1063,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       }
     } catch (e) {
       debugPrint("Error saving: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
     }
   }
 

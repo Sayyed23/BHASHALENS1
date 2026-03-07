@@ -1,5 +1,5 @@
 import 'package:bhashalens_app/models/saved_translation.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart';
+// removed local storage service completely
 
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/amplify_data_service.dart';
@@ -22,7 +22,6 @@ class HistorySavedPage extends StatefulWidget {
 class _HistorySavedPageState extends State<HistorySavedPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late LocalStorageService _localStorageService;
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
@@ -44,14 +43,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
     _tabController.addListener(_handleTabSelection);
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _localStorageService = Provider.of<LocalStorageService>(
-      context,
-      listen: false,
-    );
-  }
+  // Removed didChangeDependencies since it's no longer needed
 
   @override
   void dispose() {
@@ -66,19 +58,40 @@ class _HistorySavedPageState extends State<HistorySavedPage>
   }
 
   Future<void> _toggleStar(SavedTranslation item) async {
-    if (item.id == null) return;
-    try {
-      await _localStorageService.updateTranslationStatus(
-        item.id!,
-        !item.isStarred,
-      );
-      setState(() {}); // Trigger rebuild
-    } catch (e) {
-      debugPrint('Failed to toggle saved status: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update saved status')),
-        );
+    // Determine the ID: for history items it's the timestamp (stringified). for saved items it's translationId.
+    if (_tabController.index == 0) {
+      // In History tab: We are saving a new item
+      try {
+        await amplifyDataService.saveTranslation({
+          'id': DateTime.now().millisecondsSinceEpoch.toString(), // new id
+          'originalText': item.originalText,
+          'translatedText': item.translatedText,
+          'fromLanguage': item.fromLanguage,
+          'toLanguage': item.toLanguage,
+          'category': item.category,
+        });
+        setState(() {}); // Trigger rebuild
+      } catch (e) {
+        debugPrint('Failed to save translation: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save translation to cloud')),
+          );
+        }
+      }
+    } else {
+      // In Saved tab: We are unsaving an item
+      if (item.id == null) return;
+      try {
+        await amplifyDataService.deleteSavedTranslation(item.id!);
+        setState(() {}); // Trigger rebuild
+      } catch (e) {
+        debugPrint('Failed to unsave translation: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to unsave translation from cloud')),
+          );
+        }
       }
     }
   }
@@ -286,35 +299,39 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 }
 
                 List<SavedTranslation> items = snapshot.data!.map((map) {
-                  // Map Gen 2 schema to SavedTranslation schema correctly
                   int timestampInt = DateTime.now().millisecondsSinceEpoch;
                   if (map['timestamp'] != null) {
                     try {
-                      timestampInt = DateTime.parse(map['timestamp']).millisecondsSinceEpoch;
+                      timestampInt = int.parse(map['timestamp'].toString());
+                    } catch (_) {}
+                  } else if (map['savedAt'] != null) {
+                    try {
+                      timestampInt = int.parse(map['savedAt'].toString());
                     } catch (_) {}
                   }
 
                   if (_tabController.index == 0) { // History
                     return SavedTranslation(
-                      id: map['id'],
-                      originalText: map['originalText'] ?? '',
-                      translatedText: map['translatedText'] ?? '',
-                      fromLanguage: map['sourceLanguage'] ?? '',
-                      toLanguage: map['targetLanguage'] ?? '',
+                      id: map['timestamp']?.toString(),
+                      originalText: map['sourceText'] ?? '',
+                      translatedText: map['targetText'] ?? '',
+                      fromLanguage: map['sourceLang'] ?? '',
+                      toLanguage: map['targetLang'] ?? '',
                       dateTime: DateTime.fromMillisecondsSinceEpoch(timestampInt),
-                      isStarred: false,
+                      isStarred: false, // For history, we don't know without a join, assume false for now
                       category: 'General',
                     );
                   } else { // Saved
+                    List<String> tags = (map['tags'] as List?)?.cast<String>() ?? [];
                     return SavedTranslation(
-                      id: map['id'],
-                      originalText: map['phrase'] ?? '',
-                      translatedText: map['translatedPhrase'] ?? '',
-                      fromLanguage: 'Auto', // Info not stored in this schema
-                      toLanguage: 'Auto',
+                      id: map['translationId'],
+                      originalText: map['sourceText'] ?? '',
+                      translatedText: map['targetText'] ?? '',
+                      fromLanguage: map['sourceLang'] ?? 'Auto',
+                      toLanguage: map['targetLang'] ?? 'Auto',
                       dateTime: DateTime.fromMillisecondsSinceEpoch(timestampInt),
                       isStarred: true,
-                      category: map['intent'] ?? 'General',
+                      category: tags.isNotEmpty ? tags.first : 'General',
                     );
                   }
                 }).toList();
@@ -578,14 +595,18 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                 Navigator.pop(ctx);
                 if (item.id != null) {
                   try {
-                    await _localStorageService.deleteTranslation(item.id!);
+                    if (_tabController.index == 0) {
+                      await amplifyDataService.deleteHistoryItem(item.id!);
+                    } else {
+                      await amplifyDataService.deleteSavedTranslation(item.id!);
+                    }
                     setState(() {}); // Trigger rebuild
                   } catch (e) {
                     debugPrint('Failed to delete translation: $e');
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Failed to delete translation'),
+                          content: Text('Failed to delete from cloud'),
                         ),
                       );
                     }

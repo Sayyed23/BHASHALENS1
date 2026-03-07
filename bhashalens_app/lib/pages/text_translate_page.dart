@@ -1,4 +1,5 @@
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/services/amplify_data_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -180,14 +181,27 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                                   letterSpacing: 1.2,
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: _copyTranslation,
-                                child: Icon(
-                                  Icons.copy_rounded,
-                                  size: 18,
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.6),
-                                ),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: _saveTranslation,
+                                    child: Icon(
+                                      Icons.bookmark_add_outlined,
+                                      size: 18,
+                                      color: colorScheme.primary.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  GestureDetector(
+                                    onTap: _copyTranslation,
+                                    child: Icon(
+                                      Icons.copy_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -448,6 +462,32 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
     );
   }
 
+  Future<void> _saveTranslation() async {
+    if (_textController.text.isEmpty || _translatedText.isEmpty) return;
+    try {
+      await amplifyDataService.saveTranslation({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'originalText': _textController.text.trim(),
+        'translatedText': _translatedText.trim(),
+        'fromLanguage': _sourceLanguageCode == 'auto' ? 'Auto-detect' : _sourceLanguageCode,
+        'toLanguage': _targetLanguageCode,
+        'category': 'General',
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Translation saved to cloud!')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to save translation: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text != null) {
@@ -474,6 +514,17 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
 
       if (mounted) {
         setState(() => _translatedText = translation);
+        
+        // Automatically save to Amplify History
+        amplifyDataService.saveHistoryItem({
+          'originalText': _textController.text.trim(),
+          'translatedText': translation.trim(),
+          'fromLanguage': _sourceLanguageCode,
+          'toLanguage': _targetLanguageCode,
+          'type': 'text_translate',
+          'backend': 'gemini',
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        }).catchError((e) => debugPrint("Failed to save history: $e"));
       }
     } catch (e) {
       if (mounted) {

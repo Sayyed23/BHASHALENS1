@@ -1,0 +1,8 @@
+# AWS SDK for Python
+boto3>=1.34.0
+
+# Third-party utilities
+PyJWT>=2.8.0
+requests>=2.31.0
+google-generativeai>=0.4.0
+

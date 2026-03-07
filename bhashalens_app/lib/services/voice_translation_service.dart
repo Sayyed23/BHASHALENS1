@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
+import 'package:bhashalens_app/services/amplify_data_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -436,6 +437,21 @@ class VoiceTranslationService extends ChangeNotifier {
       );
 
       _conversationHistory.add(message);
+
+      // Save to Amplify Cloud History
+      try {
+        amplifyDataService.saveHistoryItem({
+          'originalText': originalText,
+          'translatedText': translatedText,
+          'fromLanguage': actualSourceLanguage,
+          'toLanguage': targetLanguage,
+          'type': 'voice_translate',
+          'backend': 'gemini', // or mlkit depending on _isOfflineMode
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        }).catchError((e) => debugPrint("Failed to save history: $e"));
+      } catch (e) {
+        debugPrint('Failed to queue history save: $e');
+      }
 
       // Speak the translated text
       await speakText(translatedText, targetLanguage);
