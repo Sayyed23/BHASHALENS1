@@ -63,19 +63,6 @@ void main() async {
     // Continue without .env - app should still work with google-services.json
   }
 
-  // #region agent log
-  final apiClientForLog = AwsApiGatewayClient();
-  DebugSessionLog.log(
-    'main.dart',
-    'app_start',
-    data: {
-      'isWeb': kIsWeb,
-      'awsEnabled': apiClientForLog.isEnabled,
-    },
-    hypothesisId: 'H1',
-  );
-  // #endregion
-
   // Initialize Firebase with error handling (non-blocking)
   bool firebaseInitialized = false;
   try {
@@ -98,6 +85,23 @@ void main() async {
     debugPrint("Warning: Failed to initialize Firebase (Final): $e");
     // Continue without Firebase - app should still work in offline mode
   }
+
+  // #region agent log
+  try {
+    final apiClientForLog = AwsApiGatewayClient();
+    DebugSessionLog.log(
+      'main.dart',
+      'app_start',
+      data: {
+        'isWeb': kIsWeb,
+        'awsEnabled': apiClientForLog.isEnabled,
+      },
+      hypothesisId: 'H1',
+    );
+  } catch (_) {
+    // Do not let debug logging or API client creation break startup (e.g. on Amplify/web)
+  }
+  // #endregion
 
   // Initialize services
   final localStorageService = LocalStorageService();
