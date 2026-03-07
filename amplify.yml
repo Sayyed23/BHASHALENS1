@@ -9,40 +9,40 @@ frontend:
     preBuild:
       commands:
         # 1. Install Flutter efficiently
-        - if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi
-        - export PATH="$PATH:$HOME/flutter/bin"
-        - flutter config --enable-web --no-analytics
-        - flutter doctor -v
+        - 'if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi'
+        - 'export PATH="$PATH:$HOME/flutter/bin"'
+        - 'flutter config --enable-web --no-analytics'
+        - 'flutter doctor -v'
 
         # 2. Setup project environment with robust path handling
-        - echo "CURRENT DIRECTORY: $(pwd)"
-        - if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi
-        - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
-        - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
-        - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
-        - echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env
-        - echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
-        - echo "AWS_REGION=$AWS_REGION" >> .env
-        - echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
+        - 'echo "CURRENT DIRECTORY: $(pwd)"'
+        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
+        - 'echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env'
+        - 'echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env'
+        - 'echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env'
+        - 'echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env'
+        - 'echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env'
+        - 'echo "AWS_REGION=$AWS_REGION" >> .env'
+        - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env'
         - 'echo "VERIFIED: .env created at $(pwd)/.env"'
-        - ls -l .env
+        - 'ls -l .env'
 
         # 3. Install dependencies and provision SQLite assets
-        - flutter pub get
-        - dart run sqflite_common_ffi_web:setup
-        - ls -l web/
+        - 'flutter pub get'
+        - 'dart run sqflite_common_ffi_web:setup'
+        - 'ls -l web/'
 
     build:
       commands:
-        - export PATH="$PATH:$HOME/flutter/bin"
-        - echo "CURRENT DIRECTORY: $(pwd)"
-        - if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi
+        - 'export PATH="$PATH:$HOME/flutter/bin"'
+        - 'echo "CURRENT DIRECTORY: $(pwd)"'
+        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        - flutter build web --release --no-tree-shake-icons --no-wasm-dry-run
+        - 'flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
         
         # Final verification
         - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
-        - ls -l build/web/index.html
+        - 'ls -l build/web/index.html'
 
   artifacts:
     baseDirectory: bhashalens_app/build/web
@@ -51,6 +51,6 @@ frontend:
 
   cache:
     paths:
-      - $HOME/flutter
-      - $HOME/.pub-cache
-      - bhashalens_app/.dart_tool
+      - '$HOME/flutter'
+      - '$HOME/.pub-cache'
+      - 'bhashalens_app/.dart_tool'
