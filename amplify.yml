@@ -40,7 +40,7 @@ frontend:
     build:
       commands:
         # Build for web using the absolute path to the modern Flutter binary
-        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
+        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --base-href /
 
         # Verify build artifacts
         - ls -R build/web/assets || echo "No assets found"
