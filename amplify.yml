@@ -20,7 +20,7 @@ frontend:
         - echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
         - echo "AWS_REGION=$AWS_REGION" >> .env
         - echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
-        - echo "VERIFIED: .env created at $(pwd)/.env"
+        - 'echo "VERIFIED: .env created at $(pwd)/.env"'
         - ls -l .env
 
         # 2. Install Flutter efficiently (Shallow clone saves ~10 mins)
@@ -34,8 +34,8 @@ frontend:
 
         # 4. Copy SQLite web files (Optimized search)
         - mkdir -p web
-        - PKG_DIR=$(flutter pub cache list | grep -oP '".*sqflite_common_ffi_web-0.4.5\+4":\s*\{\s*"location":\s*"\K[^"]+') || PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d | head -n 1)
-        - echo "Copying SQLite assets from $PKG_DIR"
+        - PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d -print -quit)
+        - 'echo "Copying SQLite assets from $PKG_DIR"'
         - cp $PKG_DIR/lib/src/web/sqlite3.wasm web/ || find $HOME/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \;
         - cp $PKG_DIR/lib/src/web/sqlite3.js web/ || find $HOME/.pub-cache -name "sqlite3.js" -exec cp {} web/ \;
         - cp $PKG_DIR/lib/src/web/sqflite_sw.js web/ || find $HOME/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \;
@@ -46,8 +46,9 @@ frontend:
         # Build Flutter Web with optimizations
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none --no-wasm-dry-run
         # Final verification
-        - ls -l build/web/assets/.env || echo "WARNING: .env not found in build output"
+        - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
         - ls -l build/web/index.html
+
 
 
   artifacts:
