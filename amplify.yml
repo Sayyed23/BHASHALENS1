@@ -5,29 +5,25 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Install Flutter SDK if not cached
+        # Install modern Flutter SDK if not already in cache
         - if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi
         
-        # PRIORITIZE the cloned Flutter SDK at the FRONT of the PATH
-        - export PATH="/root/flutter/bin:$PATH"
+        # Use absolute path to ensure we NEVER use the outdated pre-installed version
+        - /root/flutter/bin/flutter --version
         
-        # Verify which flutter version we are using
-        - flutter --version
+        # Pre-cache web engine
+        - /root/flutter/bin/flutter precache --web
+        
+        # Enable web support
+        - /root/flutter/bin/flutter config --enable-web
+        
+        # Clean state
+        - /root/flutter/bin/flutter clean
 
-        # Download web-related binaries
-        - flutter precache --web
-
-        # Enable web support explicitly
-        - flutter config --enable-web
-
-        # Clean build artifacts
-        - flutter clean
-
-        # Create environment file and verify variables
+        # Map Amplify variables into the .env file for the app
         - touch .env
         - |
-          echo "GATEWAY_URL: ${GATEWAY_URL:+set}"
-          echo "APP_REGION: ${APP_REGION:+set}"
+          echo "GATEWAY_URL is ${GATEWAY_URL:+set}"
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
           echo "FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY" >> .env
           echo "FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID" >> .env
@@ -38,19 +34,17 @@ frontend:
           echo "AWS_REGION=$APP_REGION" >> .env
           echo "AWS_ENABLE_CLOUD=$CLOUD_ENABLED" >> .env
 
-        # Install dependencies
-        - flutter pub get
+        # Get dependencies using the modern binary
+        - /root/flutter/bin/flutter pub get
 
     build:
       commands:
-        # Build Flutter web
-        # Re-verify path here just in case of sub-shells
-        - export PATH="/root/flutter/bin:$PATH"
-        - flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
+        # Build for web using the absolute path to the modern Flutter binary
+        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
 
-        # Verify build output
-        - ls -R build/web/assets || echo "No assets"
-        - ls build/web/FontManifest.json || echo "No FontManifest"
+        # Verify build artifacts
+        - ls -R build/web/assets || echo "No assets found"
+        - ls build/web/FontManifest.json || echo "No FontManifest found"
 
   artifacts:
     baseDirectory: build/web
