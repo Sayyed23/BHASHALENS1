@@ -2,17 +2,14 @@ version: 1
 
 env:
   variables:
-    FLUTTER_VERSION: "3.27.1"
+    FLUTTER_VERSION: "3.41.3"
 
 frontend:
   phases:
     preBuild:
       commands:
-        # Save Amplify's starting directory
-        - export AMPLIFY_APP_ROOT=$(pwd)
-
-        # 1. Create environment file IMMEDIATELY (Fixes "No file found for asset: .env")
-        - cd $AMPLIFY_APP_ROOT/bhashalens_app
+        # 1. Create environment file in the app directory
+        - cd bhashalens_app
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
@@ -29,23 +26,20 @@ frontend:
         - flutter config --enable-web --no-analytics
         - flutter doctor -v
 
-        # 3. Install dependencies
+        # 3. Install dependencies and provision SQLite assets
         - flutter pub get
-        # 4. Copy SQLite web files (Official setup)
-        - mkdir -p web
-        - 'cd bhashalens_app && dart run sqflite_common_ffi_web:setup'
-        - 'cp bhashalens_app/web/sqlite3.wasm web/ && cp bhashalens_app/web/sqflite_sw.js web/'
-        - 'ls -l web/'
-
+        - dart run sqflite_common_ffi_web:setup
+        - ls -l web/
 
     build:
       commands:
-        - cd $AMPLIFY_APP_ROOT/bhashalens_app
+        - cd bhashalens_app
         # Build Flutter Web with optimizations
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none --no-wasm-dry-run
         # Final verification
         - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
         - ls -l build/web/index.html
+
 
 
 
