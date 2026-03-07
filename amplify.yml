@@ -8,6 +8,9 @@ frontend:
   phases:
     preBuild:
       commands:
+        # Save Amplify's starting directory (app root when Root directory is set)
+        - pwd > .amplify_app_root
+
         # Install Flutter only if not cached
         - if [ ! -d "$HOME/flutter" ]; then git clone https://github.com/flutter/flutter.git $HOME/flutter; fi
         - cd $HOME/flutter
@@ -20,8 +23,8 @@ frontend:
         # Enable web support
         - flutter config --enable-web
 
-        # Ensure we are in repo root (no appRoot – app is at root)
-        - cd $CODEBUILD_SRC_DIR
+        # Return to app root (where Amplify started us)
+        - cd $(cat .amplify_app_root)
 
         # Install dependencies
         - flutter pub get
@@ -45,7 +48,7 @@ frontend:
 
     build:
       commands:
-        - cd $CODEBUILD_SRC_DIR
+        - cd $(cat .amplify_app_root)
         # Build Flutter Web (stable for icons & fonts)
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
         # Verify output

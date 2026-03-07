@@ -55,6 +55,7 @@ node_modules/
 
 # Flutter/Dart
 .dart_tool/
+.amplify_app_root
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
