@@ -6,7 +6,7 @@ frontend:
     preBuild:
       commands:
         # Install modern Flutter SDK if not already in cache
-        - if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi
+        - "if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi"
         
         # Use absolute path to ensure we NEVER use the outdated pre-installed version
         - /root/flutter/bin/flutter --version
@@ -21,30 +21,29 @@ frontend:
         - /root/flutter/bin/flutter clean
 
         # Map Amplify variables into the .env file for the app
-        - touch .env
-        - |
-          if [ -n "$AWS_API_GATEWAY_URL" ]; then API_URL="$AWS_API_GATEWAY_URL"; else API_URL="$GATEWAY_URL"; fi
-          if [ -n "$AWS_REGION" ]; then REGION_VALUE="$AWS_REGION"; else REGION_VALUE="$APP_REGION"; fi
-          if [ -n "$AWS_ENABLE_CLOUD" ]; then CLOUD_VALUE="$AWS_ENABLE_CLOUD"; else CLOUD_VALUE="$CLOUD_ENABLED"; fi
-          if [ -z "$CLOUD_VALUE" ]; then CLOUD_VALUE="true"; fi
-          if [ -z "$REGION_VALUE" ]; then REGION_VALUE="us-east-1"; fi
-          if [ -n "$API_URL" ]; then echo "API URL is set"; else echo "API URL is unset"; fi
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
-          echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
-          echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
-          echo "FIREBASE_WEB_MESSAGING_SENDER_ID=$FIREBASE_WEB_MESSAGING_SENDER_ID" >> .env
-          echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env
-          echo "FIREBASE_WEB_AUTH_DOMAIN=$FIREBASE_WEB_AUTH_DOMAIN" >> .env
-          echo "FIREBASE_WEB_STORAGE_BUCKET=$FIREBASE_WEB_STORAGE_BUCKET" >> .env
-          echo "FIREBASE_WEB_MEASUREMENT_ID=$FIREBASE_WEB_MEASUREMENT_ID" >> .env
-          echo "FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY" >> .env
-          echo "FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID" >> .env
-          echo "FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID" >> .env
-          echo "FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID" >> .env
-          echo "FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET" >> .env
-          echo "AWS_API_GATEWAY_URL=$API_URL" >> .env
-          echo "AWS_REGION=$REGION_VALUE" >> .env
-          echo "AWS_ENABLE_CLOUD=$CLOUD_VALUE" >> .env
+        - "touch .env"
+        - "if [ -n \"$AWS_API_GATEWAY_URL\" ]; then API_URL=\"$AWS_API_GATEWAY_URL\"; else API_URL=\"$GATEWAY_URL\"; fi"
+        - "if [ -n \"$AWS_REGION\" ]; then REGION_VALUE=\"$AWS_REGION\"; else REGION_VALUE=\"$APP_REGION\"; fi"
+        - "if [ -n \"$AWS_ENABLE_CLOUD\" ]; then CLOUD_VALUE=\"$AWS_ENABLE_CLOUD\"; else CLOUD_VALUE=\"$CLOUD_ENABLED\"; fi"
+        - "if [ -z \"$CLOUD_VALUE\" ]; then CLOUD_VALUE=\"true\"; fi"
+        - "if [ -z \"$REGION_VALUE\" ]; then REGION_VALUE=\"us-east-1\"; fi"
+        - "if [ -n \"$API_URL\" ]; then echo \"API URL is set\"; else echo \"API URL is unset\"; fi"
+        - "echo \"GEMINI_API_KEY=$GEMINI_API_KEY\" >> .env"
+        - "echo \"FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY\" >> .env"
+        - "echo \"FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID\" >> .env"
+        - "echo \"FIREBASE_WEB_MESSAGING_SENDER_ID=$FIREBASE_WEB_MESSAGING_SENDER_ID\" >> .env"
+        - "echo \"FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID\" >> .env"
+        - "echo \"FIREBASE_WEB_AUTH_DOMAIN=$FIREBASE_WEB_AUTH_DOMAIN\" >> .env"
+        - "echo \"FIREBASE_WEB_STORAGE_BUCKET=$FIREBASE_WEB_STORAGE_BUCKET\" >> .env"
+        - "echo \"FIREBASE_WEB_MEASUREMENT_ID=$FIREBASE_WEB_MEASUREMENT_ID\" >> .env"
+        - "echo \"FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY\" >> .env"
+        - "echo \"FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID\" >> .env"
+        - "echo \"FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID\" >> .env"
+        - "echo \"FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID\" >> .env"
+        - "echo \"FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET\" >> .env"
+        - "echo \"AWS_API_GATEWAY_URL=$API_URL\" >> .env"
+        - "echo \"AWS_REGION=$REGION_VALUE\" >> .env"
+        - "echo \"AWS_ENABLE_CLOUD=$CLOUD_VALUE\" >> .env"
 
         # Get dependencies using the modern binary
         - /root/flutter/bin/flutter pub get
