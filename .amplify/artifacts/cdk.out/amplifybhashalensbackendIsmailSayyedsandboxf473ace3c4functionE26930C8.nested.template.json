@@ -1,0 +1,1196 @@
+{
+ "Description": "{\"createdOn\":\"Windows\",\"createdBy\":\"AmplifySandbox\",\"createdWith\":\"1.17.0\",\"stackType\":\"function-Lambda\",\"metadata\":{}}",
+ "Resources": {
+  "translationlambdaServiceRole0DC68455": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "translation"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/translation-lambda/ServiceRole/Resource"
+   }
+  },
+  "translationlambdaAFCE0C27": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "608a7ee7a719b74fa50bcec2f85f188a1cdfed534ed877d50d85c6710e8683a0.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "BEDROCK_MODEL_ID": "anthropic.claude-3-sonnet-20240229-v1:0",
+      "AMPLIFY_SSM_ENV_CONFIG": "{}",
+      "TRANSLATION_HISTORY_TABLE": ""
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "translationlambdaServiceRole0DC68455",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "translation"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "translationlambdaServiceRole0DC68455"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/translation-lambda/Resource",
+    "aws:asset:path": "asset.608a7ee7a719b74fa50bcec2f85f188a1cdfed534ed877d50d85c6710e8683a0",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "assistancelambdaServiceRoleC2BE9FE1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "assistance"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/assistance-lambda/ServiceRole/Resource"
+   }
+  },
+  "assistancelambda78E1AAD5": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "8cf09713bf40337527f9eae27124ac79809ddc0d32b9b90cc5c08c33ea7ca386.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "BEDROCK_MODEL_ID": "apac.anthropic.claude-sonnet-4-20250514-v1:0",
+      "AMPLIFY_SSM_ENV_CONFIG": "{}"
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "assistancelambdaServiceRoleC2BE9FE1",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "assistance"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "assistancelambdaServiceRoleC2BE9FE1"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/assistance-lambda/Resource",
+    "aws:asset:path": "asset.8cf09713bf40337527f9eae27124ac79809ddc0d32b9b90cc5c08c33ea7ca386",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "simplificationlambdaServiceRole28124C68": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "simplification"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/simplification-lambda/ServiceRole/Resource"
+   }
+  },
+  "simplificationlambda2FB9A91E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "98868e581e8245e01936c7407608a0ee8c8f1778630ad082eca6ea46035edbf3.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "BEDROCK_MODEL_ID": "apac.anthropic.claude-sonnet-4-20250514-v1:0",
+      "AMPLIFY_SSM_ENV_CONFIG": "{}"
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "simplificationlambdaServiceRole28124C68",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "simplification"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "simplificationlambdaServiceRole28124C68"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/simplification-lambda/Resource",
+    "aws:asset:path": "asset.98868e581e8245e01936c7407608a0ee8c8f1778630ad082eca6ea46035edbf3",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "historylambdaServiceRole40857E08": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "history"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/history-lambda/ServiceRole/Resource"
+   }
+  },
+  "historylambdaBE1FC2FD": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "75b073142074c129cc0943e8af01bd3e47124625451279c7ad002be1aabd1981.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "AMPLIFY_SSM_ENV_CONFIG": "{}",
+      "TRANSLATION_HISTORY_TABLE": ""
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "historylambdaServiceRole40857E08",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "history"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "historylambdaServiceRole40857E08"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/history-lambda/Resource",
+    "aws:asset:path": "asset.75b073142074c129cc0943e8af01bd3e47124625451279c7ad002be1aabd1981",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "savedlambdaServiceRoleB1C651DA": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "saved"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/saved-lambda/ServiceRole/Resource"
+   }
+  },
+  "savedlambda6204F464": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "f2fc46a011458265219e4c2d4243de7879a5a2f812ee2f85e8a741181ffde32f.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "AMPLIFY_SSM_ENV_CONFIG": "{}",
+      "SAVED_TRANSLATIONS_TABLE": ""
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "savedlambdaServiceRoleB1C651DA",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "saved"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "savedlambdaServiceRoleB1C651DA"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/saved-lambda/Resource",
+    "aws:asset:path": "asset.f2fc46a011458265219e4c2d4243de7879a5a2f812ee2f85e8a741181ffde32f",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "preferenceslambdaServiceRole74B323F2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "preferences"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/preferences-lambda/ServiceRole/Resource"
+   }
+  },
+  "preferenceslambdaC4AA59DC": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "5ce311ee64dd4b9f204c4521b2dfbbebdba71358effec055c765a1f1b3ac72a9.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "AMPLIFY_SSM_ENV_CONFIG": "{}",
+      "USER_PREFERENCES_TABLE": ""
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "preferenceslambdaServiceRole74B323F2",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "preferences"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "preferenceslambdaServiceRole74B323F2"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/preferences-lambda/Resource",
+    "aws:asset:path": "asset.5ce311ee64dd4b9f204c4521b2dfbbebdba71358effec055c765a1f1b3ac72a9",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "exportDatalambdaServiceRole4BA77580": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "exportData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/exportData-lambda/ServiceRole/Resource"
+   }
+  },
+  "exportDatalambdaServiceRoleDefaultPolicy30FE6D13": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:DeleteObject*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging",
+        "s3:Abort*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storageNestedStackstorageNestedStackResourceA4C5E311OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storagebhashalensexportsBucketB8C87502Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storageNestedStackstorageNestedStackResourceA4C5E311OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storagebhashalensexportsBucketB8C87502Arn"
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "exportDatalambdaServiceRoleDefaultPolicy30FE6D13",
+    "Roles": [
+     {
+      "Ref": "exportDatalambdaServiceRole4BA77580"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/exportData-lambda/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "exportDatalambda9FAE6AB3": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "6ce78dc18ceb13a7854caca505c14fb45c1f362c0ff5281e6ecf8c4cb1bd2bf8.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "AMPLIFY_SSM_ENV_CONFIG": "{}",
+      "TRANSLATION_HISTORY_TABLE": "",
+      "SAVED_TRANSLATIONS_TABLE": "",
+      "EXPORT_BUCKET": {
+       "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storageNestedStackstorageNestedStackResourceA4C5E311OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storagebhashalensexportsBucketB8C87502Ref"
+      }
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "exportDatalambdaServiceRole4BA77580",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "exportData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 30
+   },
+   "DependsOn": [
+    "exportDatalambdaServiceRoleDefaultPolicy30FE6D13",
+    "exportDatalambdaServiceRole4BA77580"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/exportData-lambda/Resource",
+    "aws:asset:path": "asset.6ce78dc18ceb13a7854caca505c14fb45c1f362c0ff5281e6ecf8c4cb1bd2bf8",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/zWNUQqDMBBEz9L/uLWxF6hCP6XoAWRNVlmNCXRjpYh3Lyr9ejMwvNGg7zdIL7hIYuyYOG5hLUki2TqiGRUu0qwOp9Zi44OlQaA88Jy9iRy8YpxgrYIjVXT+4Cs4Nt+9nmlTkjUoQlHgsUNJBvlsRoo5CqlTD0Xn/9JNHbs6Ys++39T+DINcP1qDTiG9DMKcvGcfeSKoTv4Aq5nVLswAAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/function/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Outputs": {
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "historylambdaBE1FC2FD",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "savedlambda6204F464",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "preferenceslambdaC4AA59DC",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Arn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "exportDatalambda9FAE6AB3",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Arn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "translationlambdaAFCE0C27",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "assistancelambda78E1AAD5",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Arn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "simplificationlambda2FB9A91E",
+     "Arn"
+    ]
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Ref": {
+   "Value": {
+    "Ref": "translationlambdaAFCE0C27"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCRef": {
+   "Value": {
+    "Ref": "assistancelambda78E1AAD5"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Ref": {
+   "Value": {
+    "Ref": "simplificationlambda2FB9A91E"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Ref": {
+   "Value": {
+    "Ref": "historylambdaBE1FC2FD"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5ARef": {
+   "Value": {
+    "Ref": "savedlambda6204F464"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7ARef": {
+   "Value": {
+    "Ref": "preferenceslambdaC4AA59DC"
+   }
+  },
+  "amplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Ref": {
+   "Value": {
+    "Ref": "exportDatalambda9FAE6AB3"
+   }
+  }
+ },
+ "Parameters": {
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storageNestedStackstorageNestedStackResourceA4C5E311OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storagebhashalensexportsBucketB8C87502Arn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storageNestedStackstorageNestedStackResourceA4C5E311OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4storagebhashalensexportsBucketB8C87502Ref": {
+   "Type": "String"
+  }
+ }
+}

@@ -257,9 +257,9 @@ class AwsCloudService {
     try {
       final startTime = DateTime.now();
       
-      final response = await _circuitBreaker.execute(() => _apiClient.orchestrate(
+      final response = await _circuitBreaker.execute(() => _apiClient.assist(
+        requestType: 'orchestrate_$mode',
         text: text,
-        mode: mode,
         language: language,
         context: context,
         userId: userId,

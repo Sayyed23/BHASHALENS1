@@ -81,6 +81,17 @@ class _FakeCloudSimplificationResult_4 extends _i1.SmartFake
         );
 }
 
+class _FakeCloudOrchestrationResult_5 extends _i1.SmartFake
+    implements _i2.CloudOrchestrationResult {
+  _FakeCloudOrchestrationResult_5(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [AwsCloudService].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -263,6 +274,43 @@ class MockAwsCloudService extends _i1.Mock implements _i2.AwsCloudService {
           ),
         )),
       ) as _i3.Future<_i2.CloudSimplificationResult>);
+
+  @override
+  _i3.Future<_i2.CloudOrchestrationResult> orchestrate({
+    required String? text,
+    required String? mode,
+    required String? language,
+    String? context,
+    String? userId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #orchestrate,
+          [],
+          {
+            #text: text,
+            #mode: mode,
+            #language: language,
+            #context: context,
+            #userId: userId,
+          },
+        ),
+        returnValue: _i3.Future<_i2.CloudOrchestrationResult>.value(
+            _FakeCloudOrchestrationResult_5(
+          this,
+          Invocation.method(
+            #orchestrate,
+            [],
+            {
+              #text: text,
+              #mode: mode,
+              #language: language,
+              #context: context,
+              #userId: userId,
+            },
+          ),
+        )),
+      ) as _i3.Future<_i2.CloudOrchestrationResult>);
 
   @override
   _i3.Future<Map<String, dynamic>> explainText({

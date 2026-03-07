@@ -1,0 +1,2946 @@
+{
+ "Description": "An auto-generated nested stack for the @function directive.",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Conditions": {
+  "HasEnvironmentParameter": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      "NONE",
+      "NONE"
+     ]
+    }
+   ]
+  },
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "FnAddHistoryItemLambdaDataSourceServiceRole84CED568": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAddHistoryItemLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnAddHistoryItemLambdaDataSourceServiceRoleDefaultPolicyB901FC5C": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnAddHistoryItemLambdaDataSourceServiceRoleDefaultPolicyB901FC5C",
+    "Roles": [
+     {
+      "Ref": "FnAddHistoryItemLambdaDataSourceServiceRole84CED568"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAddHistoryItemLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnAddHistoryItemLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+     }
+    },
+    "Name": "FnAddHistoryItemLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnAddHistoryItemLambdaDataSourceServiceRole84CED568",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAddHistoryItemLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnAddHistoryItemLambdaDataSourceInvokeFnAddHistoryItemLambdaDataSourceAppSyncFunction7A981BA1": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnAddHistoryItemLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnAddHistoryItemLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/315dba2812b0392950a830832ddc05172d569bf9a74665188840c282fa32a2b7.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnAddHistoryItemLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnAddHistoryItemLambdaDataSource/InvokeFnAddHistoryItemLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationaddHistoryItemResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "addHistoryItem",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationAddHistoryItemAuthFNMutationAddHistoryItemAuthFNAppSyncFunction6F24F05F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnAddHistoryItemLambdaDataSourceInvokeFnAddHistoryItemLambdaDataSourceAppSyncFunction7A981BA1",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"addHistoryItem\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationAddHistoryItemResolver"
+   }
+  },
+  "FnDeleteHistoryItemLambdaDataSourceServiceRole634EF15A": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteHistoryItemLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnDeleteHistoryItemLambdaDataSourceServiceRoleDefaultPolicyED9532A8": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnDeleteHistoryItemLambdaDataSourceServiceRoleDefaultPolicyED9532A8",
+    "Roles": [
+     {
+      "Ref": "FnDeleteHistoryItemLambdaDataSourceServiceRole634EF15A"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteHistoryItemLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnDeleteHistoryItemLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+     }
+    },
+    "Name": "FnDeleteHistoryItemLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnDeleteHistoryItemLambdaDataSourceServiceRole634EF15A",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteHistoryItemLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnDeleteHistoryItemLambdaDataSourceInvokeFnDeleteHistoryItemLambdaDataSourceAppSyncFunctionC22D024E": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnDeleteHistoryItemLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnDeleteHistoryItemLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/126a394045d332016227212006a9360dd791bac69ce21ea2323d879be67c7674.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnDeleteHistoryItemLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnDeleteHistoryItemLambdaDataSource/InvokeFnDeleteHistoryItemLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationdeleteHistoryItemResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "deleteHistoryItem",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationDeleteHistoryItemAuthFNMutationDeleteHistoryItemAuthFNAppSyncFunction8AD630FF",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnDeleteHistoryItemLambdaDataSourceInvokeFnDeleteHistoryItemLambdaDataSourceAppSyncFunctionC22D024E",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"deleteHistoryItem\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationDeleteHistoryItemResolver"
+   }
+  },
+  "FnSaveTranslationLambdaDataSourceServiceRole9C8982E0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSaveTranslationLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnSaveTranslationLambdaDataSourceServiceRoleDefaultPolicy67EEB397": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnSaveTranslationLambdaDataSourceServiceRoleDefaultPolicy67EEB397",
+    "Roles": [
+     {
+      "Ref": "FnSaveTranslationLambdaDataSourceServiceRole9C8982E0"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSaveTranslationLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnSaveTranslationLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+     }
+    },
+    "Name": "FnSaveTranslationLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnSaveTranslationLambdaDataSourceServiceRole9C8982E0",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSaveTranslationLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnSaveTranslationLambdaDataSourceInvokeFnSaveTranslationLambdaDataSourceAppSyncFunctionFEBA26E3": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnSaveTranslationLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnSaveTranslationLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f2a7a42cb98b5f718019ff48d120816976114a8ac26dc82041ae34824646f9a0.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnSaveTranslationLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnSaveTranslationLambdaDataSource/InvokeFnSaveTranslationLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationsaveTranslationResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "saveTranslation",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationSaveTranslationAuthFNMutationSaveTranslationAuthFNAppSyncFunction882CB460",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnSaveTranslationLambdaDataSourceInvokeFnSaveTranslationLambdaDataSourceAppSyncFunctionFEBA26E3",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"saveTranslation\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationSaveTranslationResolver"
+   }
+  },
+  "FnDeleteSavedTranslationLambdaDataSourceServiceRole8061AEF4": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteSavedTranslationLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnDeleteSavedTranslationLambdaDataSourceServiceRoleDefaultPolicyFDDC2B1B": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnDeleteSavedTranslationLambdaDataSourceServiceRoleDefaultPolicyFDDC2B1B",
+    "Roles": [
+     {
+      "Ref": "FnDeleteSavedTranslationLambdaDataSourceServiceRole8061AEF4"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteSavedTranslationLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnDeleteSavedTranslationLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+     }
+    },
+    "Name": "FnDeleteSavedTranslationLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnDeleteSavedTranslationLambdaDataSourceServiceRole8061AEF4",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnDeleteSavedTranslationLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnDeleteSavedTranslationLambdaDataSourceInvokeFnDeleteSavedTranslationLambdaDataSourceAppSyncFunctionD337B1BF": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnDeleteSavedTranslationLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnDeleteSavedTranslationLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0fa5e4a077f173fc5d960e355be2c9fc1ca343356656246efe3ed10fec42800a.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnDeleteSavedTranslationLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnDeleteSavedTranslationLambdaDataSource/InvokeFnDeleteSavedTranslationLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationdeleteSavedTranslationResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "deleteSavedTranslation",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationDeleteSavedTranslationAuthFNMutationDeleteSavedTranslationAuthFNAppSyncFunctionF9798566",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnDeleteSavedTranslationLambdaDataSourceInvokeFnDeleteSavedTranslationLambdaDataSourceAppSyncFunctionD337B1BF",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"deleteSavedTranslation\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationDeleteSavedTranslationResolver"
+   }
+  },
+  "FnUpdatePreferencesLambdaDataSourceServiceRole7BEDFF86": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnUpdatePreferencesLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnUpdatePreferencesLambdaDataSourceServiceRoleDefaultPolicy2E42D81C": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnUpdatePreferencesLambdaDataSourceServiceRoleDefaultPolicy2E42D81C",
+    "Roles": [
+     {
+      "Ref": "FnUpdatePreferencesLambdaDataSourceServiceRole7BEDFF86"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnUpdatePreferencesLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnUpdatePreferencesLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+     }
+    },
+    "Name": "FnUpdatePreferencesLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnUpdatePreferencesLambdaDataSourceServiceRole7BEDFF86",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnUpdatePreferencesLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnUpdatePreferencesLambdaDataSourceInvokeFnUpdatePreferencesLambdaDataSourceAppSyncFunction447517A2": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnUpdatePreferencesLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnUpdatePreferencesLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/bd21fad09b07f6a4c2a65c6434f397549f807b60333b6a6c2f44b01e5bedb0cb.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnUpdatePreferencesLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnUpdatePreferencesLambdaDataSource/InvokeFnUpdatePreferencesLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationupdatePreferencesResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "updatePreferences",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationUpdatePreferencesAuthFNMutationUpdatePreferencesAuthFNAppSyncFunction3B1A012E",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnUpdatePreferencesLambdaDataSourceInvokeFnUpdatePreferencesLambdaDataSourceAppSyncFunction447517A2",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"updatePreferences\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationUpdatePreferencesResolver"
+   }
+  },
+  "FnExportDataLambdaDataSourceServiceRoleF4367A79": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnExportDataLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnExportDataLambdaDataSourceServiceRoleDefaultPolicy1E9ECFF8": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnExportDataLambdaDataSourceServiceRoleDefaultPolicy1E9ECFF8",
+    "Roles": [
+     {
+      "Ref": "FnExportDataLambdaDataSourceServiceRoleF4367A79"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnExportDataLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnExportDataLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Arn"
+     }
+    },
+    "Name": "FnExportDataLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnExportDataLambdaDataSourceServiceRoleF4367A79",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnExportDataLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnExportDataLambdaDataSourceInvokeFnExportDataLambdaDataSourceAppSyncFunctionE2F0328C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnExportDataLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnExportDataLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/333f6052683c723322c02a6a95a85b7e3e758f62fc92114dcbe3a1fca02ea41a.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnExportDataLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnExportDataLambdaDataSource/InvokeFnExportDataLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "MutationexportDataResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "exportData",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationExportDataAuthFNMutationExportDataAuthFNAppSyncFunction9792F037",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnExportDataLambdaDataSourceInvokeFnExportDataLambdaDataSourceAppSyncFunctionE2F0328C",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"exportData\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Mutation"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/mutationExportDataResolver"
+   }
+  },
+  "FnTranslateLambdaDataSourceServiceRole96EA3AF0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnTranslateLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnTranslateLambdaDataSourceServiceRoleDefaultPolicy2442463A": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnTranslateLambdaDataSourceServiceRoleDefaultPolicy2442463A",
+    "Roles": [
+     {
+      "Ref": "FnTranslateLambdaDataSourceServiceRole96EA3AF0"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnTranslateLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnTranslateLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Arn"
+     }
+    },
+    "Name": "FnTranslateLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnTranslateLambdaDataSourceServiceRole96EA3AF0",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnTranslateLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnTranslateLambdaDataSourceInvokeFnTranslateLambdaDataSourceAppSyncFunctionF560E2C9": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnTranslateLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnTranslateLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e3a04e640de0ff96e51ff77b24450ff632625cd1654bc908d4ed5c619b4f9112.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnTranslateLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnTranslateLambdaDataSource/InvokeFnTranslateLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QuerytranslateResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "translate",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QueryTranslateAuthFNQueryTranslateAuthFNAppSyncFunction6280D1F6",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnTranslateLambdaDataSourceInvokeFnTranslateLambdaDataSourceAppSyncFunctionF560E2C9",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"translate\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/queryTranslateResolver"
+   }
+  },
+  "FnAssistLambdaDataSourceServiceRoleC1A8F9FF": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAssistLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnAssistLambdaDataSourceServiceRoleDefaultPolicyC09CE9EF": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnAssistLambdaDataSourceServiceRoleDefaultPolicyC09CE9EF",
+    "Roles": [
+     {
+      "Ref": "FnAssistLambdaDataSourceServiceRoleC1A8F9FF"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAssistLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnAssistLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCArn"
+     }
+    },
+    "Name": "FnAssistLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnAssistLambdaDataSourceServiceRoleC1A8F9FF",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnAssistLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnAssistLambdaDataSourceInvokeFnAssistLambdaDataSourceAppSyncFunction93053329": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnAssistLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnAssistLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/0bfa0d3b87b95332452e412300b3555c7276c9252c1b905991655c860dd12ddb.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnAssistLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnAssistLambdaDataSource/InvokeFnAssistLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QueryassistResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "assist",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QueryAssistAuthFNQueryAssistAuthFNAppSyncFunction3C611654",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnAssistLambdaDataSourceInvokeFnAssistLambdaDataSourceAppSyncFunction93053329",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"assist\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/queryAssistResolver"
+   }
+  },
+  "FnSimplifyLambdaDataSourceServiceRole0A5095EB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSimplifyLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnSimplifyLambdaDataSourceServiceRoleDefaultPolicy8052F1BF": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnSimplifyLambdaDataSourceServiceRoleDefaultPolicy8052F1BF",
+    "Roles": [
+     {
+      "Ref": "FnSimplifyLambdaDataSourceServiceRole0A5095EB"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSimplifyLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnSimplifyLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Arn"
+     }
+    },
+    "Name": "FnSimplifyLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnSimplifyLambdaDataSourceServiceRole0A5095EB",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnSimplifyLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnSimplifyLambdaDataSourceInvokeFnSimplifyLambdaDataSourceAppSyncFunction32E3F7DD": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnSimplifyLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnSimplifyLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/b7dc2df111a84fa85bed420a502987565d94f7d695e6a18b397a0a9b1ebe59c7.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnSimplifyLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnSimplifyLambdaDataSource/InvokeFnSimplifyLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QuerysimplifyResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "simplify",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerySimplifyAuthFNQuerySimplifyAuthFNAppSyncFunction20061608",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnSimplifyLambdaDataSourceInvokeFnSimplifyLambdaDataSourceAppSyncFunction32E3F7DD",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"simplify\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/querySimplifyResolver"
+   }
+  },
+  "FnGetHistoryLambdaDataSourceServiceRoleB4A55985": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetHistoryLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnGetHistoryLambdaDataSourceServiceRoleDefaultPolicyEC57D233": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnGetHistoryLambdaDataSourceServiceRoleDefaultPolicyEC57D233",
+    "Roles": [
+     {
+      "Ref": "FnGetHistoryLambdaDataSourceServiceRoleB4A55985"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetHistoryLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnGetHistoryLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn"
+     }
+    },
+    "Name": "FnGetHistoryLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnGetHistoryLambdaDataSourceServiceRoleB4A55985",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetHistoryLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnGetHistoryLambdaDataSourceInvokeFnGetHistoryLambdaDataSourceAppSyncFunctionDE9BC36B": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnGetHistoryLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnGetHistoryLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/931cbcebc34507587fffa0cc7a02fd710fabcad76c2aa7a91deb000edddcbfe6.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnGetHistoryLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnGetHistoryLambdaDataSource/InvokeFnGetHistoryLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QuerygetHistoryResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "getHistory",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QueryGetHistoryAuthFNQueryGetHistoryAuthFNAppSyncFunction0D174123",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnGetHistoryLambdaDataSourceInvokeFnGetHistoryLambdaDataSourceAppSyncFunctionDE9BC36B",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"getHistory\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/queryGetHistoryResolver"
+   }
+  },
+  "FnGetSavedTranslationsLambdaDataSourceServiceRole20D200FF": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetSavedTranslationsLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnGetSavedTranslationsLambdaDataSourceServiceRoleDefaultPolicyBF3F2DD4": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnGetSavedTranslationsLambdaDataSourceServiceRoleDefaultPolicyBF3F2DD4",
+    "Roles": [
+     {
+      "Ref": "FnGetSavedTranslationsLambdaDataSourceServiceRole20D200FF"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetSavedTranslationsLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnGetSavedTranslationsLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn"
+     }
+    },
+    "Name": "FnGetSavedTranslationsLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnGetSavedTranslationsLambdaDataSourceServiceRole20D200FF",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetSavedTranslationsLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnGetSavedTranslationsLambdaDataSourceInvokeFnGetSavedTranslationsLambdaDataSourceAppSyncFunction9ECD05A3": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnGetSavedTranslationsLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnGetSavedTranslationsLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/b9c5f4d0e10d4693000a411882a0198f93d6ea3b348abbc85dbcec1cc643d50c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnGetSavedTranslationsLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnGetSavedTranslationsLambdaDataSource/InvokeFnGetSavedTranslationsLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QuerygetSavedTranslationsResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "getSavedTranslations",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QueryGetSavedTranslationsAuthFNQueryGetSavedTranslationsAuthFNAppSyncFunction0F239A0F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnGetSavedTranslationsLambdaDataSourceInvokeFnGetSavedTranslationsLambdaDataSourceAppSyncFunction9ECD05A3",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"getSavedTranslations\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/queryGetSavedTranslationsResolver"
+   }
+  },
+  "FnGetPreferencesLambdaDataSourceServiceRole375428EF": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "sandbox"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetPreferencesLambdaDataSource/ServiceRole/Resource"
+   }
+  },
+  "FnGetPreferencesLambdaDataSourceServiceRoleDefaultPolicyCC95261E": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FnGetPreferencesLambdaDataSourceServiceRoleDefaultPolicyCC95261E",
+    "Roles": [
+     {
+      "Ref": "FnGetPreferencesLambdaDataSourceServiceRole375428EF"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetPreferencesLambdaDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "FnGetPreferencesLambdaDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "LambdaConfig": {
+     "LambdaFunctionArn": {
+      "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn"
+     }
+    },
+    "Name": "FnGetPreferencesLambdaDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "FnGetPreferencesLambdaDataSourceServiceRole375428EF",
+      "Arn"
+     ]
+    },
+    "Type": "AWS_LAMBDA"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/FnGetPreferencesLambdaDataSource/Resource"
+   }
+  },
+  "InvokeFnGetPreferencesLambdaDataSourceInvokeFnGetPreferencesLambdaDataSourceAppSyncFunction83691D59": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "FnGetPreferencesLambdaDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "InvokeFnGetPreferencesLambdaDataSource",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/38b137987f8cca1b36f2a269b38328e143d962ec805c9878e60e39425a8e701c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a20e304512b1fde77dc16ed9d5e0ed03817afcab629ce87ef11c99877b7b1e30.vtl"
+    }
+   },
+   "DependsOn": [
+    "FnGetPreferencesLambdaDataSource"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/InvokeFnGetPreferencesLambdaDataSource/InvokeFnGetPreferencesLambdaDataSource.AppSyncFunction"
+   }
+  },
+  "QuerygetPreferencesResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "FieldName": "getPreferences",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QueryGetPreferencesAuthFNQueryGetPreferencesAuthFNAppSyncFunctionEA0987FA",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "InvokeFnGetPreferencesLambdaDataSourceInvokeFnGetPreferencesLambdaDataSourceAppSyncFunction83691D59",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "## [Start] Stash resolver specific context.. **\n$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"getPreferences\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:aws:sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n{}\n## [End] Stash resolver specific context.. **"
+      ]
+     ]
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/387d5992f5fc03d05de27289457dcc374a84c42a889acb504aff1031047dde00.vtl"
+    },
+    "TypeName": "Query"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/queryGetPreferencesResolver"
+   }
+  },
+  "MutationAddHistoryItemAuthFNMutationAddHistoryItemAuthFNAppSyncFunction6F24F05F": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationAddHistoryItemAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationAddHistoryItemAuthFN/MutationAddHistoryItemAuthFN.AppSyncFunction"
+   }
+  },
+  "MutationDeleteHistoryItemAuthFNMutationDeleteHistoryItemAuthFNAppSyncFunction8AD630FF": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationDeleteHistoryItemAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationDeleteHistoryItemAuthFN/MutationDeleteHistoryItemAuthFN.AppSyncFunction"
+   }
+  },
+  "MutationSaveTranslationAuthFNMutationSaveTranslationAuthFNAppSyncFunction882CB460": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationSaveTranslationAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationSaveTranslationAuthFN/MutationSaveTranslationAuthFN.AppSyncFunction"
+   }
+  },
+  "MutationDeleteSavedTranslationAuthFNMutationDeleteSavedTranslationAuthFNAppSyncFunctionF9798566": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationDeleteSavedTranslationAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationDeleteSavedTranslationAuthFN/MutationDeleteSavedTranslationAuthFN.AppSyncFunction"
+   }
+  },
+  "MutationUpdatePreferencesAuthFNMutationUpdatePreferencesAuthFNAppSyncFunction3B1A012E": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationUpdatePreferencesAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationUpdatePreferencesAuthFN/MutationUpdatePreferencesAuthFN.AppSyncFunction"
+   }
+  },
+  "MutationExportDataAuthFNMutationExportDataAuthFNAppSyncFunction9792F037": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationExportDataAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/MutationExportDataAuthFN/MutationExportDataAuthFN.AppSyncFunction"
+   }
+  },
+  "QueryTranslateAuthFNQueryTranslateAuthFNAppSyncFunction6280D1F6": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryTranslateAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QueryTranslateAuthFN/QueryTranslateAuthFN.AppSyncFunction"
+   }
+  },
+  "QueryAssistAuthFNQueryAssistAuthFNAppSyncFunction3C611654": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryAssistAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QueryAssistAuthFN/QueryAssistAuthFN.AppSyncFunction"
+   }
+  },
+  "QuerySimplifyAuthFNQuerySimplifyAuthFNAppSyncFunction20061608": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerySimplifyAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QuerySimplifyAuthFN/QuerySimplifyAuthFN.AppSyncFunction"
+   }
+  },
+  "QueryGetHistoryAuthFNQueryGetHistoryAuthFNAppSyncFunction0D174123": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryGetHistoryAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QueryGetHistoryAuthFN/QueryGetHistoryAuthFN.AppSyncFunction"
+   }
+  },
+  "QueryGetSavedTranslationsAuthFNQueryGetSavedTranslationsAuthFNAppSyncFunction0F239A0F": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryGetSavedTranslationsAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QueryGetSavedTranslationsAuthFN/QueryGetSavedTranslationsAuthFN.AppSyncFunction"
+   }
+  },
+  "QueryGetPreferencesAuthFNQueryGetPreferencesAuthFNAppSyncFunctionEA0987FA": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryGetPreferencesAuthFN",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/46f293d51098baa905f2842f91164cbf9121ded892ccc3a3c86d0879c6ab7af0.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/QueryGetPreferencesAuthFN/QueryGetPreferencesAuthFN.AppSyncFunction"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WMwQ6CMBBEv8V7WbH6A4rxZIyBDzBru5AV2Bq21RjCvxvw5OnNTGbGgt1tIF/hWzPn26zjO4wX0ki+iuhaU9RSBPEcOYjBt95GfD71Iw7GM/Z3j0eMWIU0OJq7/+6UxM3DIkjNTRpweSlqKUlD96JhMow9jGXolv7Ca+jYfWb7U5PR7Q1VKSrsZxjdwiG5luIBlSazhFXEhqWZjARP8ND1y1qwOeSrhzJnQ5LIPUH54xc83Zpu9wAAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-bhashalensbackend-IsmailSayyed-sandbox-f473ace3c4/data/amplifyData/FunctionDirectiveStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Parameters": {
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionhistorylambdaEC988DD4Arn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPI733547B4ApiId": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthauthenticatedUserRole5B4486D5Ref": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthunauthenticatedUserRole2B1EB2B3Ref": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authNestedStackauthNestedStackResource0BB831F2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4authamplifyAuthIdentityPoolF50D1588Ref": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsavedlambda084F8A5AArn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionpreferenceslambdaFD10BA7AArn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionexportDatalambda9FE6AF33Arn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functiontranslationlambda5F7B1107Arn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionassistancelambdaC61839BCArn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionNestedStackfunctionNestedStackResource97B534B2OutputsamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4functionsimplificationlambda2076A8E1Arn": {
+   "Type": "String"
+  },
+  "referencetoamplifybhashalensbackendIsmailSayyedsandboxf473ace3c4dataamplifyDataGraphQLAPINONEDS7EDFADB1Name": {
+   "Type": "String"
+  }
+ }
+}

@@ -1,68 +1,90 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_api/amplify_api.dart';
 import 'retry_policy.dart';
-import 'package:bhashalens_app/debug_session_log.dart';
 
-/// API Gateway client for AWS cloud services
-/// Handles communication with AWS Lambda functions via API Gateway
-class AwsApiGatewayClient {
-  final String baseUrl;
-  final String region;
-  final bool _enableCloud;
-  final Duration timeout;
-  final http.Client _httpClient;
-  final FirebaseAuth _auth;
+/// Client to communicate with Amplify Gen 2 Backend GraphQL Endpoints
+class AwsApiGatewayClient extends ChangeNotifier {
   final RetryPolicy retryPolicy;
+  bool _isConfigured = false;
 
   AwsApiGatewayClient({
-    String? baseUrl,
-    String? region,
-    bool? enableCloud,
-    this.timeout = const Duration(seconds: 5),
-    http.Client? httpClient,
-    FirebaseAuth? auth,
     this.retryPolicy = RetryPolicy.defaultPolicy,
-  })  : baseUrl = baseUrl ??
-            (dotenv.isInitialized
-                ? dotenv.env['AWS_API_GATEWAY_URL'] ?? ''
-                : ''),
-        region = region ??
-            (dotenv.isInitialized
-                ? dotenv.env['AWS_REGION'] ?? 'us-east-1'
-                : 'us-east-1'),
-        _enableCloud = enableCloud ??
-            (dotenv.isInitialized
-                ? dotenv.env['AWS_ENABLE_CLOUD']?.toLowerCase() == 'true'
-                : false),
-        _httpClient = httpClient ?? http.Client(),
-        _auth = auth ?? FirebaseAuth.instance;
+  });
 
-  /// Check if AWS cloud integration is enabled
-  bool get isEnabled {
-    return _enableCloud && baseUrl.isNotEmpty;
+  bool get isEnabled => _isConfigured;
+
+  Future<void> configure(String amplifyConfig) async {
+    if (_isConfigured) return;
+    try {
+      await Amplify.addPlugin(AmplifyAPI());
+      await Amplify.configure(amplifyConfig);
+      _isConfigured = true;
+    } catch (e) {
+      debugPrint('Error configuring Amplify: $e');
+    }
   }
 
-  /// POST request to translation endpoint
+  /// Helper to convert string to GraphQL API request
+  GraphQLRequest<String> _createPostRequest(String document, Map<String, dynamic> variables) {
+    return GraphQLRequest<String>(
+      document: document,
+      variables: variables,
+    );
+  }
+
+  /// Handles generic GraphQL Request execution with retries and error handling
+  Future<Map<String, dynamic>> _executeRequest(String operationName, GraphQLRequest<String> request) async {
+    if (!isEnabled) {
+      throw AwsApiException('AWS cloud integration is not enabled or configured.', statusCode: 0);
+    }
+    return retryPolicy.execute(() async {
+      try {
+        final operation = Amplify.API.query(request: request);
+        final response = await operation.response;
+
+        final data = response.data;
+        if (data != null) {
+          final Map<String, dynamic> parsedData = jsonDecode(data);
+          return parsedData[operationName] != null ? jsonDecode(parsedData[operationName] as String) as Map<String, dynamic> : parsedData;
+        }
+
+        if (response.errors.isNotEmpty) {
+          throw AwsApiException(response.errors.first.message, statusCode: 500);
+        }
+
+        return <String, dynamic>{'success': true};
+      } on ApiException catch (e) {
+         throw AwsApiException('API Exception: ${e.message}', statusCode: 500, originalError: e);
+      } catch (e) {
+         throw AwsApiException('Unexpected Error: $e', statusCode: 0, originalError: e);
+      }
+    });
+  }
+
+  // --- Endpoints ---
+
   Future<Map<String, dynamic>> translate({
     required String sourceText,
     required String sourceLang,
     required String targetLang,
     String? userId,
   }) async {
-    return _post(
-      '/translate',
-      body: {
-        'source_text': sourceText,
-        'source_lang': sourceLang,
-        'target_lang': targetLang,
-        if (userId != null) 'user_id': userId,
-      },
-    );
+    const document = '''
+      query Translate(\$source_text: String!, \$source_lang: String!, \$target_lang: String!, \$user_id: String) {
+        translate(source_text: \$source_text, source_lang: \$source_lang, target_lang: \$target_lang, user_id: \$user_id)
+      }
+    ''';
+    final variables = {
+      'source_text': sourceText,
+      'source_lang': sourceLang,
+      'target_lang': targetLang,
+      if (userId != null) 'user_id': userId,
+    };
+    return _executeRequest('translate', _createPostRequest(document, variables));
   }
 
-  /// POST request to assistance endpoint
   Future<Map<String, dynamic>> assist({
     required String requestType,
     required String text,
@@ -71,21 +93,22 @@ class AwsApiGatewayClient {
     List<Map<String, String>>? conversationHistory,
     String? userId,
   }) async {
-    return _post(
-      '/assist',
-      body: {
-        'request_type': requestType,
-        'text': text,
-        'language': language,
-        if (context != null) 'context': context,
-        if (conversationHistory != null)
-          'conversation_history': conversationHistory,
-        if (userId != null) 'user_id': userId,
-      },
-    );
+    const document = '''
+      query Assist(\$request_type: String!, \$text: String!, \$language: String!, \$context: String, \$conversation_history: AWSJSON, \$user_id: String) {
+        assist(request_type: \$request_type, text: \$text, language: \$language, context: \$context, conversation_history: \$conversation_history, user_id: \$user_id)
+      }
+    ''';
+    final variables = {
+      'request_type': requestType,
+      'text': text,
+      'language': language,
+      if (context != null) 'context': context,
+      if (conversationHistory != null) 'conversation_history': jsonEncode(conversationHistory),
+      if (userId != null) 'user_id': userId,
+    };
+    return _executeRequest('assist', _createPostRequest(document, variables));
   }
 
-  /// POST request to simplification endpoint
   Future<Map<String, dynamic>> simplify({
     required String text,
     required String targetComplexity,
@@ -93,322 +116,52 @@ class AwsApiGatewayClient {
     bool explain = false,
     String? userId,
   }) async {
-    return _post(
-      '/simplify',
-      body: {
-        'text': text,
-        'target_complexity': targetComplexity,
-        'language': language,
-        'explain': explain,
-        if (userId != null) 'user_id': userId,
-      },
-    );
-  }
-
-  /// POST request to orchestrated hybrid flow (Claude + Gemini)
-  Future<Map<String, dynamic>> orchestrate({
-    required String text,
-    required String mode,
-    required String language,
-    String? context,
-    String? userId,
-  }) async {
-    return _post(
-      '/orchestrate',
-      body: {
-        'text': text,
-        'mode': mode,
-        'language': language,
-        if (context != null) 'context': context,
-        if (userId != null) 'user_id': userId,
-      },
-    );
-  }
-
-  /// Generic POST request handler
-  Future<Map<String, dynamic>> _post(
-    String endpoint, {
-    required Map<String, dynamic> body,
-  }) async {
-    if (!isEnabled) {
-      throw AwsApiException(
-        'AWS cloud integration is not enabled',
-        statusCode: 0,
-      );
-    }
-
-    // Execute with retry policy
-    return retryPolicy.execute(() async {
-      final url = Uri.parse('$baseUrl$endpoint');
-      // #region agent log
-      DebugSessionLog.log(
-        'aws_api_gateway_client.dart:_post',
-        'api_request_start',
-        data: {'endpoint': endpoint},
-        hypothesisId: 'H2',
-      );
-      // #endregion
-
-      // Get Firebase ID token for authentication
-      final headers = await _buildHeaders();
-
-      try {
-        final response = await _httpClient
-            .post(
-              url,
-              headers: headers,
-              body: jsonEncode(body),
-            )
-            .timeout(timeout);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_post',
-            'api_request_success',
-            data: {'endpoint': endpoint, 'statusCode': response.statusCode},
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          if (response.body.isEmpty) {
-            return <String, dynamic>{'success': true};
-          }
-          return jsonDecode(response.body) as Map<String, dynamic>;
-        } else {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_post',
-            'api_request_failed',
-            data: {
-              'endpoint': endpoint,
-              'statusCode': response.statusCode,
-              'body': response.body.length > 200
-                  ? '${response.body.substring(0, 200)}...'
-                  : response.body,
-            },
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          throw AwsApiException(
-            'API request failed: ${response.body}',
-            statusCode: response.statusCode,
-            responseBody: response.body,
-          );
-        }
-      } catch (e) {
-        if (e is AwsApiException) {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_post',
-            'api_request_error',
-            data: {'endpoint': endpoint, 'error': e.toString()},
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          rethrow;
-        }
-        throw AwsApiException(
-          'Network error: ${e.toString()}',
-          statusCode: 0,
-          originalError: e,
-        );
+    const document = '''
+      query Simplify(\$text: String!, \$target_complexity: String!, \$language: String!, \$explain: Boolean, \$user_id: String) {
+        simplify(text: \$text, target_complexity: \$target_complexity, language: \$language, explain: \$explain, user_id: \$user_id)
       }
-    });
+    ''';
+    final variables = {
+      'text': text,
+      'target_complexity': targetComplexity,
+      'language': language,
+      'explain': explain,
+      if (userId != null) 'user_id': userId,
+    };
+    return _executeRequest('simplify', _createPostRequest(document, variables));
   }
 
-  /// Generic GET request handler
-  Future<Map<String, dynamic>> _get(
-    String endpoint, {
-    Map<String, String>? queryParameters,
-  }) async {
-    if (!isEnabled) {
-      throw AwsApiException(
-        'AWS cloud integration is not enabled',
-        statusCode: 0,
-      );
-    }
+   // --- History Endpoints ---
 
-    return retryPolicy.execute(() async {
-      final uri = Uri.parse('$baseUrl$endpoint');
-      final url = uri.replace(queryParameters: queryParameters);
-      // #region agent log
-      DebugSessionLog.log(
-        'aws_api_gateway_client.dart:_get',
-        'api_request_start',
-        data: {'endpoint': endpoint},
-        hypothesisId: 'H2',
-      );
-      // #endregion
-
-      final headers = await _buildHeaders();
-
-      try {
-        final response = await _httpClient
-            .get(
-              url,
-              headers: headers,
-            )
-            .timeout(timeout);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_get',
-            'api_request_success',
-            data: {'endpoint': endpoint, 'statusCode': response.statusCode},
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          return jsonDecode(response.body) as Map<String, dynamic>;
-        } else {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_get',
-            'api_request_failed',
-            data: {
-              'endpoint': endpoint,
-              'statusCode': response.statusCode,
-            },
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          throw AwsApiException(
-            'API request failed: ${response.body}',
-            statusCode: response.statusCode,
-            responseBody: response.body,
-          );
-        }
-      } catch (e) {
-        if (e is AwsApiException) {
-          // #region agent log
-          DebugSessionLog.log(
-            'aws_api_gateway_client.dart:_get',
-            'api_request_error',
-            data: {'endpoint': endpoint, 'error': e.toString()},
-            hypothesisId: 'H2',
-          );
-          // #endregion
-          rethrow;
-        }
-        throw AwsApiException(
-          'Network error: ${e.toString()}',
-          statusCode: 0,
-          originalError: e,
-        );
-      }
-    });
-  }
-
-  /// Generic DELETE request handler
-  Future<Map<String, dynamic>> _delete(String endpoint) async {
-    if (!isEnabled) {
-      throw AwsApiException(
-        'AWS cloud integration is not enabled',
-        statusCode: 0,
-      );
-    }
-
-    return retryPolicy.execute(() async {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final headers = await _buildHeaders();
-
-      try {
-        final response = await _httpClient
-            .delete(
-              url,
-              headers: headers,
-            )
-            .timeout(timeout);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return jsonDecode(response.body) as Map<String, dynamic>;
-        } else {
-          throw AwsApiException(
-            'API request failed: ${response.body}',
-            statusCode: response.statusCode,
-            responseBody: response.body,
-          );
-        }
-      } catch (e) {
-        if (e is AwsApiException) rethrow;
-        throw AwsApiException(
-          'Network error: ${e.toString()}',
-          statusCode: 0,
-          originalError: e,
-        );
-      }
-    });
-  }
-
-  /// Generic PUT request handler
-  Future<Map<String, dynamic>> _put(
-    String endpoint, {
-    required Map<String, dynamic> body,
-  }) async {
-    if (!isEnabled) {
-      throw AwsApiException(
-        'AWS cloud integration is not enabled',
-        statusCode: 0,
-      );
-    }
-
-    return retryPolicy.execute(() async {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final headers = await _buildHeaders();
-
-      try {
-        final response = await _httpClient
-            .put(
-              url,
-              headers: headers,
-              body: jsonEncode(body),
-            )
-            .timeout(timeout);
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return jsonDecode(response.body) as Map<String, dynamic>;
-        } else {
-          throw AwsApiException(
-            'API request failed: ${response.body}',
-            statusCode: response.statusCode,
-            responseBody: response.body,
-          );
-        }
-      } catch (e) {
-        if (e is AwsApiException) rethrow;
-        throw AwsApiException(
-          'Network error: ${e.toString()}',
-          statusCode: 0,
-          originalError: e,
-        );
-      }
-    });
-  }
-
-  // --- History Endpoints ---
-
-  /// GET request to fetch translation history
   Future<Map<String, dynamic>> getHistory({
     int page = 1,
     int pageSize = 20,
     String? startDate,
     String? endDate,
   }) async {
-    final queryParams = <String, String>{
-      'page': page.toString(),
-      'pageSize': pageSize.toString(),
+    const document = '''
+      query GetHistory(\$page: Int, \$pageSize: Int, \$startDate: String, \$endDate: String) {
+        getHistory(page: \$page, pageSize: \$pageSize, startDate: \$startDate, endDate: \$endDate)
+      }
+    ''';
+    final variables = {
+      'page': page,
+      'pageSize': pageSize,
       if (startDate != null) 'startDate': startDate,
       if (endDate != null) 'endDate': endDate,
     };
-    return _get('/history', queryParameters: queryParams);
+    return _executeRequest('getHistory', _createPostRequest(document, variables));
   }
 
-  /// DELETE request to remove a specific history item
   Future<Map<String, dynamic>> deleteHistoryItem(String id) async {
-    return _delete('/history/$id');
+    const document = '''
+      mutation DeleteHistoryItem(\$id: String!) {
+        deleteHistoryItem(id: \$id)
+      }
+    ''';
+    return _executeRequest('deleteHistoryItem', _createPostRequest(document, {'id': id}));
   }
 
-  /// POST request to manually add a history item (manual sync)
   Future<Map<String, dynamic>> addHistoryItem({
     required String sourceText,
     required String sourceLang,
@@ -419,38 +172,44 @@ class AwsApiGatewayClient {
     String? backend,
     int? processingTime,
   }) async {
-    return _post(
-      '/history',
-      body: {
-        'sourceText': sourceText,
-        'sourceLang': sourceLang,
-        'targetText': targetText,
-        'targetLang': targetLang,
-        if (timestamp != null) 'timestamp': timestamp,
-        if (type != null) 'type': type,
-        if (backend != null) 'backend': backend,
-        if (processingTime != null) 'processingTime': processingTime,
-      },
-    );
+    const document = '''
+      mutation AddHistoryItem(\$sourceText: String!, \$sourceLang: String!, \$targetText: String!, \$targetLang: String!, \$timestamp: Int, \$type: String, \$backend: String, \$processingTime: Int) {
+        addHistoryItem(sourceText: \$sourceText, sourceLang: \$sourceLang, targetText: \$targetText, targetLang: \$targetLang, timestamp: \$timestamp, type: \$type, backend: \$backend, processingTime: \$processingTime)
+      }
+    ''';
+    final variables = {
+      'sourceText': sourceText,
+      'sourceLang': sourceLang,
+      'targetText': targetText,
+      'targetLang': targetLang,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (type != null) 'type': type,
+      if (backend != null) 'backend': backend,
+      if (processingTime != null) 'processingTime': processingTime,
+    };
+    return _executeRequest('addHistoryItem', _createPostRequest(document, variables));
   }
 
   // --- Saved Translations Endpoints ---
 
-  /// GET request to fetch saved translations
   Future<Map<String, dynamic>> getSavedTranslations({
     int page = 1,
     int pageSize = 20,
     String? search,
   }) async {
-    final queryParams = <String, String>{
-      'page': page.toString(),
-      'pageSize': pageSize.toString(),
+     const document = '''
+      query GetSavedTranslations(\$page: Int, \$pageSize: Int, \$search: String) {
+        getSavedTranslations(page: \$page, pageSize: \$pageSize, search: \$search)
+      }
+    ''';
+    final variables = {
+      'page': page,
+      'pageSize': pageSize,
       if (search != null) 'search': search,
     };
-    return _get('/saved', queryParameters: queryParams);
+    return _executeRequest('getSavedTranslations', _createPostRequest(document, variables));
   }
 
-  /// POST request to save a translation
   Future<Map<String, dynamic>> saveTranslation({
     required String translationId,
     required String sourceText,
@@ -459,93 +218,74 @@ class AwsApiGatewayClient {
     required String targetLang,
     List<String>? tags,
   }) async {
-    return _post(
-      '/saved',
-      body: {
-        'translation_id': translationId,
-        'source_text': sourceText,
-        'source_lang': sourceLang,
-        'translated_text': translatedText,
-        'target_lang': targetLang,
-        if (tags != null) 'tags': tags,
-      },
-    );
+     const document = '''
+      mutation SaveTranslation(\$translation_id: String!, \$source_text: String!, \$source_lang: String!, \$translated_text: String!, \$target_lang: String!, \$tags: [String]) {
+        saveTranslation(translation_id: \$translation_id, source_text: \$source_text, source_lang: \$source_lang, translated_text: \$translated_text, target_lang: \$target_lang, tags: \$tags)
+      }
+    ''';
+    final variables = {
+      'translation_id': translationId,
+      'source_text': sourceText,
+      'source_lang': sourceLang,
+      'translated_text': translatedText,
+      'target_lang': targetLang,
+      if (tags != null) 'tags': tags,
+    };
+    return _executeRequest('saveTranslation', _createPostRequest(document, variables));
   }
 
-  /// DELETE request to remove a saved translation
   Future<Map<String, dynamic>> deleteSavedTranslation(String id) async {
-    return _delete('/saved/$id');
+     const document = '''
+      mutation DeleteSavedTranslation(\$id: String!) {
+        deleteSavedTranslation(id: \$id)
+      }
+    ''';
+    return _executeRequest('deleteSavedTranslation', _createPostRequest(document, {'id': id}));
   }
 
   // --- Preferences Endpoints ---
 
-  /// GET request to fetch user preferences
   Future<Map<String, dynamic>> getPreferences() async {
-    return _get('/preferences');
+    const document = '''
+      query GetPreferences {
+        getPreferences
+      }
+    ''';
+    return _executeRequest('getPreferences', _createPostRequest(document, {}));
   }
 
-  /// PUT request to update user preferences
-  Future<Map<String, dynamic>> updatePreferences(
-      Map<String, dynamic> preferences) async {
-    return _put(
-      '/preferences',
-      body: {
-        'preferences': preferences,
-      },
-    );
+  Future<Map<String, dynamic>> updatePreferences(Map<String, dynamic> preferences) async {
+     const document = '''
+      mutation UpdatePreferences(\$preferences: AWSJSON!) {
+        updatePreferences(preferences: \$preferences)
+      }
+    ''';
+    return _executeRequest('updatePreferences', _createPostRequest(document, {'preferences': jsonEncode(preferences)}));
   }
 
   // --- Export Endpoint ---
 
-  /// POST request to export data
   Future<Map<String, dynamic>> exportData({
     required String exportType,
     required String format,
     String? startDate,
     String? endDate,
   }) async {
-    return _post(
-      '/export',
-      body: {
-        'exportType': exportType,
-        'format': format,
-        if (startDate != null) 'startDate': startDate,
-        if (endDate != null) 'endDate': endDate,
-      },
-    );
-  }
-
-  /// Build request headers with authentication
-  Future<Map<String, String>> _buildHeaders() async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    // Add Firebase ID token if user is authenticated
-    final user = _auth.currentUser;
-    if (user != null) {
-      try {
-        final idToken = await user.getIdToken();
-        if (idToken != null) {
-          headers['Authorization'] = 'Bearer $idToken';
-        }
-      } catch (e) {
-        // Continue without auth token if retrieval fails
-        // This allows anonymous usage to fall back to on-device processing
+     const document = '''
+      mutation ExportData(\$exportType: String!, \$format: String!, \$startDate: String, \$endDate: String) {
+        exportData(exportType: \$exportType, format: \$format, startDate: \$startDate, endDate: \$endDate)
       }
-    }
-
-    return headers;
-  }
-
-  /// Close the HTTP client
-  void dispose() {
-    _httpClient.close();
+    ''';
+    final variables = {
+      'exportType': exportType,
+      'format': format,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    };
+    return _executeRequest('exportData', _createPostRequest(document, variables));
   }
 }
 
-/// Custom exception for AWS API errors
 class AwsApiException implements Exception {
   final String message;
   final int statusCode;
@@ -562,7 +302,6 @@ class AwsApiException implements Exception {
   bool get isNetworkError => statusCode == 0;
   bool get isServerError => statusCode >= 500;
   bool get isClientError => statusCode >= 400 && statusCode < 500;
-  bool get isTimeout => originalError is http.ClientException;
 
   @override
   String toString() {

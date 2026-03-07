@@ -64,6 +64,9 @@ dependencies:
   sqflite_common_ffi: ^2.4.0+2
   sqflite_common_ffi_web: ^1.1.1
   path_provider: ^2.1.5
+  amplify_flutter: ^2.4.0
+  amplify_auth_cognito: ^2.4.0
+  amplify_api: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +75,10 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.0
   build_runner: ^2.12.2
   mockito: ^5.6.3
+
+dependency_overrides:
+    amplify_db_common_dart: ^0.4.15
+    sqlite3: ^3.1.2
 
 flutter:
   uses-material-design: true

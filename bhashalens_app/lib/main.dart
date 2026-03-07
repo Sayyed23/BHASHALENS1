@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart' show rootBundle;
 // Removed unused import
 import 'dart:async';
 
@@ -62,6 +63,14 @@ void main() async {
     debugPrint("Warning: Failed to load .env file: $e");
   }
 
+  // Load Amplify Config
+  String amplifyConfig = '';
+  try {
+    amplifyConfig = await rootBundle.loadString('lib/amplify_outputs.json');
+  } catch (e) {
+    debugPrint('Warning: Failed to load amplify_outputs.json: $e');
+  }
+
   bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
@@ -87,7 +96,13 @@ void main() async {
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
     Provider<LocalStorageService>.value(value: localStorageService),
     Provider<GeminiService>.value(value: geminiService),
-    Provider<AwsApiGatewayClient>(create: (_) => AwsApiGatewayClient()),
+    Provider<AwsApiGatewayClient>(create: (_) {
+       final client = AwsApiGatewayClient();
+       if (amplifyConfig.isNotEmpty) {
+         client.configure(amplifyConfig);
+       }
+       return client;
+    }),
     ProxyProvider<AwsApiGatewayClient, AwsCloudService>(
       update: (_, apiClient, __) => AwsCloudService(apiClient: apiClient),
     ),
