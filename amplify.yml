@@ -1,12 +1,15 @@
 version: 1
 appRoot: bhashalens_app
+env:
+  variables:
+    FLUTTER_VERSION: "3.24.5"
 
 frontend:
   phases:
     preBuild:
       commands:
-        # Install modern Flutter SDK if not already in cache
-        - "if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi"
+        # Install pinned Flutter SDK if not already in cache
+        - "if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b $FLUTTER_VERSION --depth 1 /root/flutter; fi"
         
         # Use absolute path to ensure we NEVER use the outdated pre-installed version
         - /root/flutter/bin/flutter --version
@@ -21,7 +24,7 @@ frontend:
         - /root/flutter/bin/flutter clean
 
         # Map Amplify variables into the .env file for the app
-        - "touch .env"
+        - "rm -f .env && touch .env"
         - "if [ -n \"$AWS_API_GATEWAY_URL\" ]; then API_URL=\"$AWS_API_GATEWAY_URL\"; else API_URL=\"$GATEWAY_URL\"; fi"
         - "if [ -n \"$AWS_REGION\" ]; then REGION_VALUE=\"$AWS_REGION\"; else REGION_VALUE=\"$APP_REGION\"; fi"
         - "if [ -n \"$AWS_ENABLE_CLOUD\" ]; then CLOUD_VALUE=\"$AWS_ENABLE_CLOUD\"; else CLOUD_VALUE=\"$CLOUD_ENABLED\"; fi"
@@ -61,7 +64,7 @@ frontend:
         - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --pwa-strategy=none --base-href / --web-renderer html
 
         # Verify build artifacts
-        - ls -R build/web/assets || echo "No assets found"
+        - find build/web/assets -maxdepth 3 -type f | head -50 || echo "No assets found"
         - ls build/web/FontManifest.json || echo "No FontManifest found"
         - ls build/web/sqlite3.wasm || echo "Warning: sqlite3.wasm missing (Settings page might fail)"
 
@@ -74,4 +77,4 @@ frontend:
     paths:
       - '/root/flutter/**/*'
       - '/root/.pub-cache/**/*'
-      - 'bhashalens_app/.dart_tool/**/*'
+      - '.dart_tool/**/*'
