@@ -52,7 +52,7 @@ class GeminiService {
       }
 
       _model = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -63,7 +63,7 @@ class GeminiService {
       );
 
       _visionModel = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.3,
