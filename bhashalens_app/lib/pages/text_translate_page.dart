@@ -1,7 +1,10 @@
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 
 class TextTranslatePage extends StatefulWidget {
   const TextTranslatePage({super.key});
@@ -152,6 +155,21 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                           ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
+                          suffixIcon: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.camera_alt_rounded),
+                                onPressed: _scanText,
+                                tooltip: 'Scan Text (OCR)',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.mic_rounded),
+                                onPressed: _listenVoice,
+                                tooltip: 'Voice Input (ASR)',
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -180,14 +198,28 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
                                   letterSpacing: 1.2,
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: _copyTranslation,
-                                child: Icon(
-                                  Icons.copy_rounded,
-                                  size: 18,
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.6),
-                                ),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: _copyTranslation,
+                                    child: Icon(
+                                      Icons.copy_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () => _speakText(_translatedText, _targetLanguageCode),
+                                    child: Icon(
+                                      Icons.volume_up_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -275,40 +307,38 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
             const SizedBox(height: 40),
 
             // Recent Section
-            if (true) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "RECENT HISTORY",
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "RECENT HISTORY",
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
                   ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      "Clear All",
-                      style: TextStyle(color: colorScheme.primary),
-                    ),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: Text(
+                    "Clear All",
+                    style: TextStyle(color: colorScheme.primary),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildRecentCard(
-                original: "How are you doing today?",
-                translated: "आज आप कैसे हैं?",
-                theme: theme,
-              ),
-              const SizedBox(height: 12),
-              _buildRecentCard(
-                original: "Where is the nearest supermarket?",
-                translated: "निकटतम सुपरमार्केट कहाँ है?",
-                theme: theme,
-              ),
-            ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildRecentCard(
+              original: "How are you doing today?",
+              translated: "आज आप कैसे हैं?",
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+            _buildRecentCard(
+              original: "Where is the nearest supermarket?",
+              translated: "निकटतम सुपरमार्केट कहाँ है?",
+              theme: theme,
+            ),
           ],
         ),
       ),
@@ -457,14 +487,67 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
     }
   }
 
+  Future<void> _scanText() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    if (image == null) return;
+
+    setState(() => _isTranslating = true);
+
+    try {
+      final bytes = await image.readAsBytes();
+      final base64Image = base64Encode(bytes);
+      final sarvamService = Provider.of<SarvamService>(context, listen: false);
+      final extractedText = await sarvamService.performOCR(base64Image);
+
+      if (mounted && extractedText.isNotEmpty) {
+        setState(() {
+          _textController.text = extractedText;
+          _isTranslating = false;
+        });
+        _translateText();
+      } else {
+        setState(() => _isTranslating = false);
+      }
+    } catch (e) {
+      setState(() => _isTranslating = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("OCR Error: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _listenVoice() async {
+    final voiceService = Provider.of<VoiceTranslationService>(context, listen: false);
+    if (voiceService.isListening) {
+      voiceService.stopListening();
+    } else {
+      debugPrint("Voice input requested for $_sourceLanguageCode");
+    }
+  }
+
+  Future<void> _speakText(String text, String langCode) async {
+    try {
+      final sarvamService = Provider.of<SarvamService>(context, listen: false);
+      await sarvamService.speakText(text, langCode);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("TTS Error: $e")),
+        );
+      }
+    }
+  }
+
   Future<void> _translateText() async {
     if (_textController.text.trim().isEmpty) return;
 
     setState(() => _isTranslating = true);
 
     try {
-      final service =
-          Provider.of<VoiceTranslationService>(context, listen: false);
+      final service = Provider.of<VoiceTranslationService>(context, listen: false);
 
       final translation = await service.translateText(
         _textController.text,

@@ -9,16 +9,12 @@ This guide explains how to integrate AWS Bedrock AI into the BhashaLens app's As
 ✅ **Already Implemented:**
 - AWS Cloud Service with Bedrock integration (`aws_cloud_service.dart`)
 - API Gateway endpoints for `/assist` and `/simplify`
-- Lambda functions for processing requests
+- Lambda functions for processing requests (Updated to **Claude 3.7 Sonnet**)
 - Circuit breaker for fault tolerance
 - Fallback mechanisms
-
-❌ **Needs Implementation:**
-- Update Explain Mode to use AWS Bedrock
-- Update Assistant Mode to use AWS Bedrock
-- Create Simplify Mode page
-- Add backend indicators in UI
-- Test cross-platform functionality
+- **Sarvam AI Integration** for OCR, ASR, and TTS
+- Backend indicators in UI (Bedrock vs Gemini vs Offline)
+- **Simplify Mode** page and **Explain Mode** Bedrock integration
 
 ## Architecture
 
@@ -520,7 +516,11 @@ AWS_REGION=us-east-1
 AWS_ENABLE_CLOUD=true
 ```
 
-For web deployment, ensure Amplify environment variables are set in AWS Console.
+For web deployment, ensure Amplify environment variables are set in AWS Console:
+- `GEMINI_API_KEY`
+- `AWS_API_GATEWAY_URL`
+- `SARVAM_AI_API_KEY` (New: Required for Indian language specialized AI)
+- `AWS_ENABLE_CLOUD`=true
 
 ### Step 8: Monitoring and Debugging
 
@@ -589,7 +589,7 @@ Set up budget alerts in AWS:
 1. Check AWS_ENABLE_CLOUD in .env
 2. Verify API Gateway URL is correct
 3. Check CloudWatch logs for Lambda errors
-4. Verify Bedrock model access in AWS Console
+4. **IMPORTANT:** Verify **Claude 3.7 Sonnet** model access in AWS Console (Amazon Bedrock -> Model Access)
 
 ### Issue: Fallback not working
 **Solution:**

@@ -1,18 +1,21 @@
-import 'package:bhashalens_app/services/hybrid_translation_service.dart';
-import 'package:bhashalens_app/services/smart_hybrid_router.dart';
-import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
-import 'package:bhashalens_app/widgets/backend_indicator_widget.dart';
-import 'package:bhashalens_app/widgets/web_constrained_body.dart';
-import 'package:bhashalens_app/services/offline_explain_service.dart';
-import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/smart_hybrid_router.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/services/offline_explain_service.dart';
+import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/services/sarvam_service.dart';
+
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'package:bhashalens_app/widgets/backend_indicator.dart';
 import 'package:bhashalens_app/core/ocr_extractor.dart';
 
 class ExplainModePage extends StatefulWidget {
@@ -31,30 +34,35 @@ class _ExplainModePageState extends State<ExplainModePage>
   Map<String, dynamic>? _contextData;
   bool _isProcessing = false;
   String _selectedOutputLanguage = 'Hindi';
-  String _selectedInputLanguage = 'Auto-detected';
+  String _selectedInputLanguage = 'English';
   late TabController _tabController;
   ProcessingBackend? _lastBackend;
-  String? _lastBackendLabel;
+  // Removed unused _lastBackendLabel
 
-  final List<String> _tabs = ['Camera', 'Voice'];
+  // Removed unused _tabs
+
+  bool _readExplanationAloud = true;
+  final TextEditingController _followUpController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    final hasInitialText =
+        widget.initialText != null && widget.initialText!.isNotEmpty;
+    _tabController = TabController(
+      initialIndex: hasInitialText ? 2 : 0,
+      length: 3,
+      vsync: this,
+    );
     _tabController.addListener(_handleTabSelection);
 
-    // Check for initial text
-    if (widget.initialText != null && widget.initialText!.isNotEmpty) {
+    if (hasInitialText) {
       _inputController.text = widget.initialText!;
-      // Delay slightly to allow build to finish before starting async
       Future.delayed(Duration.zero, () {
         if (!mounted) return;
         _explainWithContext();
       });
     }
-
-    // Listen to voice service for real-time transcription
     final voiceService = Provider.of<VoiceTranslationService>(
       context,
       listen: false,
@@ -82,6 +90,7 @@ class _ExplainModePageState extends State<ExplainModePage>
   void dispose() {
     _inputController.dispose();
     _scrollController.dispose();
+    _followUpController.dispose();
     _tabController.dispose();
     final voiceService = Provider.of<VoiceTranslationService>(
       context,
@@ -145,12 +154,24 @@ class _ExplainModePageState extends State<ExplainModePage>
             debugPrint("Web OCR error: $e");
             extracted = "Error extracting text on Web";
           }
-          extracted = await extractTextFromImageFile(image,
-              languageCode: _selectedInputLanguage == 'Auto-detected'
-                  ? 'en'
-                  : _selectedInputLanguage.length >= 2
-                      ? _selectedInputLanguage.toLowerCase().substring(0, 2)
-                      : 'en');
+        } else {
+          try {
+            final bytes = await image.readAsBytes();
+            if (!mounted) return;
+            final base64Image = base64Encode(bytes);
+            final sarvamService =
+                Provider.of<SarvamService>(context, listen: false);
+            extracted = await sarvamService.performOCR(base64Image);
+          } catch (e) {
+            debugPrint("Sarvam OCR error: $e");
+            // Fallback to ML Kit if Sarvam fails
+            extracted = await extractTextFromImageFile(image,
+                languageCode: _selectedInputLanguage == 'Auto-detected'
+                    ? 'en'
+                    : _selectedInputLanguage.length >= 2
+                        ? _selectedInputLanguage.toLowerCase().substring(0, 2)
+                        : 'en');
+          }
         }
 
         if (!mounted) return;
@@ -158,6 +179,11 @@ class _ExplainModePageState extends State<ExplainModePage>
           _inputController.text = extracted;
           _isProcessing = false;
         });
+
+        // Auto-process after scanning
+        if (extracted.trim().isNotEmpty) {
+          _explainWithContext();
+        }
       }
     } catch (e) {
       debugPrint("Error scanning: $e");
@@ -202,7 +228,6 @@ class _ExplainModePageState extends State<ExplainModePage>
       _isProcessing = true;
       _contextData = null;
       _lastBackend = null;
-      _lastBackendLabel = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -225,8 +250,7 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
-            _lastBackend = null;
-            _lastBackendLabel = 'offline';
+            _lastBackend = ProcessingBackend.mlKit;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -249,9 +273,17 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
-            _lastBackend = null;
-            _lastBackendLabel =
-                (result['backend'] ?? result['model'])?.toString();
+            final backendStr = (result['backend'] ?? result['model'])
+                ?.toString()
+                .toLowerCase();
+            if (backendStr?.contains('bedrock') == true ||
+                backendStr?.contains('claude') == true) {
+              _lastBackend = ProcessingBackend.awsBedrock;
+            } else if (backendStr?.contains('gemini') == true) {
+              _lastBackend = ProcessingBackend.gemini;
+            } else {
+              _lastBackend = ProcessingBackend.mlKit;
+            }
           });
         }
       }
@@ -265,8 +297,7 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
-            _lastBackend = null;
-            _lastBackendLabel = 'offline';
+            _lastBackend = ProcessingBackend.mlKit;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -310,7 +341,6 @@ class _ExplainModePageState extends State<ExplainModePage>
       _isProcessing = true;
       _contextData = null;
       _lastBackend = null;
-      _lastBackendLabel = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -339,7 +369,6 @@ class _ExplainModePageState extends State<ExplainModePage>
                   'Simplified to reduce complexity and improve readability.',
             };
             _lastBackend = result.backend;
-            _lastBackendLabel = null;
           });
         } else {
           ScaffoldMessenger.of(
@@ -367,8 +396,7 @@ class _ExplainModePageState extends State<ExplainModePage>
               'cultural_insight':
                   offlineResult['cultural_insight'] ?? 'Cloud unavailable.',
             };
-            _lastBackend = null;
-            _lastBackendLabel = 'Offline (Rule Engine)';
+            _lastBackend = ProcessingBackend.mlKit;
           });
 
           if (!mounted) return;
@@ -472,14 +500,7 @@ class _ExplainModePageState extends State<ExplainModePage>
     );
   }
 
-  void _swapLanguages() {
-    if (_selectedInputLanguage == 'Auto-detected') return;
-    setState(() {
-      final temp = _selectedInputLanguage;
-      _selectedInputLanguage = _selectedOutputLanguage;
-      _selectedOutputLanguage = temp;
-    });
-  }
+  // Removed unused _swapLanguages
 
   @override
   Widget build(BuildContext context) {
@@ -496,134 +517,25 @@ class _ExplainModePageState extends State<ExplainModePage>
       appBar: AppBar(
         backgroundColor: bgDark.withValues(alpha: 0.9),
         elevation: 0,
-        automaticallyImplyLeading: false, // Prevents default back button
-        title: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: cardDark,
-            borderRadius: BorderRadius.circular(16), // Rounded pill
-            border: Border.all(
-              color: const Color(0xFF3B4554).withValues(alpha: 0.5),
-            ),
-          ),
-          child: Row(
-            children: [
-              // FROM
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _showLanguagePicker(isInput: true),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "FROM",
-                        style: TextStyle(
-                          color: textGrey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _selectedInputLanguage,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16, // Increased size
-                                fontWeight: FontWeight.bold, // Bolder
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 16,
-                            color: textGrey,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Swap Icon
-              GestureDetector(
-                onTap: _swapLanguages,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B4554).withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.swap_horiz,
-                    color: _selectedInputLanguage == 'Auto-detected'
-                        ? Colors.grey.withValues(alpha: 0.5)
-                        : primaryBlue,
-                    size: 20,
-                  ),
-                ),
-              ),
-              // TO
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _showLanguagePicker(isInput: false),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        "TO",
-                        style: TextStyle(
-                          color: textGrey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _selectedOutputLanguage,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16, // Increased size
-                                fontWeight: FontWeight.bold, // Bolder
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 16,
-                            color: textGrey,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        title: const Text(
+          'Explain & Simplify',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.help_outline, color: Colors.white),
+            onPressed: () {
+              // Help / onboarding
+            },
           ),
         ],
       ),
@@ -781,8 +693,120 @@ class _ExplainModePageState extends State<ExplainModePage>
               padding: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
               child: Column(
                 children: [
+                  const SizedBox(height: 12),
+                  // DETECTED LANGUAGE -> EXPLAIN IN
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: cardDark,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF3B4554).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'DETECTED LANGUAGE:',
+                                style: TextStyle(
+                                  color: textGrey,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _selectedInputLanguage,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.check_circle,
+                                      color: primaryBlue, size: 18),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward,
+                            color: textGrey, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _showLanguagePicker(isInput: false),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'EXPLAIN IN:',
+                                  style: TextStyle(
+                                    color: textGrey,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _selectedOutputLanguage,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(Icons.keyboard_arrow_down,
+                                        color: textGrey, size: 20),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Read Explanation Aloud toggle
+                  Row(
+                    children: [
+                      const Text(
+                        'Read Explanation Aloud',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Switch(
+                        value: _readExplanationAloud,
+                        onChanged: (v) =>
+                            setState(() => _readExplanationAloud = v),
+                        activeThumbColor: primaryBlue,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
-                  // Large Mode Switcher
+                  // Input method: Camera | Voice | Text
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -796,36 +820,110 @@ class _ExplainModePageState extends State<ExplainModePage>
                       children: [
                         Expanded(
                           child: _buildBigTabButton(
-                            Icons.keyboard_outlined,
-                            "Text Input",
+                            Icons.camera_alt_outlined,
+                            "Camera",
                             _tabController.index == 0,
-                            () {
-                              setState(() {
-                                _tabController.animateTo(0);
-                              });
-                            },
+                            () => setState(() => _tabController.animateTo(0)),
                             primaryBlue,
                           ),
                         ),
                         Expanded(
                           child: _buildBigTabButton(
                             Icons.mic_none_outlined,
-                            "Voice Chat",
+                            "Voice",
                             _tabController.index == 1,
-                            () {
-                              setState(() {
-                                _tabController.animateTo(1);
-                              });
-                            },
+                            () => setState(() => _tabController.animateTo(1)),
+                            primaryBlue,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildBigTabButton(
+                            Icons.text_fields,
+                            "Text",
+                            _tabController.index == 2,
+                            () => setState(() => _tabController.animateTo(2)),
                             primaryBlue,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
 
-                  // Voice Mode: Chat UI (constrained height for web/short viewports)
+                  // Camera tab: document frame + capture
+                  if (_tabController.index == 0) ...[
+                    Container(
+                      height: 280,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: cardDark,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF3B4554).withValues(alpha: 0.5),
+                          width: 2,
+                        ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.description_outlined,
+                                  size: 64,
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Align document within frame',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 24,
+                            child: GestureDetector(
+                              onTap: _isProcessing ? null : _scanText,
+                              child: Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                      _isProcessing ? Colors.grey : primaryBlue,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryBlue.withValues(alpha: 0.4),
+                                      blurRadius: 16,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: _isProcessing
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(24),
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.camera_alt,
+                                        color: Colors.white, size: 32),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Voice tab
                   if (_tabController.index == 1) ...[
                     SizedBox(
                       height: (MediaQuery.of(context).size.height * 0.5)
@@ -921,12 +1019,12 @@ class _ExplainModePageState extends State<ExplainModePage>
                     ),
                   ],
 
-                  // Text Input Mode: Main Content Area
-                  if (_tabController.index == 0)
+                  // Text tab: Original Text, Explain Simply, result
+                  if (_tabController.index == 2)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Input Card
+                        // Input: Original Text + Explain Simply
                         if (_contextData == null)
                           Container(
                             padding: const EdgeInsets.all(24),
@@ -941,188 +1039,136 @@ class _ExplainModePageState extends State<ExplainModePage>
                                 ),
                               ],
                               border: Border.all(
-                                color: const Color(
-                                  0xFF3B4554,
-                                ).withValues(alpha: 0.5),
+                                color: const Color(0xFF3B4554)
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Is there something confusing you want to understand?",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: bgDark,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.1),
-                                    ),
-                                  ),
-                                  child: TextField(
-                                    controller: _inputController,
-                                    maxLines: 6,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Type here or scan...',
-                                      hintStyle: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding: const EdgeInsets.all(16),
-                                    ),
-                                    onChanged: (val) => setState(() {}),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
+                                // Original Text label with quote icon
                                 Row(
                                   children: [
-                                    TextButton.icon(
-                                      onPressed: _scanText,
-                                      icon: const Icon(
-                                        Icons.camera_alt_outlined,
-                                        color: Color(0xFF136DEC),
-                                      ),
-                                      label: const Text(
-                                        "Scan Text",
-                                        style: TextStyle(
-                                          color: Color(0xFF136DEC),
-                                        ),
-                                      ),
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        backgroundColor: const Color(
-                                          0xFF136DEC,
-                                        ).withValues(alpha: 0.1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
+                                    const Icon(Icons.format_quote,
+                                        color: primaryBlue, size: 20),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Original Text',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     const Spacer(),
-                                    if (_inputController.text.isNotEmpty)
-                                      TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _inputController.clear();
-                                          });
-                                        },
-                                        child: const Text(
-                                          "Clear",
-                                          style: TextStyle(color: Colors.grey),
-                                        ),
-                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined,
+                                          color: textGrey, size: 22),
+                                      onPressed: () {},
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(
+                                          minWidth: 36, minHeight: 36),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.copy,
+                                          color: textGrey, size: 22),
+                                      onPressed: () {
+                                        if (_inputController.text.isNotEmpty) {
+                                          Clipboard.setData(ClipboardData(
+                                              text: _inputController.text));
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text('Copied!')));
+                                        }
+                                      },
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(
+                                          minWidth: 36, minHeight: 36),
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 56,
-                                        child: ElevatedButton.icon(
-                                          onPressed: _isProcessing
-                                              ? null
-                                              : _explainWithContext,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: primaryBlue,
-                                            foregroundColor: Colors.white,
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                          ),
-                                          icon: _isProcessing
-                                              ? const SizedBox(
-                                                  width: 24,
-                                                  height: 24,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : const Icon(Icons.auto_awesome),
-                                          label: Text(
-                                            _isProcessing
-                                                ? "Analyzing..."
-                                                : "Explain Context",
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: bgDark,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.1)),
+                                  ),
+                                  child: TextField(
+                                    controller: _inputController,
+                                    maxLines: 4,
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 16),
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Paste or type text to explain...',
+                                      hintStyle: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.3)),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.all(16),
+                                    ),
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                // Explain Simply button (primary action)
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isProcessing
+                                        ? null
+                                        : _explainWithContext,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryBlue,
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 56,
-                                        child: ElevatedButton.icon(
-                                          onPressed: _isProcessing
-                                              ? null
-                                              : _simplifyText,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.purple
-                                                .withValues(alpha: 0.8),
-                                            foregroundColor: Colors.white,
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                          ),
-                                          icon: _isProcessing
-                                              ? const SizedBox(
-                                                  width: 24,
-                                                  height: 24,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : const Icon(Icons.compress),
-                                          label: Text(
-                                            _isProcessing
-                                                ? "Simplifying..."
-                                                : "Simplify Text",
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  ],
+                                    icon: _isProcessing
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white),
+                                          )
+                                        : const Icon(Icons.settings, size: 22),
+                                    label: Text(
+                                      _isProcessing
+                                          ? 'Explaining...'
+                                          : 'Explain Simply',
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextButton.icon(
+                                  onPressed:
+                                      _isProcessing ? null : _simplifyText,
+                                  icon: const Icon(Icons.compress,
+                                      size: 18, color: textGrey),
+                                  label: const Text('Simplify text instead',
+                                      style: TextStyle(color: textGrey)),
                                 ),
                               ],
                             ),
                           ) // End Input Card
                         else ...[
-                          BackendIndicatorWidget(
-                            backend: _lastBackend,
-                            backendLabel: _lastBackendLabel,
+                          BackendIndicator(
+                            backend:
+                                _lastBackend == ProcessingBackend.awsBedrock
+                                    ? 'bedrock'
+                                    : (_lastBackend == ProcessingBackend.gemini
+                                        ? 'gemini'
+                                        : 'offline'),
                           ),
                           // Context Result UI matching Mockup
                           _buildTranslationCard(
@@ -1137,7 +1183,167 @@ class _ExplainModePageState extends State<ExplainModePage>
                           ),
                           const SizedBox(height: 16),
 
-                          // "What this means" (Meaning)
+                          // Simple Explanation (lightbulb + audio controls)
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: primaryBlue.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: primaryBlue.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.lightbulb_outline,
+                                        color: primaryBlue, size: 22),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Simple Explanation',
+                                      style: TextStyle(
+                                        color: primaryBlue,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _contextData!['meaning'] ??
+                                      _contextData!['translation'] ??
+                                      '',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Audio controls: rewind 15s | play | forward 15s
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.replay,
+                                          color: primaryBlue),
+                                      onPressed: () => _speakInOutputLanguage(
+                                        _contextData!['meaning'] ??
+                                            _contextData!['translation'],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (_readExplanationAloud) {
+                                          _speakInOutputLanguage(
+                                            _contextData!['meaning'] ??
+                                                _contextData!['translation'],
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 56,
+                                        height: 56,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: primaryBlue,
+                                        ),
+                                        child: const Icon(Icons.play_arrow,
+                                            color: Colors.white, size: 36),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.forward_10,
+                                          color: primaryBlue),
+                                      onPressed: () => _speakInOutputLanguage(
+                                        _contextData!['meaning'] ??
+                                            _contextData!['translation'],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Have questions?
+                          const Text(
+                            'Have questions?',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _followUpController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        'Ask something like: What should I do?',
+                                    hintStyle: TextStyle(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.4)),
+                                    filled: true,
+                                    fillColor: cardDark,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 14),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () {
+                                  final q = _followUpController.text.trim();
+                                  if (q.isNotEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Ask: $q')),
+                                    );
+                                  }
+                                },
+                                icon: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: primaryBlue,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.send,
+                                      color: Colors.white, size: 22),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Save | Share | Translate (circular icon buttons)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildActionChip(
+                                  Icons.bookmark_border, 'Save', () {}),
+                              _buildActionChip(Icons.share, 'Share', () {}),
+                              _buildActionChip(Icons.translate, 'Translate',
+                                  () {
+                                _speakInOutputLanguage(
+                                    _contextData!['translation']);
+                              }),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // "What this means" (Meaning) - keep for extra detail
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
@@ -1763,6 +1969,35 @@ class _ExplainModePageState extends State<ExplainModePage>
     );
   }
 
+  Widget _buildActionChip(IconData icon, String label, VoidCallback onTap) {
+    const Color primaryBlue = Color(0xFF136DEC);
+    const Color cardDark = Color(0xFF1C2027);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: cardDark,
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: const Color(0xFF3B4554).withValues(alpha: 0.5)),
+            ),
+            child: Icon(icon, color: primaryBlue, size: 26),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildChatBubble(dynamic msg, bool isUser) {
     final isMe = msg.speaker == 'user' || msg.speaker == 'A';
     return Align(
@@ -1839,5 +2074,15 @@ class _ExplainModePageState extends State<ExplainModePage>
       context,
       listen: false,
     ).speakText(text, langCode);
+  }
+
+  Widget wrapWithWebMaxWidth(BuildContext context, {required Widget child}) {
+    if (!kIsWeb) return child;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: child,
+      ),
+    );
   }
 }

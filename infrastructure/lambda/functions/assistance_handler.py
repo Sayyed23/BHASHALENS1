@@ -20,7 +20,7 @@ logger = setup_logger()
 aws_region = os.environ.get('AWS_REGION', 'us-east-1')
 bedrock_runtime = boto3.client('bedrock-runtime', region_name=aws_region)
 
-BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
+BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-7-sonnet-20250219-v1:0')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 MAX_RESPONSE_TIME_MS = 5000
 
@@ -69,7 +69,8 @@ def lambda_handler(event, context):
                 if response_data:
                     bedrock_cb.record_success()
                     used_model = BEDROCK_MODEL_ID
-                    bedrock_time_ms = int((time.time() - bedrock_start) * 1000)            except Exception as e:
+                    bedrock_time_ms = int((time.time() - bedrock_start) * 1000)
+            except Exception as e:
                 logger.warning(f"[{request_id}] Bedrock failed: {str(e)}")
                 bedrock_cb.record_failure()
                 
@@ -120,18 +121,23 @@ def process_grammar_check(text, language, invoker_func):
     return {'response': parsed.get('corrected_text', text), 'metadata': {'corrections': parsed.get('corrections', [])}}
 
 def process_question_answer(text, language, context, invoker_func):
-    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English'}
+    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'bn': 'Bengali'}
     lang_name = lang_map.get(language, language)
-    prompt = f'Answer in {lang_name}. Question: {text}'
+    prompt = f"""You are a helpful assistant helping Indian users. 
+Please answer the following question in {lang_name}. 
+If context is provided, use it to give a more accurate and relevant answer.
+Keep the answer simple and direct.
+
+Question: {text}"""
     if context: prompt += f'\nContext: {context}'
     return {'response': invoker_func(prompt), 'metadata': {'language': lang_name}}
 
 def process_conversation(text, language, history, invoker_func):
     # Depending on invoker, we might just format as a single text prompt for simplicity
-    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English'}
+    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'bn': 'Bengali'}
     lang_name = lang_map.get(language, language)
     
-    prompt = f"System: You are a friendly {lang_name} practice partner.\n"
+    prompt = f"System: You are a friendly {lang_name} practice partner helping the user improve their language skills.\n"
     for msg in history[-10:]:
         content = msg.get('content', '')
         if not content:

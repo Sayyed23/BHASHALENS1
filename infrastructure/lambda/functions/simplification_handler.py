@@ -20,7 +20,7 @@ logger = setup_logger()
 aws_region = os.environ.get('AWS_REGION', 'us-east-1')
 bedrock_runtime = boto3.client('bedrock-runtime', region_name=aws_region)
 
-BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
+BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-7-sonnet-20250219-v1:0')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 MAX_RESPONSE_TIME_MS = 5000
 
@@ -107,21 +107,31 @@ def lambda_handler(event, context):
         return handle_error(e, context, "Simplification request failed")
 
 def simplify_text(text, target_complexity, language, invoker_func):
-    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English'}
+    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'bn': 'Bengali'}
     lang_name = lang_map.get(language, language)
     instructions = {
-        'simple': 'very simple language suitable for beginners',
-        'moderate': 'moderately simple language',
-        'complex': 'slightly simplified language while maintaining detail'
+        'simple': 'very simple, clear language with short sentences and easy words',
+        'moderate': 'clear and accessible language while maintaining some detail',
+        'complex': 'concise and accurate language, slightly simplified but preserving professional nuances'
     }
     inst = instructions.get(target_complexity, instructions['simple'])
-    prompt = f"Simplify the following {lang_name} text using {inst}. Preserve meaning. Output only simplified text:\n\n{text}"
+    prompt = f"""You are a helpful assistant helping Indian users understand complex text.
+Simplify the following {lang_name} text using {inst}. 
+Preserve the core meaning but make it easily understandable for a layperson.
+Output ONLY the simplified text:
+
+{text}"""
     return invoker_func(prompt)
 
 def generate_explanation(original, simplified, language, invoker_func):
-    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English'}
+    lang_map = {'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'bn': 'Bengali'}
     lang_name = lang_map.get(language, language)
-    prompt = f"Provide a brief educational explanation in {lang_name} comparing the original to the simplified version:\n\nOriginal: {original}\n\nSimplified: {simplified}"
+    prompt = f"""Provide a brief educational explanation in {lang_name} comparing the original to the simplified version.
+Explain WHY specific complex terms were changed and what they mean.
+Keep it encouraging and helpful.
+
+Original: {original}
+Simplified: {simplified}"""
     return invoker_func(prompt)
 
 def calculate_complexity_reduction(original, simplified):
