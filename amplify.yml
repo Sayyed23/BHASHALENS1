@@ -31,13 +31,11 @@ frontend:
 
         # 3. Install dependencies
         - flutter pub get
-
-        # 4. Copy SQLite web files (Optimized search)
+        # 4. Copy SQLite web files (Official setup)
         - mkdir -p web
-        - 'PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d -print -quit)'
-        - 'if [ -z "$PKG_DIR" ]; then PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d | head -n 1); fi'
-        - 'echo "Copying SQLite assets from $PKG_DIR"'
-        - 'if [ -d "$PKG_DIR" ]; then cp $PKG_DIR/lib/src/web/sqlite3.wasm web/ && cp $PKG_DIR/lib/src/web/sqlite3.js web/ && cp $PKG_DIR/lib/src/web/sqflite_sw.js web/; else find $HOME/.pub-cache -name "sqlite3.*" -exec cp {} web/ \;; fi'
+        - 'cd bhashalens_app && dart run sqflite_common_ffi_web:setup'
+        - 'cp bhashalens_app/web/sqlite3.wasm web/ && cp bhashalens_app/web/sqflite_sw.js web/'
+        - 'ls -l web/'
 
 
     build:
