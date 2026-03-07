@@ -2,6 +2,7 @@ import 'package:bhashalens_app/models/saved_translation.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
 
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/services/amplify_data_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -257,7 +258,9 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           // List Content
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _localStorageService.getSavedTranslations(),
+              future: _tabController.index == 0
+                  ? amplifyDataService.getTranslationHistory()
+                  : amplifyDataService.getSavedTranslations(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -282,14 +285,39 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                   );
                 }
 
-                List<SavedTranslation> items = snapshot.data!
-                    .map((map) => SavedTranslation.fromMap(map))
-                    .toList();
+                List<SavedTranslation> items = snapshot.data!.map((map) {
+                  // Map Gen 2 schema to SavedTranslation schema correctly
+                  int timestampInt = DateTime.now().millisecondsSinceEpoch;
+                  if (map['timestamp'] != null) {
+                    try {
+                      timestampInt = DateTime.parse(map['timestamp']).millisecondsSinceEpoch;
+                    } catch (_) {}
+                  }
 
-                // Filter by tab: History (all) vs Saved (isStarred)
-                if (_tabController.index == 1) {
-                  items = items.where((item) => item.isStarred).toList();
-                }
+                  if (_tabController.index == 0) { // History
+                    return SavedTranslation(
+                      id: map['id'],
+                      originalText: map['originalText'] ?? '',
+                      translatedText: map['translatedText'] ?? '',
+                      fromLanguage: map['sourceLanguage'] ?? '',
+                      toLanguage: map['targetLanguage'] ?? '',
+                      dateTime: DateTime.fromMillisecondsSinceEpoch(timestampInt),
+                      isStarred: false,
+                      category: 'General',
+                    );
+                  } else { // Saved
+                    return SavedTranslation(
+                      id: map['id'],
+                      originalText: map['phrase'] ?? '',
+                      translatedText: map['translatedPhrase'] ?? '',
+                      fromLanguage: 'Auto', // Info not stored in this schema
+                      toLanguage: 'Auto',
+                      dateTime: DateTime.fromMillisecondsSinceEpoch(timestampInt),
+                      isStarred: true,
+                      category: map['intent'] ?? 'General',
+                    );
+                  }
+                }).toList();
 
                 List<SavedTranslation> filteredItems = _filterList(items);
 
