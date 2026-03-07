@@ -85,7 +85,7 @@ resource "aws_lambda_function" "assistance" {
 
   environment {
     variables = {
-      BEDROCK_MODEL_ID = var.bedrock_model_ids.claude_sonnet
+      BEDROCK_MODEL_ID = var.bedrock_model_ids.claude_sonnet_4
     }
   }
 
@@ -107,7 +107,7 @@ resource "aws_lambda_function" "simplification" {
 
   environment {
     variables = {
-      BEDROCK_MODEL_ID = var.bedrock_model_ids.claude_sonnet
+      BEDROCK_MODEL_ID = var.bedrock_model_ids.claude_sonnet_4
     }
   }
 

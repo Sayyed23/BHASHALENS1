@@ -52,11 +52,13 @@ variable "bedrock_model_ids" {
   description = "Amazon Bedrock model IDs"
   type = object({
     claude_sonnet    = string
+    claude_sonnet_4  = string
     titan_text       = string
     titan_embeddings = string
   })
   default = {
     claude_sonnet    = "anthropic.claude-3-sonnet-20240229-v1:0"
+    claude_sonnet_4  = "apac.anthropic.claude-sonnet-4-20250514-v1:0"
     titan_text       = "amazon.titan-text-express-v1"
     titan_embeddings = "amazon.titan-embed-text-v2:0"
   }
