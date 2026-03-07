@@ -511,7 +511,7 @@ Ensure your `.env` file has the correct AWS configuration:
 
 ```env
 # AWS Configuration
-AWS_API_GATEWAY_URL=https://e38c3iwchc.execute-api.us-east-1.amazonaws.com
+AWS_API_GATEWAY_URL=https://<your URL>.amazonaws.com
 AWS_REGION=us-east-1
 AWS_ENABLE_CLOUD=true
 ```
