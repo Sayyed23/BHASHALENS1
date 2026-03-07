@@ -2,7 +2,7 @@ version: 1
 
 env:
   variables:
-    FLUTTER_VERSION: "3.24.5"
+    FLUTTER_VERSION: "3.27.1"
 
 frontend:
   phases:
