@@ -34,11 +34,11 @@ frontend:
 
         # 4. Copy SQLite web files (Optimized search)
         - mkdir -p web
-        - PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d -print -quit)
+        - 'PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d -print -quit)'
+        - 'if [ -z "$PKG_DIR" ]; then PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d | head -n 1); fi'
         - 'echo "Copying SQLite assets from $PKG_DIR"'
-        - cp $PKG_DIR/lib/src/web/sqlite3.wasm web/ || find $HOME/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \;
-        - cp $PKG_DIR/lib/src/web/sqlite3.js web/ || find $HOME/.pub-cache -name "sqlite3.js" -exec cp {} web/ \;
-        - cp $PKG_DIR/lib/src/web/sqflite_sw.js web/ || find $HOME/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \;
+        - 'if [ -d "$PKG_DIR" ]; then cp $PKG_DIR/lib/src/web/sqlite3.wasm web/ && cp $PKG_DIR/lib/src/web/sqlite3.js web/ && cp $PKG_DIR/lib/src/web/sqflite_sw.js web/; else find $HOME/.pub-cache -name "sqlite3.*" -exec cp {} web/ \;; fi'
+
 
     build:
       commands:
