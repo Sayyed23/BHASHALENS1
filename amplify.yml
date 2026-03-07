@@ -36,11 +36,13 @@ frontend:
 
     build:
       commands:
-        # Build Flutter web
-        - flutter build web --release --no-tree-shake-icons --base-href /
+        # Build Flutter web with HTML renderer for better mobile icon/font support
+        - flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
 
-        # Verify that icon fonts exist
+        # Verify that icon fonts and manifests exist
         - ls build/web/assets/fonts
+        - ls build/web/FontManifest.json
+        - ls build/web/AssetManifest.json
 
   artifacts:
     baseDirectory: build/web
