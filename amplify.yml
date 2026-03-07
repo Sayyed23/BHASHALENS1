@@ -8,52 +8,47 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Save Amplify's starting directory (app root when Root directory is set)
+        # Save Amplify's starting directory
         - export AMPLIFY_APP_ROOT=$(pwd)
 
-        # Install Flutter only if not cached
-        - if [ ! -d "$HOME/flutter" ]; then git clone https://github.com/flutter/flutter.git $HOME/flutter; fi
-        - cd $HOME/flutter
-        - git fetch --tags
-        - git checkout $FLUTTER_VERSION
-
-        # Add Flutter to PATH
-        - export PATH="$PATH:$HOME/flutter/bin"
-
-        # Enable web support
-        - flutter config --enable-web
-
-        # Return to app root and enter bhashalens_app
+        # 1. Create environment file IMMEDIATELY (Fixes "No file found for asset: .env")
         - cd $AMPLIFY_APP_ROOT/bhashalens_app
-
-        # Install dependencies
-        - flutter pub get
-
-        # Create environment file
-        - rm -f .env
-        - touch .env
-        - echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+        - echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
         - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
         - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
         - echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env
         - echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
         - echo "AWS_REGION=$AWS_REGION" >> .env
         - echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
+        - echo "VERIFIED: .env created at $(pwd)/.env"
+        - ls -l .env
 
-        # Copy SQLite web files (for sqflite_common_ffi_web)
+        # 2. Install Flutter efficiently (Shallow clone saves ~10 mins)
+        - if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi
+        - export PATH="$PATH:$HOME/flutter/bin"
+        - flutter config --enable-web --no-analytics
+        - flutter doctor -v
+
+        # 3. Install dependencies
+        - flutter pub get
+
+        # 4. Copy SQLite web files (Optimized search)
         - mkdir -p web
-        - find $HOME/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \; || echo "sqlite3.wasm missing"
-        - find $HOME/.pub-cache -name "sqlite3.js" -exec cp {} web/ \; || echo "sqlite3.js missing"
-        - find $HOME/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \; || echo "sqflite_sw.js missing"
+        - PKG_DIR=$(flutter pub cache list | grep -oP '".*sqflite_common_ffi_web-0.4.5\+4":\s*\{\s*"location":\s*"\K[^"]+') || PKG_DIR=$(find $HOME/.pub-cache -name "sqflite_common_ffi_web-*" -type d | head -n 1)
+        - echo "Copying SQLite assets from $PKG_DIR"
+        - cp $PKG_DIR/lib/src/web/sqlite3.wasm web/ || find $HOME/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \;
+        - cp $PKG_DIR/lib/src/web/sqlite3.js web/ || find $HOME/.pub-cache -name "sqlite3.js" -exec cp {} web/ \;
+        - cp $PKG_DIR/lib/src/web/sqflite_sw.js web/ || find $HOME/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \;
 
     build:
       commands:
         - cd $AMPLIFY_APP_ROOT/bhashalens_app
-        # Build Flutter Web (stable for icons & fonts)
-        - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
-        # Verify output
-        - ls build/web
-        - ls build/web/assets || echo "Assets folder missing"
+        # Build Flutter Web with optimizations
+        - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none --no-wasm-dry-run
+        # Final verification
+        - ls -l build/web/assets/.env || echo "WARNING: .env not found in build output"
+        - ls -l build/web/index.html
+
 
   artifacts:
     baseDirectory: bhashalens_app/build/web
