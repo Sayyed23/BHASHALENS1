@@ -1,5 +1,6 @@
 version: 1
 appRoot: bhashalens_app
+
 env:
   variables:
     FLUTTER_VERSION: "3.24.5"
@@ -8,73 +9,60 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Install pinned Flutter SDK if not already in cache
-        - "if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b $FLUTTER_VERSION --depth 1 /root/flutter; fi"
-        
-        # Use absolute path to ensure we NEVER use the outdated pre-installed version
-        - /root/flutter/bin/flutter --version
-        
-        # Pre-cache web engine
-        - /root/flutter/bin/flutter precache --web
-        
+        # Install Flutter only if not cached
+        - if [ ! -d "$HOME/flutter" ]; then git clone https://github.com/flutter/flutter.git $HOME/flutter; fi
+        - cd $HOME/flutter
+        - git fetch --tags
+        - git checkout $FLUTTER_VERSION
+
+        # Add Flutter to PATH
+        - export PATH="$PATH:$HOME/flutter/bin"
+
         # Enable web support
-        - /root/flutter/bin/flutter config --enable-web
-        
-        # Clean state
-        - /root/flutter/bin/flutter clean
+        - flutter config --enable-web
 
-        # Map Amplify variables into the .env file for the app
-        - "rm -f .env && touch .env"
-        - "if [ -n \"$AWS_API_GATEWAY_URL\" ]; then API_URL=\"$AWS_API_GATEWAY_URL\"; else API_URL=\"$GATEWAY_URL\"; fi"
-        - "if [ -n \"$AWS_REGION\" ]; then REGION_VALUE=\"$AWS_REGION\"; else REGION_VALUE=\"$APP_REGION\"; fi"
-        - "if [ -n \"$AWS_ENABLE_CLOUD\" ]; then CLOUD_VALUE=\"$AWS_ENABLE_CLOUD\"; else CLOUD_VALUE=\"$CLOUD_ENABLED\"; fi"
-        - "if [ -z \"$CLOUD_VALUE\" ]; then CLOUD_VALUE=\"true\"; fi"
-        - "if [ -z \"$REGION_VALUE\" ]; then REGION_VALUE=\"us-east-1\"; fi"
-        - "if [ -n \"$API_URL\" ]; then echo \"API URL is set\"; else echo \"API URL is unset\"; fi"
-        - "echo \"GEMINI_API_KEY=$GEMINI_API_KEY\" >> .env"
-        - "echo \"FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY\" >> .env"
-        - "echo \"FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID\" >> .env"
-        - "echo \"FIREBASE_WEB_MESSAGING_SENDER_ID=$FIREBASE_WEB_MESSAGING_SENDER_ID\" >> .env"
-        - "echo \"FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID\" >> .env"
-        - "echo \"FIREBASE_WEB_AUTH_DOMAIN=$FIREBASE_WEB_AUTH_DOMAIN\" >> .env"
-        - "echo \"FIREBASE_WEB_STORAGE_BUCKET=$FIREBASE_WEB_STORAGE_BUCKET\" >> .env"
-        - "echo \"FIREBASE_WEB_MEASUREMENT_ID=$FIREBASE_WEB_MEASUREMENT_ID\" >> .env"
-        - "echo \"FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY\" >> .env"
-        - "echo \"FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID\" >> .env"
-        - "echo \"FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID\" >> .env"
-        - "echo \"FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID\" >> .env"
-        - "echo \"FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET\" >> .env"
-        - "echo \"AWS_API_GATEWAY_URL=$API_URL\" >> .env"
-        - "echo \"AWS_REGION=$REGION_VALUE\" >> .env"
-        - "echo \"AWS_ENABLE_CLOUD=$CLOUD_VALUE\" >> .env"
+        # Go to project directory
+        - cd $CODEBUILD_SRC_DIR/bhashalens_app
 
-        # Get dependencies using the modern binary
-        - /root/flutter/bin/flutter pub get
+        # Install dependencies
+        - flutter pub get
 
-        # Setup Web Assets for SQLite (Required for sqflite_common_ffi_web)
-        - mkdir -p web/
-        # Search the pub cache for the required sqlite assets and copy them to web/
-        - find /root/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \; || echo "sqlite3.wasm not found"
-        - find /root/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \; || echo "sqflite_sw.js not found"
-        - find /root/.pub-cache -name "sqlite3.js" -exec cp {} web/ \; || echo "sqlite3.js not found"
+        # Create environment file
+        - rm -f .env
+        - touch .env
+
+        - echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+        - echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
+        - echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
+        - echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env
+        - echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env
+        - echo "AWS_REGION=$AWS_REGION" >> .env
+        - echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env
+
+        # Copy SQLite web files (for sqflite_common_ffi_web)
+        - mkdir -p web
+        - find $HOME/.pub-cache -name "sqlite3.wasm" -exec cp {} web/ \; || echo "sqlite3.wasm missing"
+        - find $HOME/.pub-cache -name "sqlite3.js" -exec cp {} web/ \; || echo "sqlite3.js missing"
+        - find $HOME/.pub-cache -name "sqflite_sw.js" -exec cp {} web/ \; || echo "sqflite_sw.js missing"
 
     build:
       commands:
-        # Build for web using MANDATORY html renderer for icon/font stability
-        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --pwa-strategy=none --base-href / --web-renderer html
+        - cd $CODEBUILD_SRC_DIR/bhashalens_app
 
-        # Verify build artifacts
-        - find build/web/assets -maxdepth 3 -type f | head -50 || echo "No assets found"
-        - ls build/web/FontManifest.json || echo "No FontManifest found"
-        - ls build/web/sqlite3.wasm || echo "Warning: sqlite3.wasm missing (Settings page might fail)"
+        # Build Flutter Web (stable for icons & fonts)
+        - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
+
+        # Verify output
+        - ls build/web
+        - ls build/web/assets || echo "Assets folder missing"
 
   artifacts:
-    baseDirectory: build/web
+    baseDirectory: bhashalens_app/build/web
     files:
       - '**/*'
 
   cache:
     paths:
-      - '/root/flutter/**/*'
-      - '/root/.pub-cache/**/*'
-      - '.dart_tool/**/*'
+      - $HOME/flutter
+      - $HOME/.pub-cache
+      - bhashalens_app/.dart_tool
