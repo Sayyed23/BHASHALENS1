@@ -79,6 +79,9 @@ flutter:
 
   assets:
     - assets/
+    - assets/logo.png
+    - assets/logo2.png
+    - assets/google_logo.png
     - .env
 
 flutter_launcher_icons:

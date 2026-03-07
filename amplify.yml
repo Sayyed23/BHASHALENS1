@@ -41,6 +41,10 @@ frontend:
         # Build Flutter Web with optimizations for Flutter 3.41.3
         - 'flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
         
+        # Verify icon fonts are present in build output
+        - 'ls -l build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
+        - 'ls -l build/web/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf || echo "WARNING: CupertinoIcons font MISSING"'
+
         # Final verification
         - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
         - 'ls -l build/web/index.html'
