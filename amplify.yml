@@ -23,14 +23,12 @@ frontend:
         # Map Amplify variables into the .env file for the app
         - touch .env
         - |
-          API_URL="${AWS_API_GATEWAY_URL:-$GATEWAY_URL}"
-          REGION_VALUE="${AWS_REGION:-$APP_REGION}"
-          CLOUD_VALUE="${AWS_ENABLE_CLOUD:-$CLOUD_ENABLED}"
-
+          if [ -n "$AWS_API_GATEWAY_URL" ]; then API_URL="$AWS_API_GATEWAY_URL"; else API_URL="$GATEWAY_URL"; fi
+          if [ -n "$AWS_REGION" ]; then REGION_VALUE="$AWS_REGION"; else REGION_VALUE="$APP_REGION"; fi
+          if [ -n "$AWS_ENABLE_CLOUD" ]; then CLOUD_VALUE="$AWS_ENABLE_CLOUD"; else CLOUD_VALUE="$CLOUD_ENABLED"; fi
           if [ -z "$CLOUD_VALUE" ]; then CLOUD_VALUE="true"; fi
           if [ -z "$REGION_VALUE" ]; then REGION_VALUE="us-east-1"; fi
-
-          echo "API URL is ${API_URL:+set}"
+          if [ -n "$API_URL" ]; then echo "API URL is set"; else echo "API URL is unset"; fi
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
           echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
           echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
