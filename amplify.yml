@@ -5,22 +5,24 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Install Flutter SDK
-        - if [ ! -d $HOME/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter; fi
-        - export PATH="$PATH:$HOME/flutter/bin"
+        # Install Flutter SDK if not cached
+        - if [ ! -d /root/flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 /root/flutter; fi
+        - export PATH="$PATH:/root/flutter/bin"
 
-        # Verify installation
-        - flutter doctor
+        # Download only web-related binaries
+        - flutter precache --web
 
         # Enable web support
         - flutter config --enable-web
 
-        # Clean previous builds to ensure fonts/icons are rebuilt
+        # Clean only if necessary
         - flutter clean
 
-        # Create environment file
+        # Create environment file and verify variables
         - touch .env
         - |
+          echo "GATEWAY_URL: ${GATEWAY_URL:+set}"
+          echo "APP_REGION: ${APP_REGION:+set}"
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
           echo "FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY" >> .env
           echo "FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID" >> .env
@@ -36,13 +38,12 @@ frontend:
 
     build:
       commands:
-        # Build Flutter web with HTML renderer for better mobile icon/font support
+        # Build Flutter web with HTML renderer
         - flutter build web --release --no-tree-shake-icons --base-href / --web-renderer html
 
-        # Verify that icon fonts and manifests exist
-        - ls build/web/assets/fonts
-        - ls build/web/FontManifest.json
-        - ls build/web/AssetManifest.json
+        # Verify build output
+        - ls -R build/web/assets || echo "No assets"
+        - ls build/web/FontManifest.json || echo "No FontManifest"
 
   artifacts:
     baseDirectory: build/web
@@ -51,6 +52,6 @@ frontend:
 
   cache:
     paths:
-      - '$HOME/flutter'
-      - '.dart_tool'
+      - '/root/flutter/**/*'
       - '/root/.pub-cache/**/*'
+      - 'bhashalens_app/.dart_tool/**/*'
