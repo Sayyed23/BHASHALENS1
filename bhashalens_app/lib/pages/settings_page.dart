@@ -26,10 +26,10 @@ class _SettingsPageState extends State<SettingsPage> {
     if (route == 'settings') return;
 
     final routeMap = {
-      'edit_profile': '/profile',
-      'app_language': '/app_language',
-      'default_translation': '/default_language',
-      'privacy_permissions': '/privacy_policy',
+      'edit_profile': 'action:coming_soon',
+      'app_language': 'action:coming_soon',
+      'default_translation': 'action:coming_soon',
+      'privacy_permissions': 'action:coming_soon',
       'help_support': '/help_support',
       'clear_history': 'action:clear_history',
       'manage_packs': '/offline_models',
@@ -39,6 +39,12 @@ class _SettingsPageState extends State<SettingsPage> {
     if (namedRoute != null) {
       if (namedRoute == 'action:clear_history') {
         _showClearHistoryDialog(context);
+        return;
+      }
+      if (namedRoute == 'action:coming_soon') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This setting is coming soon.')),
+        );
         return;
       }
       Navigator.of(context).pushNamed(namedRoute);

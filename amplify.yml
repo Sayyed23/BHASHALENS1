@@ -23,16 +23,30 @@ frontend:
         # Map Amplify variables into the .env file for the app
         - touch .env
         - |
-          echo "GATEWAY_URL is ${GATEWAY_URL:+set}"
+          API_URL="${AWS_API_GATEWAY_URL:-$GATEWAY_URL}"
+          REGION_VALUE="${AWS_REGION:-$APP_REGION}"
+          CLOUD_VALUE="${AWS_ENABLE_CLOUD:-$CLOUD_ENABLED}"
+
+          if [ -z "$CLOUD_VALUE" ]; then CLOUD_VALUE="true"; fi
+          if [ -z "$REGION_VALUE" ]; then REGION_VALUE="us-east-1"; fi
+
+          echo "API URL is ${API_URL:+set}"
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+          echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env
+          echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env
+          echo "FIREBASE_WEB_MESSAGING_SENDER_ID=$FIREBASE_WEB_MESSAGING_SENDER_ID" >> .env
+          echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env
+          echo "FIREBASE_WEB_AUTH_DOMAIN=$FIREBASE_WEB_AUTH_DOMAIN" >> .env
+          echo "FIREBASE_WEB_STORAGE_BUCKET=$FIREBASE_WEB_STORAGE_BUCKET" >> .env
+          echo "FIREBASE_WEB_MEASUREMENT_ID=$FIREBASE_WEB_MEASUREMENT_ID" >> .env
           echo "FIREBASE_ANDROID_API_KEY=$FIREBASE_ANDROID_API_KEY" >> .env
           echo "FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID" >> .env
           echo "FIREBASE_ANDROID_MESSAGING_SENDER_ID=$FIREBASE_ANDROID_MESSAGING_SENDER_ID" >> .env
           echo "FIREBASE_ANDROID_PROJECT_ID=$FIREBASE_ANDROID_PROJECT_ID" >> .env
           echo "FIREBASE_ANDROID_STORAGE_BUCKET=$FIREBASE_ANDROID_STORAGE_BUCKET" >> .env
-          echo "AWS_API_GATEWAY_URL=$GATEWAY_URL" >> .env
-          echo "AWS_REGION=$APP_REGION" >> .env
-          echo "AWS_ENABLE_CLOUD=$CLOUD_ENABLED" >> .env
+          echo "AWS_API_GATEWAY_URL=$API_URL" >> .env
+          echo "AWS_REGION=$REGION_VALUE" >> .env
+          echo "AWS_ENABLE_CLOUD=$CLOUD_VALUE" >> .env
 
         # Get dependencies using the modern binary
         - /root/flutter/bin/flutter pub get
@@ -40,7 +54,7 @@ frontend:
     build:
       commands:
         # Build for web using the absolute path to the modern Flutter binary
-        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --base-href /
+        - /root/flutter/bin/flutter build web --release --no-tree-shake-icons --pwa-strategy=none --base-href /
 
         # Verify build artifacts
         - ls -R build/web/assets || echo "No assets found"

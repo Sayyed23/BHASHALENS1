@@ -31,7 +31,15 @@
 
   <title>bhashalens_app</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&family=Material+Icons" />
+  <style>
+    /* Ensure icon fonts resolve locally in production builds (no CDN dependency). */
+    @font-face {
+      font-family: 'MaterialIcons';
+      src: url('assets/fonts/MaterialIcons-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

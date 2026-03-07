@@ -327,6 +327,202 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     }
   }
 
+  String _normalizeRouteName(String? routeName) {
+    if (routeName == null || routeName.isEmpty) {
+      return '/';
+    }
+
+    var normalized = routeName.trim();
+    if (!normalized.startsWith('/')) {
+      normalized = '/$normalized';
+    }
+
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
+  }
+
+  String _resolveInitialRoute() {
+    if (!kIsWeb) return '/';
+
+    final uri = Uri.base;
+    final fromFragment = uri.fragment.trim();
+    final fromPath = uri.path.trim();
+
+    if (fromFragment.isNotEmpty) {
+      return _normalizeRouteName(fromFragment);
+    }
+
+    if (fromPath.isNotEmpty && fromPath != '/') {
+      return _normalizeRouteName(fromPath);
+    }
+
+    return '/';
+  }
+
+  Widget _buildRootPage() {
+    return _showSplash
+        ? SplashScreen(
+            onComplete: () {
+              if (mounted) {
+                setState(() {
+                  _showSplash = false;
+                });
+              }
+            },
+          )
+        : !_isInitialized
+            ? const Scaffold(
+                backgroundColor: Color(0xFFFFF8F5),
+                body: Center(
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
+                  ),
+                ),
+              )
+            : StreamBuilder<User?>(
+                stream: _getAuthStream(),
+                builder: (context, snapshot) {
+                  // Don't wait for auth - show app immediately
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _isOnboardingCompleted
+                        ? const HomePage()
+                        : const OnboardingPage();
+                  }
+
+                  // Handle errors gracefully
+                  if (snapshot.hasError) {
+                    debugPrint('Auth stream error: ${snapshot.error}');
+                    return _isOnboardingCompleted
+                        ? const HomePage()
+                        : const OnboardingPage();
+                  }
+
+                  // If user is logged in, show HomePage
+                  if (snapshot.hasData) {
+                    return const HomePage();
+                  }
+
+                  // Fallback to onboarding or home
+                  return _isOnboardingCompleted
+                      ? const HomePage()
+                      : const OnboardingPage();
+                },
+              );
+  }
+
+  Route<dynamic> _onGenerateRoute(RouteSettings settings) {
+    final routeName = _normalizeRouteName(settings.name);
+
+    switch (routeName) {
+      case '/':
+        return MaterialPageRoute(
+          builder: (_) => _buildRootPage(),
+          settings: settings,
+        );
+      case '/onboarding':
+        return MaterialPageRoute(
+          builder: (_) => const OnboardingPage(),
+          settings: settings,
+        );
+      case '/login':
+        return MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+          settings: settings,
+        );
+      case '/signup':
+        return MaterialPageRoute(
+          builder: (_) => const SignupPage(),
+          settings: settings,
+        );
+      case '/forgot_password':
+        return MaterialPageRoute(
+          builder: (_) => const ForgotPasswordPage(),
+          settings: settings,
+        );
+      case '/home':
+        return MaterialPageRoute(
+          builder: (_) => const HomePage(),
+          settings: settings,
+        );
+      case '/camera_translate':
+        return MaterialPageRoute(
+          builder: (_) => const CameraTranslatePage(),
+          settings: settings,
+        );
+      case '/voice_translate':
+        return MaterialPageRoute(
+          builder: (_) => const VoiceTranslatePage(),
+          settings: settings,
+        );
+      case '/saved_translations':
+        return MaterialPageRoute(
+          builder: (_) => const SavedTranslationsPage(),
+          settings: settings,
+        );
+      case '/history_saved':
+        final args = settings.arguments as int? ?? 0;
+        return MaterialPageRoute(
+          builder: (_) => HistorySavedPage(initialIndex: args),
+          settings: settings,
+        );
+      case '/settings':
+        return MaterialPageRoute(
+          builder: (_) => const SettingsPage(),
+          settings: settings,
+        );
+      case '/help_support':
+        return MaterialPageRoute(
+          builder: (_) => const HelpSupportPage(),
+          settings: settings,
+        );
+      case '/emergency':
+        return MaterialPageRoute(
+          builder: (_) => const EmergencyPage(),
+          settings: settings,
+        );
+      case '/offline_models':
+        return MaterialPageRoute(
+          builder: (_) => const OfflineModelsPage(),
+          settings: settings,
+        );
+      case '/translation_mode':
+        return MaterialPageRoute(
+          builder: (_) => const TranslationModePage(),
+          settings: settings,
+        );
+      case '/explain_mode':
+        return MaterialPageRoute(
+          builder: (_) => const ExplainModePage(),
+          settings: settings,
+        );
+      case '/assistant_mode':
+        return MaterialPageRoute(
+          builder: (_) => const AssistantModePage(),
+          settings: settings,
+        );
+      case '/text_translate':
+        return MaterialPageRoute(
+          builder: (_) => const TextTranslatePage(),
+          settings: settings,
+        );
+      case '/error':
+        final args = settings.arguments as String? ?? 'Unknown error';
+        return MaterialPageRoute(
+          builder: (_) => ErrorFallbackPage(error: args),
+          settings: settings,
+        );
+      default:
+        return MaterialPageRoute(
+          builder: (_) => ErrorFallbackPage(error: 'Route not found: $routeName'),
+          settings: settings,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final accessibilityService = Provider.of<AccessibilityService>(context);
@@ -345,82 +541,8 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       ),
       themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
-      home: _showSplash
-          ? SplashScreen(
-              onComplete: () {
-                if (mounted) {
-                  setState(() {
-                    _showSplash = false;
-                  });
-                }
-              },
-            )
-          : !_isInitialized
-              ? const Scaffold(
-                  backgroundColor: Color(0xFFFFF8F5),
-                  body: Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
-                    ),
-                  ),
-                )
-              : StreamBuilder<User?>(
-                  stream: _getAuthStream(),
-                  builder: (context, snapshot) {
-                    // Don't wait for auth - show app immediately
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return _isOnboardingCompleted
-                          ? const HomePage()
-                          : const OnboardingPage();
-                    }
-
-                    // Handle errors gracefully
-                    if (snapshot.hasError) {
-                      debugPrint('Auth stream error: ${snapshot.error}');
-                      return _isOnboardingCompleted
-                          ? const HomePage()
-                          : const OnboardingPage();
-                    }
-
-                    // If user is logged in, show HomePage
-                    if (snapshot.hasData) {
-                      return const HomePage();
-                    }
-
-                    // Fallback to onboarding or home
-                    return _isOnboardingCompleted
-                        ? const HomePage()
-                        : const OnboardingPage();
-                  },
-                ),
-      routes: {
-        '/onboarding': (context) => const OnboardingPage(),
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        '/forgot_password': (context) => const ForgotPasswordPage(),
-        '/home': (context) => const HomePage(),
-        '/camera_translate': (context) => const CameraTranslatePage(),
-        '/voice_translate': (context) => const VoiceTranslatePage(),
-        '/saved_translations': (context) => const SavedTranslationsPage(),
-        '/history_saved': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
-          return HistorySavedPage(initialIndex: args);
-        },
-        '/settings': (context) => const SettingsPage(),
-        '/help_support': (context) => const HelpSupportPage(),
-        '/emergency': (context) => const EmergencyPage(),
-        '/offline_models': (context) => const OfflineModelsPage(),
-        '/translation_mode': (context) => const TranslationModePage(),
-        '/explain_mode': (context) => const ExplainModePage(),
-        '/assistant_mode': (context) => const AssistantModePage(),
-        '/text_translate': (context) => const TextTranslatePage(),
-        '/error': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as String? ??
-              'Unknown error';
-          return ErrorFallbackPage(error: args);
-        },
-      },
+      initialRoute: _resolveInitialRoute(),
+      onGenerateRoute: _onGenerateRoute,
     );
   }
 }
