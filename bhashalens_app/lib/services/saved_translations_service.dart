@@ -32,7 +32,7 @@ class SavedTranslationsService extends ChangeNotifier {
 
     try {
       final localData = await _localStorageService.getSavedTranslations();
-      _savedItems = localData.map((json) => HistoryItem(
+      final localList = localData.map((json) => HistoryItem(
         id: json['id'].toString(),
         userId: 'local',
         sourceText: json['originalText'] ?? '',
@@ -42,7 +42,45 @@ class SavedTranslationsService extends ChangeNotifier {
         timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] ?? 0),
         type: json['category'] ?? 'translation',
       )).toList();
-      _savedItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      if (_apiClient.isEnabled) {
+        try {
+          int page = 1;
+          const int pageSize = 100;
+          final allCloudItems = <HistoryItem>[];
+          bool hasMore = true;
+
+          while (hasMore) {
+            final response = await _apiClient.getSavedTranslations(
+              page: page,
+              pageSize: pageSize,
+            );
+            final items = (response['items'] as List<dynamic>?)
+                    ?.map((e) => _savedItemFromCloud(e as Map<String, dynamic>))
+                    .whereType<HistoryItem>()
+                    .toList() ??
+                [];
+            allCloudItems.addAll(items);
+            hasMore = items.length == pageSize;
+            page++;
+          }
+
+          final localIds = {for (final e in localList) e.id};
+          final merged = <HistoryItem>[
+            ...localList,
+            ...allCloudItems.where((e) => !localIds.contains(e.id)),
+          ];
+          merged.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          _savedItems = merged;
+        } catch (e) {
+          debugPrint('Cloud saved fetch failed, using local only: $e');
+          _savedItems = localList;
+          _savedItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        }
+      } else {
+        _savedItems = localList;
+        _savedItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      }
     } catch (e) {
       _error = 'Error fetching saved translations: $e';
       debugPrint(_error);
@@ -50,6 +88,29 @@ class SavedTranslationsService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  static HistoryItem? _savedItemFromCloud(Map<String, dynamic> item) {
+    final id = item['translationId']?.toString() ?? item['id']?.toString();
+    if (id == null || id.isEmpty) {
+      debugPrint('Warning: Skipping saved translation with missing ID');
+      return null;
+    }
+
+    final savedAt = item['savedAt'];
+    final tsMs = savedAt is int
+        ? savedAt
+        : (savedAt is num ? savedAt.toInt() : DateTime.now().millisecondsSinceEpoch);
+    return HistoryItem(
+      id: id,
+      userId: item['userId']?.toString() ?? 'cloud',
+      sourceText: item['sourceText']?.toString() ?? '',
+      targetText: item['targetText']?.toString() ?? '',
+      sourceLang: item['sourceLang']?.toString() ?? '',
+      targetLang: item['targetLang']?.toString() ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(tsMs),
+      type: 'translation',
+    );
   }
 
   Future<bool> saveItem(HistoryItem item) async {

@@ -5,6 +5,7 @@ import 'aws_cloud_service.dart';
 import 'ml_kit_translation_service.dart';
 import 'gemini_service.dart';
 import 'local_storage_service.dart';
+import 'package:bhashalens_app/debug_session_log.dart';
 
 /// Unified translation service that routes between on-device and cloud
 class HybridTranslationService {
@@ -42,6 +43,14 @@ class HybridTranslationService {
 
     final backend = await _router.routeTranslation(context);
     final startTime = DateTime.now();
+    // #region agent log
+    DebugSessionLog.log(
+      'hybrid_translation_service.dart:translateText',
+      'backend_routed',
+      data: {'backend': backend.name},
+      hypothesisId: 'H3',
+    );
+    // #endregion
 
     try {
       if (backend == ProcessingBackend.awsBedrock) {
@@ -71,6 +80,14 @@ class HybridTranslationService {
             backend: 'aws_bedrock',
           );
 
+          // #region agent log
+          DebugSessionLog.log(
+            'hybrid_translation_service.dart:translateText',
+            'translate_done',
+            data: {'backend': 'awsBedrock', 'success': true},
+            hypothesisId: 'H3',
+          );
+          // #endregion
           return result;
         }
         debugPrint('AWS Bedrock translation failed, falling back to Gemini...');
@@ -104,10 +121,26 @@ class HybridTranslationService {
             backend: 'gemini',
           );
 
+          // #region agent log
+          DebugSessionLog.log(
+            'hybrid_translation_service.dart:translateText',
+            'translate_done',
+            data: {'backend': 'gemini', 'success': true},
+            hypothesisId: 'H3',
+          );
+          // #endregion
           return result;
         } catch (e) {
           debugPrint(
               'Gemini translation failed: $e, falling back to ML Kit...');
+          // #region agent log
+          DebugSessionLog.log(
+            'hybrid_translation_service.dart:translateText',
+            'translate_done',
+            data: {'backend': 'gemini_failed', 'fallback': 'mlkit'},
+            hypothesisId: 'H3',
+          );
+          // #endregion
         }
       }
 
@@ -140,6 +173,14 @@ class HybridTranslationService {
         );
       }
 
+      // #region agent log
+      DebugSessionLog.log(
+        'hybrid_translation_service.dart:translateText',
+        'translate_done',
+        data: {'backend': 'mlKit', 'success': translatedText.isNotEmpty},
+        hypothesisId: 'H3',
+      );
+      // #endregion
       return result;
     } catch (e) {
       debugPrint('Translation error: $e');
@@ -290,7 +331,7 @@ class HybridTranslationService {
   }
 
   /// Chat with assistant with hybrid routing
-  Future<String> chat({
+  Future<HybridChatResult> chat({
     required String message,
     List<Map<String, String>>? history,
     String? language,
@@ -314,20 +355,39 @@ class HybridTranslationService {
           userId: userId,
         );
         if (response.success) {
-          return response.response;
+          return HybridChatResult(
+            response: response.response,
+            backend: ProcessingBackend.awsBedrock,
+            success: true,
+          );
         }
       }
 
       // Fallback to Gemini
       final result = await _onDeviceLLM.refineText(message);
-      return result;
+      return HybridChatResult(
+        response: result,
+        backend: ProcessingBackend.gemini,
+        success: true,
+      );
     } catch (e) {
       debugPrint('Hybrid chat failed, falling back to Gemini');
       try {
-        return await _onDeviceLLM.refineText(message);
+        final result = await _onDeviceLLM.refineText(message);
+        return HybridChatResult(
+          response: result,
+          backend: ProcessingBackend.gemini,
+          success: true,
+        );
       } catch (fallbackError) {
         debugPrint('Gemini fallback also failed: $fallbackError');
-        return 'Chat service is currently unavailable. Please try again later.';
+        return HybridChatResult(
+          response:
+              'Chat service is currently unavailable. Please try again later.',
+          backend: ProcessingBackend.error,
+          success: false,
+          error: fallbackError.toString(),
+        );
       }
     }
   }
@@ -468,6 +528,21 @@ class HybridSimplificationResult {
     this.explanation,
     required this.backend,
     required this.processingTimeMs,
+    required this.success,
+    this.error,
+  });
+}
+
+/// Result of hybrid chat with backend indicator
+class HybridChatResult {
+  final String response;
+  final ProcessingBackend backend;
+  final bool success;
+  final String? error;
+
+  HybridChatResult({
+    required this.response,
+    required this.backend,
     required this.success,
     this.error,
   });

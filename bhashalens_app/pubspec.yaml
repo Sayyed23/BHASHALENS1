@@ -41,6 +41,7 @@ dependencies:
   
   # AWS Integration (using http for API Gateway calls)
   # Note: Flutter doesn't have official AWS SDK, using http client for REST API calls
+  url_launcher: ^6.2.5
   
   # ML & AI
   google_mlkit_translation: ^0.12.0

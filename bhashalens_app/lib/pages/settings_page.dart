@@ -4,6 +4,10 @@ import 'package:bhashalens_app/services/accessibility_service.dart';
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:bhashalens_app/services/preferences_service.dart';
 import 'package:bhashalens_app/services/history_service.dart';
+import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
+import 'package:bhashalens_app/services/aws_cloud_service.dart';
+import 'package:bhashalens_app/widgets/export_data_dialog.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -161,279 +165,356 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Account Status Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
+      body: wrapWithWebMaxWidth(
+        context,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Account Status Card
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                    color: Color(0xFF22C55E),
+                                    shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "Account Status: Active",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Text("BhashaLens App Version 2.1.0",
+                              style: TextStyle(color: textGrey, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.person,
+                          color: primaryBlue, size: 28),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 24),
+
+              // Cloud sync status
+              Consumer2<AwsApiGatewayClient, AwsCloudService>(
+                builder: (context, apiClient, awsCloud, _) {
+                  final enabled = apiClient.isEnabled;
+                  final available = enabled && awsCloud.isAvailable;
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF2D3748)),
+                    ),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                  color: Color(0xFF22C55E),
-                                  shape: BoxShape.circle),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              "Account Status: Active",
-                              style: TextStyle(
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: enabled
+                                ? (available
+                                    ? const Color(0xFF22C55E)
+                                    : const Color(0xFFFFA726))
+                                : const Color(0xFF94A3B8),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                enabled ? 'Cloud sync: On' : 'Cloud sync: Off',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16),
-                            ),
-                          ],
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                enabled
+                                    ? (available
+                                        ? 'History and preferences sync when online.'
+                                        : 'Cloud service temporarily unavailable.')
+                                    : 'Cloud sync is currently disabled.',
+                                style: const TextStyle(
+                                  color: textGrey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        const Text("BhashaLens App Version 2.1.0",
-                            style: TextStyle(color: textGrey, fontSize: 13)),
                       ],
                     ),
-                  ),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12)),
-                    child:
-                        const Icon(Icons.person, color: primaryBlue, size: 28),
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ACCESSIBILITY CONTROLS
-            const Text(
-              "ACCESSIBILITY CONTROLS",
-              style: TextStyle(
-                  color: textGrey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-
-            // Text Size Slider
-            const Text("Text Size",
+              // ACCESSIBILITY CONTROLS
+              const Text(
+                "ACCESSIBILITY CONTROLS",
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text("Tt",
-                    style: TextStyle(color: textGrey, fontSize: 14)),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: primaryBlue,
-                      inactiveTrackColor: const Color(0xFF334155),
-                      thumbColor: primaryBlue,
-                      trackHeight: 4,
-                    ),
-                    child: Slider(
-                      value: accessibilityService.textSizeFactor,
-                      min: 0.8,
-                      max: 1.4,
-                      onChanged: (val) =>
-                          accessibilityService.setTextSizeFactor(val),
+                    color: textGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 12),
+
+              // Text Size Slider
+              const Text("Text Size",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text("Tt",
+                      style: TextStyle(color: textGrey, fontSize: 14)),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: primaryBlue,
+                        inactiveTrackColor: const Color(0xFF334155),
+                        thumbColor: primaryBlue,
+                        trackHeight: 4,
+                      ),
+                      child: Slider(
+                        value: accessibilityService.textSizeFactor,
+                        min: 0.8,
+                        max: 1.4,
+                        onChanged: (val) =>
+                            accessibilityService.setTextSizeFactor(val),
+                      ),
                     ),
                   ),
+                  const Text("Tt",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
                 ),
-                const Text("Tt",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    _buildSwitchTile(
+                      icon: Icons.contrast,
+                      iconColor: primaryBlue,
+                      title: "High Contrast Mode",
+                      value: accessibilityService.themeMode == ThemeMode.dark,
+                      onChanged: (val) =>
+                          accessibilityService.toggleThemeMode(),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      icon: Icons.visibility,
+                      iconColor: primaryBlue,
+                      title: "Simplified Interface",
+                      value: _simplifiedInterface,
+                      onChanged: (val) =>
+                          setState(() => _simplifiedInterface = val),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      icon: Icons.record_voice_over,
+                      iconColor: primaryBlue,
+                      title: "Voice Guidance",
+                      value: _voiceGuidance,
+                      onChanged: (val) => setState(() => _voiceGuidance = val),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
+              // LANGUAGES & TRANSLATION
+              const Text(
+                "LANGUAGES & TRANSLATION",
+                style: TextStyle(
+                    color: textGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0),
               ),
-              child: Column(
-                children: [
-                  _buildSwitchTile(
-                    icon: Icons.contrast,
-                    iconColor: primaryBlue,
-                    title: "High Contrast Mode",
-                    value: accessibilityService.themeMode == ThemeMode.dark,
-                    onChanged: (val) => accessibilityService.toggleThemeMode(),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    icon: Icons.visibility,
-                    iconColor: primaryBlue,
-                    title: "Simplified Interface",
-                    value: _simplifiedInterface,
-                    onChanged: (val) =>
-                        setState(() => _simplifiedInterface = val),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    icon: Icons.record_voice_over,
-                    iconColor: primaryBlue,
-                    title: "Voice Guidance",
-                    value: _voiceGuidance,
-                    onChanged: (val) => setState(() => _voiceGuidance = val),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: Column(
+                  children: [
+                    _buildNavTile(
+                      title: "App Language",
+                      subtitle: "English",
+                      onTap: () => _navigateTo("app_language"),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildNavTile(
+                      title: "Default Translation",
+                      subtitle:
+                          "${prefsService.defaultSourceLang.toUpperCase()} \u2192 ${prefsService.defaultTargetLang.toUpperCase()}",
+                      onTap: () => _navigateTo("default_translation"),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      title: "Auto-detect Language",
+                      value: prefsService.autoTranslate,
+                      onChanged: (val) =>
+                          prefsService.updatePreference('autoTranslate', val),
+                      hideIcon: true,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // LANGUAGES & TRANSLATION
-            const Text(
-              "LANGUAGES & TRANSLATION",
-              style: TextStyle(
-                  color: textGrey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
+              // AUDIO & OFFLINE
+              const Text(
+                "AUDIO & OFFLINE",
+                style: TextStyle(
+                    color: textGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0),
               ),
-              child: Column(
-                children: [
-                  _buildNavTile(
-                    title: "App Language",
-                    subtitle: "English",
-                    onTap: () => _navigateTo("app_language"),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildNavTile(
-                    title: "Default Translation",
-                    subtitle:
-                        "${prefsService.defaultSourceLang.toUpperCase()} \u2192 ${prefsService.defaultTargetLang.toUpperCase()}",
-                    onTap: () => _navigateTo("default_translation"),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    title: "Auto-detect Language",
-                    value: prefsService.autoTranslate,
-                    onChanged: (val) =>
-                        prefsService.updatePreference('autoTranslate', val),
-                    hideIcon: true,
-                  ),
-                ],
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: Column(
+                  children: [
+                    _buildSwitchTile(
+                      title: "Offline Mode",
+                      value: _offlineMode,
+                      onChanged: (val) => setState(() => _offlineMode = val),
+                      hideIcon: true,
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildNavTile(
+                      title: "Offline Language Packs",
+                      subtitle: "Manage downloads",
+                      onTap: () => _navigateTo("manage_packs"),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildSwitchTile(
+                      title: "Wi-Fi Only Downloads",
+                      value: _wifiOnlyDownloads,
+                      onChanged: (val) =>
+                          setState(() => _wifiOnlyDownloads = val),
+                      hideIcon: true,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // AUDIO & OFFLINE
-            const Text(
-              "AUDIO & OFFLINE",
-              style: TextStyle(
-                  color: textGrey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
+              // DATA & SUPPORT
+              const Text(
+                "DATA & SUPPORT",
+                style: TextStyle(
+                    color: textGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0),
               ),
-              child: Column(
-                children: [
-                  _buildSwitchTile(
-                    title: "Offline Mode",
-                    value: _offlineMode,
-                    onChanged: (val) => setState(() => _offlineMode = val),
-                    hideIcon: true,
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildNavTile(
-                    title: "Offline Language Packs",
-                    subtitle: "Manage downloads",
-                    onTap: () => _navigateTo("manage_packs"),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildSwitchTile(
-                    title: "Wi-Fi Only Downloads",
-                    value: _wifiOnlyDownloads,
-                    onChanged: (val) =>
-                        setState(() => _wifiOnlyDownloads = val),
-                    hideIcon: true,
-                  ),
-                ],
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF2D3748)),
+                ),
+                child: Column(
+                  children: [
+                    _buildNavTile(
+                      icon: Icons.download_outlined,
+                      title: "Export data",
+                      subtitle: "History or saved translations",
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const ExportDataDialog(),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildNavTile(
+                      icon: Icons.help_outline,
+                      title: "Help & Support",
+                      onTap: () => _navigateTo("help_support"),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildActionTile(
+                      icon: Icons.delete_sweep_outlined,
+                      iconColor: const Color(0xFFEF5350),
+                      title: "Clear History",
+                      titleColor: const Color(0xFFEF5350),
+                      onTap: () => _navigateTo("clear_history"),
+                    ),
+                    const Divider(height: 1, color: dividerColor),
+                    _buildActionTile(
+                      icon: Icons.logout,
+                      iconColor: const Color(0xFFEF5350),
+                      title: "Logout",
+                      titleColor: const Color(0xFFEF5350),
+                      onTap: () => _handleLogout(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // DATA & SUPPORT
-            const Text(
-              "DATA & SUPPORT",
-              style: TextStyle(
-                  color: textGrey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2D3748)),
-              ),
-              child: Column(
-                children: [
-                  _buildNavTile(
-                    icon: Icons.help_outline,
-                    title: "Help & Support",
-                    onTap: () => _navigateTo("help_support"),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildActionTile(
-                    icon: Icons.delete_sweep_outlined,
-                    iconColor: const Color(0xFFEF5350),
-                    title: "Clear History",
-                    titleColor: const Color(0xFFEF5350),
-                    onTap: () => _navigateTo("clear_history"),
-                  ),
-                  const Divider(height: 1, color: dividerColor),
-                  _buildActionTile(
-                    icon: Icons.logout,
-                    iconColor: const Color(0xFFEF5350),
-                    title: "Logout",
-                    titleColor: const Color(0xFFEF5350),
-                    onTap: () => _handleLogout(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

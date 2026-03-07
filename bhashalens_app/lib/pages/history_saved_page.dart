@@ -2,6 +2,8 @@ import 'package:bhashalens_app/models/history_item.dart';
 import 'package:bhashalens_app/services/history_service.dart';
 import 'package:bhashalens_app/services/saved_translations_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/widgets/export_data_dialog.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 
 import 'package:flutter/material.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
@@ -116,11 +118,25 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined, color: Colors.white),
+            tooltip: 'Export data',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const ExportDataDialog(),
+              );
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 3),
-      body: Column(
-        children: [
-          // Custom Tab Bar
+      body: wrapWithWebMaxWidth(
+        context,
+        child: Column(
+          children: [
+            // Custom Tab Bar
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -353,6 +369,7 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           ),
         ],
       ),
+    ),
     );
   }
 

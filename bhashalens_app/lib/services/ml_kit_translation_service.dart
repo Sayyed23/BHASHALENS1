@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_mlkit_language_id/google_mlkit_language_id.dart';
+import 'package:bhashalens_app/services/ml_kit_input_image.dart';
 
 class MlKitTranslationService {
   // Singleton pattern
@@ -143,14 +143,15 @@ class MlKitTranslationService {
   /// Uses script-specific recognizers for best accuracy.
   /// For languages without native OCR script support (Tamil, Telugu, etc.),
   /// tries multiple recognizers and picks the best result.
-  Future<String> extractTextFromFile(File file,
+  /// [file] is only used when !kIsWeb (VM/IO); on web this returns ''.
+  Future<String> extractTextFromFile(dynamic file,
       {String languageCode = 'en'}) async {
     if (kIsWeb) {
       debugPrint('ML Kit OCR is not supported on Web');
       return '';
     }
     try {
-      final inputImage = InputImage.fromFile(file);
+      final inputImage = createInputImageFromFile(file);
       final script = _getScriptForLanguage(languageCode);
 
       // If the language has native script support, use it directly

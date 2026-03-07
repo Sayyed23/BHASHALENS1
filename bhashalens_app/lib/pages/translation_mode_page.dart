@@ -5,6 +5,7 @@ import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/home/widgets/feature_card.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 
 class TranslationModePage extends StatelessWidget {
   const TranslationModePage({super.key});
@@ -19,9 +20,11 @@ class TranslationModePage extends StatelessWidget {
         title: const Text('Translation Mode'),
         backgroundColor: theme.colorScheme.surface,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20.0),
-        children: [
+      body: wrapWithWebMaxWidth(
+        context,
+        child: ListView(
+          padding: const EdgeInsets.all(20.0),
+          children: [
           FeatureCard(
             icon: Icons.camera_alt_rounded,
             title: 'Camera Translate',
@@ -72,6 +75,7 @@ class TranslationModePage extends StatelessWidget {
             },
           ),
         ],
+        ),
       ),
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 1),
     );

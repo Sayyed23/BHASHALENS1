@@ -11,7 +11,9 @@ import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'dart:io';
+import 'package:bhashalens_app/core/platform_image_format.dart';
+import 'package:bhashalens_app/core/path_to_file.dart';
+import 'package:bhashalens_app/debug_session_log.dart';
 import 'dart:ui' as ui; // Import for ImageFilter
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -124,9 +126,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           cameras[0],
           ResolutionPreset.high,
           enableAudio: false,
-          imageFormatGroup: Platform.isAndroid
-              ? ImageFormatGroup.jpeg
-              : ImageFormatGroup.bgra8888,
+          imageFormatGroup: imageFormatGroupForCamera,
         );
 
         await _cameraController!.initialize();
@@ -230,6 +230,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       String detectedLang = _sourceLanguageCode;
 
       if (kIsWeb) {
+        // #region agent log
+        DebugSessionLog.log(
+          'camera_translate_page.dart',
+          'web_image_path',
+          data: {},
+          hypothesisId: 'H5',
+        );
+        // #endregion
         try {
           final geminiService = Provider.of<GeminiService>(context, listen: false);
           extracted = await geminiService.extractTextFromImage(bytes);
@@ -262,7 +270,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             // If we are here, we haven't extracted text yet.
             // Let's perform OCR with Latin script first to get some text for detection.
             await _mlKitService.extractTextFromFile(
-              File(_capturedImage!.path),
+              pathToFile(_capturedImage!.path),
               languageCode: 'en',
             ),
           );
@@ -305,7 +313,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         // Assuming we have _capturedImage path
         if (_capturedImage != null) {
           extracted = await _mlKitService.extractTextFromFile(
-            File(_capturedImage!.path),
+            pathToFile(_capturedImage!.path),
             languageCode: _sourceLanguageCode,
           );
         } else {
@@ -363,7 +371,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
         // Use ML Kit for OCR as requested
         extracted = await _mlKitService.extractTextFromFile(
-          File(_capturedImage!.path),
+          pathToFile(_capturedImage!.path),
           languageCode:
               _sourceLanguageCode == 'auto' ? 'en' : _sourceLanguageCode,
         );

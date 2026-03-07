@@ -1,8 +1,11 @@
 import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/aws_cloud_service.dart';
+import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 import 'package:flutter/material.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'package:bhashalens_app/widgets/backend_indicator_widget.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/firestore_service.dart';
@@ -25,6 +28,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
   List<Map<String, dynamic>> _chatMessages = [];
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+  ProcessingBackend? _lastChatBackend;
 
   final List<Map<String, dynamic>> _situations = const [
     {
@@ -120,7 +124,10 @@ class _AssistantModePageState extends State<AssistantModePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Failed to load guide: $e")));
+        ).showSnackBar(const SnackBar(
+          content: Text('Could not load guide. Please try again.'),
+          duration: Duration(seconds: 2),
+        ));
       }
     } finally {
       if (mounted) setState(() => _isLoadingGuide = false);
@@ -188,9 +195,10 @@ class _AssistantModePageState extends State<AssistantModePage> {
             },
           ];
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not start roleplay. Please try again.'),
+          duration: Duration(seconds: 2),
+        ));
       }
     }
   }
@@ -252,11 +260,23 @@ class _AssistantModePageState extends State<AssistantModePage> {
         'content': m['text'] as String
       }).toList();
 
-      final response = await service.chat(message: text, history: history);
+      final chatResult = await service.chat(message: text, history: history);
       if (mounted) {
         setState(() {
-          _chatMessages.add({'role': 'other', 'text': response});
+          _chatMessages.add({'role': 'other', 'text': chatResult.response});
+          _lastChatBackend = chatResult.backend;
         });
+
+        if (!chatResult.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(chatResult.error ?? 'Chat error occurred.'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_chatScrollController.hasClients) {
             _chatScrollController.animateTo(
@@ -271,7 +291,10 @@ class _AssistantModePageState extends State<AssistantModePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ).showSnackBar(const SnackBar(
+          content: Text('Message could not be sent. Please try again.'),
+          duration: Duration(seconds: 2),
+        ));
       }
     }
   }
@@ -303,9 +326,11 @@ class _AssistantModePageState extends State<AssistantModePage> {
         centerTitle: true,
       ),
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 4),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: wrapWithWebMaxWidth(
+        context,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Situations
@@ -361,6 +386,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
                         // Reset Chat and Guide
                         _basicGuide = null;
                         _chatMessages = [];
+                        _lastChatBackend = null;
                       });
                     },
                     child: Container(
@@ -724,7 +750,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
             ),
             const SizedBox(height: 16),
             Container(
-              height: 400, // Fixed height for chat area
+              height: (MediaQuery.of(context).size.height * 0.4).clamp(200.0, 400.0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFF151A22), // Dark Chat bg
@@ -733,6 +759,11 @@ class _AssistantModePageState extends State<AssistantModePage> {
               ),
               child: Column(
                 children: [
+                  if (_lastChatBackend != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: BackendIndicatorWidget(backend: _lastChatBackend),
+                    ),
                   Expanded(
                     child: ListView.builder(
                       controller: _chatScrollController,
@@ -779,6 +810,7 @@ class _AssistantModePageState extends State<AssistantModePage> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -963,7 +995,10 @@ class _GuideSheetState extends State<GuideSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to translate guide: $e")),
+          const SnackBar(
+            content: Text('Could not translate guide. Please try again.'),
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     } finally {

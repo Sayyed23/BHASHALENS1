@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/pages/home/home_content.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
@@ -128,7 +129,10 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: const SafeArea(child: HomeContent()),
+      body: wrapWithWebMaxWidth(
+        context,
+        child: const SafeArea(child: HomeContent()),
+      ),
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 0),
     );
   }

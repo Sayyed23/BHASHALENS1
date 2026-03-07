@@ -7,6 +7,7 @@ enum ProcessingBackend {
   mlKit,
   awsBedrock,
   gemini,
+  error,
 }
 
 /// Network status

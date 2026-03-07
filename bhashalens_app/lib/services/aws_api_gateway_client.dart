@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'retry_policy.dart';
+import 'package:bhashalens_app/debug_session_log.dart';
 
 /// API Gateway client for AWS cloud services
 /// Handles communication with AWS Lambda functions via API Gateway
@@ -119,6 +120,14 @@ class AwsApiGatewayClient {
     // Execute with retry policy
     return retryPolicy.execute(() async {
       final url = Uri.parse('$baseUrl$endpoint');
+      // #region agent log
+      DebugSessionLog.log(
+        'aws_api_gateway_client.dart:_post',
+        'api_request_start',
+        data: {'endpoint': endpoint},
+        hypothesisId: 'H2',
+      );
+      // #endregion
 
       // Get Firebase ID token for authentication
       final headers = await _buildHeaders();
@@ -133,11 +142,33 @@ class AwsApiGatewayClient {
             .timeout(timeout);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_post',
+            'api_request_success',
+            data: {'endpoint': endpoint, 'statusCode': response.statusCode},
+            hypothesisId: 'H2',
+          );
+          // #endregion
           if (response.body.isEmpty) {
             return <String, dynamic>{'success': true};
           }
           return jsonDecode(response.body) as Map<String, dynamic>;
         } else {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_post',
+            'api_request_failed',
+            data: {
+              'endpoint': endpoint,
+              'statusCode': response.statusCode,
+              'body': response.body.length > 200
+                  ? '${response.body.substring(0, 200)}...'
+                  : response.body,
+            },
+            hypothesisId: 'H2',
+          );
+          // #endregion
           throw AwsApiException(
             'API request failed: ${response.body}',
             statusCode: response.statusCode,
@@ -145,7 +176,17 @@ class AwsApiGatewayClient {
           );
         }
       } catch (e) {
-        if (e is AwsApiException) rethrow;
+        if (e is AwsApiException) {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_post',
+            'api_request_error',
+            data: {'endpoint': endpoint, 'error': e.toString()},
+            hypothesisId: 'H2',
+          );
+          // #endregion
+          rethrow;
+        }
         throw AwsApiException(
           'Network error: ${e.toString()}',
           statusCode: 0,
@@ -170,6 +211,14 @@ class AwsApiGatewayClient {
     return retryPolicy.execute(() async {
       final uri = Uri.parse('$baseUrl$endpoint');
       final url = uri.replace(queryParameters: queryParameters);
+      // #region agent log
+      DebugSessionLog.log(
+        'aws_api_gateway_client.dart:_get',
+        'api_request_start',
+        data: {'endpoint': endpoint},
+        hypothesisId: 'H2',
+      );
+      // #endregion
 
       final headers = await _buildHeaders();
 
@@ -182,8 +231,27 @@ class AwsApiGatewayClient {
             .timeout(timeout);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_get',
+            'api_request_success',
+            data: {'endpoint': endpoint, 'statusCode': response.statusCode},
+            hypothesisId: 'H2',
+          );
+          // #endregion
           return jsonDecode(response.body) as Map<String, dynamic>;
         } else {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_get',
+            'api_request_failed',
+            data: {
+              'endpoint': endpoint,
+              'statusCode': response.statusCode,
+            },
+            hypothesisId: 'H2',
+          );
+          // #endregion
           throw AwsApiException(
             'API request failed: ${response.body}',
             statusCode: response.statusCode,
@@ -191,7 +259,17 @@ class AwsApiGatewayClient {
           );
         }
       } catch (e) {
-        if (e is AwsApiException) rethrow;
+        if (e is AwsApiException) {
+          // #region agent log
+          DebugSessionLog.log(
+            'aws_api_gateway_client.dart:_get',
+            'api_request_error',
+            data: {'endpoint': endpoint, 'error': e.toString()},
+            hypothesisId: 'H2',
+          );
+          // #endregion
+          rethrow;
+        }
         throw AwsApiException(
           'Network error: ${e.toString()}',
           statusCode: 0,

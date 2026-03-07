@@ -1,5 +1,8 @@
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/widgets/backend_indicator_widget.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 import 'package:bhashalens_app/services/offline_explain_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
@@ -10,7 +13,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
-import 'dart:io';
+import 'package:bhashalens_app/core/ocr_extractor.dart';
 
 class ExplainModePage extends StatefulWidget {
   final String? initialText;
@@ -30,6 +33,8 @@ class _ExplainModePageState extends State<ExplainModePage>
   String _selectedOutputLanguage = 'Hindi';
   String _selectedInputLanguage = 'Auto-detected';
   late TabController _tabController;
+  ProcessingBackend? _lastBackend;
+  String? _lastBackendLabel;
 
   final List<String> _tabs = ['Camera', 'Voice'];
 
@@ -133,19 +138,19 @@ class _ExplainModePageState extends State<ExplainModePage>
           try {
             final bytes = await image.readAsBytes();
             if (!mounted) return;
-            final geminiService = Provider.of<GeminiService>(context, listen: false);
+            final geminiService =
+                Provider.of<GeminiService>(context, listen: false);
             extracted = await geminiService.extractTextFromImage(bytes);
           } catch (e) {
             debugPrint("Web OCR error: $e");
             extracted = "Error extracting text on Web";
           }
-        } else {
-          final mlKitService = MlKitTranslationService();
-          final file = File(image.path);
-          extracted = await mlKitService.extractTextFromFile(file,
+          extracted = await extractTextFromImageFile(image,
               languageCode: _selectedInputLanguage == 'Auto-detected'
                   ? 'en'
-                  : _selectedInputLanguage.toLowerCase().substring(0, 2));
+                  : _selectedInputLanguage.length >= 2
+                      ? _selectedInputLanguage.toLowerCase().substring(0, 2)
+                      : 'en');
         }
 
         if (!mounted) return;
@@ -159,16 +164,21 @@ class _ExplainModePageState extends State<ExplainModePage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to scan text: $e')));
+        ).showSnackBar(const SnackBar(
+          content: Text('Could not scan text. Please try again.'),
+        ));
         setState(() => _isProcessing = false);
       }
     }
   }
 
   String _getLanguageCode(String languageName) {
-    if (languageName == 'Auto-detected' || languageName == 'Auto') return 'auto';
+    if (languageName == 'Auto-detected' || languageName == 'Auto') {
+      return 'auto';
+    }
     try {
-      final entry = VoiceTranslationService.supportedLanguages.entries.firstWhere(
+      final entry =
+          VoiceTranslationService.supportedLanguages.entries.firstWhere(
         (e) => e.value.toLowerCase() == languageName.toLowerCase(),
       );
       return entry.key;
@@ -190,7 +200,9 @@ class _ExplainModePageState extends State<ExplainModePage>
 
     setState(() {
       _isProcessing = true;
-      _contextData = null; // Reset previous result
+      _contextData = null;
+      _lastBackend = null;
+      _lastBackendLabel = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -213,6 +225,8 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
+            _lastBackend = null;
+            _lastBackendLabel = 'offline';
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -235,6 +249,9 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
+            _lastBackend = null;
+            _lastBackendLabel =
+                (result['backend'] ?? result['model'])?.toString();
           });
         }
       }
@@ -248,6 +265,8 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
+            _lastBackend = null;
+            _lastBackendLabel = 'offline';
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -259,9 +278,12 @@ class _ExplainModePageState extends State<ExplainModePage>
         }
       } catch (_) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to explain: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to process text. Please try again later.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
       }
     } finally {
@@ -287,6 +309,8 @@ class _ExplainModePageState extends State<ExplainModePage>
     setState(() {
       _isProcessing = true;
       _contextData = null;
+      _lastBackend = null;
+      _lastBackendLabel = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -303,26 +327,62 @@ class _ExplainModePageState extends State<ExplainModePage>
 
       if (mounted) {
         if (result.success) {
-           setState(() {
-             _contextData = {
-                'translation': result.simplifiedText,
-                'meaning': result.explanation ?? 'Simplified version of your text.',
-                'when_to_use': 'Use this simplified text when you need a clear, easy-to-understand version of the original.',
-                'tone': 'Simple and direct',
-                'cultural_insight': 'Simplified to reduce complexity and improve readability.',
-             };
+          setState(() {
+            _contextData = {
+              'translation': result.simplifiedText,
+              'meaning':
+                  result.explanation ?? 'Simplified version of your text.',
+              'when_to_use':
+                  'Use this simplified text when you need a clear, easy-to-understand version of the original.',
+              'tone': 'Simple and direct',
+              'cultural_insight':
+                  'Simplified to reduce complexity and improve readability.',
+            };
+            _lastBackend = result.backend;
+            _lastBackendLabel = null;
           });
         } else {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Failed to simplify: ${result.error}')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(
+            content: Text('Could not simplify. Please try again.'),
+            duration: Duration(seconds: 2),
+          ));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        try {
+          // Offline fallback using rule-based engine
+          final offlineService = OfflineExplainService();
+          final offlineResult = await offlineService.explainAsMap(text);
+
+          setState(() {
+            _contextData = {
+              'translation': text, // No simplified version available offline
+              'meaning': offlineResult['meaning'] ?? 'Offline explanation.',
+              'when_to_use': offlineResult['when_to_use'] ??
+                  'Check the context items below.',
+              'tone': offlineResult['tone'] ?? 'Neutral',
+              'cultural_insight':
+                  offlineResult['cultural_insight'] ?? 'Cloud unavailable.',
+            };
+            _lastBackend = null;
+            _lastBackendLabel = 'Offline (Rule Engine)';
+          });
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Connection failed. Using offline mode.'),
+            duration: Duration(seconds: 2),
+          ));
+        } catch (offlineError) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Connection issue. Unable to simplify text.'),
+            duration: Duration(seconds: 2),
+          ));
+        }
       }
     } finally {
       if (mounted) {
@@ -713,592 +773,659 @@ class _ExplainModePageState extends State<ExplainModePage>
             )
           : null,
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 2),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Large Mode Switcher
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: cardDark,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF3B4554).withValues(alpha: 0.5),
+      body: wrapWithWebMaxWidth(
+        context,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  // Large Mode Switcher
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: cardDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF3B4554).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildBigTabButton(
+                            Icons.keyboard_outlined,
+                            "Text Input",
+                            _tabController.index == 0,
+                            () {
+                              setState(() {
+                                _tabController.animateTo(0);
+                              });
+                            },
+                            primaryBlue,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildBigTabButton(
+                            Icons.mic_none_outlined,
+                            "Voice Chat",
+                            _tabController.index == 1,
+                            () {
+                              setState(() {
+                                _tabController.animateTo(1);
+                              });
+                            },
+                            primaryBlue,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildBigTabButton(
-                          Icons.keyboard_outlined,
-                          "Text Input",
-                          _tabController.index == 0,
-                          () {
-                            setState(() {
-                              _tabController.animateTo(0);
-                            });
-                          },
-                          primaryBlue,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildBigTabButton(
-                          Icons.mic_none_outlined,
-                          "Voice Chat",
-                          _tabController.index == 1,
-                          () {
-                            setState(() {
-                              _tabController.animateTo(1);
-                            });
-                          },
-                          primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                // Voice Mode: Chat UI
-                if (_tabController.index == 1) ...[
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    child: Consumer<VoiceTranslationService>(
-                      builder: (context, service, child) {
-                        if (service.conversationHistory.isEmpty &&
-                            service.currentTranscript.isEmpty &&
-                            !service.isListening) {
-                          return Center(
+                  // Voice Mode: Chat UI (constrained height for web/short viewports)
+                  if (_tabController.index == 1) ...[
+                    SizedBox(
+                      height: (MediaQuery.of(context).size.height * 0.5)
+                          .clamp(200.0, 400.0),
+                      child: Consumer<VoiceTranslationService>(
+                        builder: (context, service, child) {
+                          if (service.conversationHistory.isEmpty &&
+                              service.currentTranscript.isEmpty &&
+                              !service.isListening) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.graphic_eq,
+                                    size: 80,
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    "Tap the mic to start",
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.3),
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          // Combine history + current transcript
+                          return ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            children: [
+                              ...service.conversationHistory.map(
+                                (msg) => _buildChatBubble(msg, true),
+                              ),
+                              if (service.isListening &&
+                                  service.currentTranscript.isNotEmpty)
+                                _buildChatBubbleStub(
+                                  service.currentTranscript,
+                                  true,
+                                ),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Mic Button
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          final service = Provider.of<VoiceTranslationService>(
+                            context,
+                            listen: false,
+                          );
+                          if (service.isListening) {
+                            service.stopListening();
+                          } else {
+                            service
+                                .startListening('user'); // Assume user for now
+                          }
+                        },
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: primaryBlue,
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryBlue.withValues(alpha: 0.4),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Consumer<VoiceTranslationService>(
+                            builder: (context, service, _) => Icon(
+                              service.isListening
+                                  ? Icons.stop_rounded
+                                  : Icons.mic_rounded,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Text Input Mode: Main Content Area
+                  if (_tabController.index == 0)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Input Card
+                        if (_contextData == null)
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: cardDark,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF3B4554,
+                                ).withValues(alpha: 0.5),
+                              ),
+                            ),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.graphic_eq,
-                                  size: 80,
-                                  color: Colors.white.withValues(alpha: 0.1),
+                                const Text(
+                                  "Is there something confusing you want to understand?",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 20),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: bgDark,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: TextField(
+                                    controller: _inputController,
+                                    maxLines: 6,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Type here or scan...',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.all(16),
+                                    ),
+                                    onChanged: (val) => setState(() {}),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: _scanText,
+                                      icon: const Icon(
+                                        Icons.camera_alt_outlined,
+                                        color: Color(0xFF136DEC),
+                                      ),
+                                      label: const Text(
+                                        "Scan Text",
+                                        style: TextStyle(
+                                          color: Color(0xFF136DEC),
+                                        ),
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFF136DEC,
+                                        ).withValues(alpha: 0.1),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (_inputController.text.isNotEmpty)
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _inputController.clear();
+                                          });
+                                        },
+                                        child: const Text(
+                                          "Clear",
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 56,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _isProcessing
+                                              ? null
+                                              : _explainWithContext,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primaryBlue,
+                                            foregroundColor: Colors.white,
+                                            elevation: 2,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                          icon: _isProcessing
+                                              ? const SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Colors.white,
+                                                  ),
+                                                )
+                                              : const Icon(Icons.auto_awesome),
+                                          label: Text(
+                                            _isProcessing
+                                                ? "Analyzing..."
+                                                : "Explain Context",
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 56,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _isProcessing
+                                              ? null
+                                              : _simplifyText,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.purple
+                                                .withValues(alpha: 0.8),
+                                            foregroundColor: Colors.white,
+                                            elevation: 2,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                          icon: _isProcessing
+                                              ? const SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Colors.white,
+                                                  ),
+                                                )
+                                              : const Icon(Icons.compress),
+                                          label: Text(
+                                            _isProcessing
+                                                ? "Simplifying..."
+                                                : "Simplify Text",
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ) // End Input Card
+                        else ...[
+                          BackendIndicatorWidget(
+                            backend: _lastBackend,
+                            backendLabel: _lastBackendLabel,
+                          ),
+                          // Context Result UI matching Mockup
+                          _buildTranslationCard(
+                            _inputController.text,
+                            _contextData!['translation'] ?? '',
+                            cardDark,
+                            primaryBlue,
+                            textGrey,
+                            onPlayAudio: () => _speakInOutputLanguage(
+                              _contextData!['translation'],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // "What this means" (Meaning)
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: primaryBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: primaryBlue.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.lightbulb_outline,
+                                      color: primaryBlue,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      "What this means",
+                                      style: TextStyle(
+                                        color: primaryBlue,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    InkWell(
+                                      onTap: () => _speakInOutputLanguage(
+                                        _contextData!['meaning'],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: primaryBlue.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.volume_up_rounded,
+                                          size: 20,
+                                          color: primaryBlue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
                                 Text(
-                                  "Tap the mic to start",
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.3),
+                                  _contextData!['meaning'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white, // White/90
                                     fontSize: 16,
+                                    height: 1.5,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        }
-                        // Combine history + current transcript
-                        return ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: [
-                            ...service.conversationHistory.map(
-                              (msg) => _buildChatBubble(msg, true),
-                            ),
-                            if (service.isListening &&
-                                service.currentTranscript.isNotEmpty)
-                              _buildChatBubbleStub(
-                                service.currentTranscript,
-                                true,
-                              ),
-                            const SizedBox(height: 20),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Mic Button
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        final service = Provider.of<VoiceTranslationService>(
-                          context,
-                          listen: false,
-                        );
-                        if (service.isListening) {
-                          service.stopListening();
-                        } else {
-                          service.startListening('user'); // Assume user for now
-                        }
-                      },
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: primaryBlue,
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryBlue.withValues(alpha: 0.4),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: Consumer<VoiceTranslationService>(
-                          builder: (context, service, _) => Icon(
-                            service.isListening
-                                ? Icons.stop_rounded
-                                : Icons.mic_rounded,
-                            color: Colors.white,
-                            size: 40,
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                          const SizedBox(height: 16),
 
-                // Text Input Mode: Main Content Area
-                if (_tabController.index == 0)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Input Card
-                      if (_contextData == null)
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: cardDark,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                          // Grid: When to use & Tone
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoCard(
+                                  Icons.person_pin_circle,
+                                  "When to use",
+                                  _contextData!['when_to_use'] ?? '',
+                                  cardDark,
+                                  primaryBlue,
+                                  textGrey,
+                                  isAccent: true,
+                                  onPlayAudio: () => _speakInOutputLanguage(
+                                    _contextData!['when_to_use'],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildInfoCard(
+                                  Icons.campaign,
+                                  "Tone",
+                                  _contextData!['tone'] ?? '',
+                                  cardDark,
+                                  accentWarning,
+                                  textGrey,
+                                  isAccent: false,
+                                  onPlayAudio: () => _speakInOutputLanguage(
+                                    _contextData!['tone'],
+                                  ),
+                                ),
                               ),
                             ],
-                            border: Border.all(
-                              color: const Color(
-                                0xFF3B4554,
-                              ).withValues(alpha: 0.5),
-                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Is there something confusing you want to understand?",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: bgDark,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                  ),
-                                ),
-                                child: TextField(
-                                  controller: _inputController,
-                                  maxLines: 6,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Type here or scan...',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.all(16),
-                                  ),
-                                  onChanged: (val) => setState(() {}),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  TextButton.icon(
-                                    onPressed: _scanText,
-                                    icon: const Icon(
-                                      Icons.camera_alt_outlined,
-                                      color: Color(0xFF136DEC),
-                                    ),
-                                    label: const Text(
-                                      "Scan Text",
+                          const SizedBox(height: 16),
+
+                          // Situational Context
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardDark,
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: const Color(0xFF3B4554)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "Situational Context",
                                       style: TextStyle(
-                                        color: Color(0xFF136DEC),
-                                      ),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      backgroundColor: const Color(
-                                        0xFF136DEC,
-                                      ).withValues(alpha: 0.1),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  if (_inputController.text.isNotEmpty)
-                                    TextButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _inputController.clear();
-                                        });
-                                      },
-                                      child: const Text(
-                                        "Clear",
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 56,
-                                      child: ElevatedButton.icon(
-                                        onPressed: _isProcessing
-                                            ? null
-                                            : _explainWithContext,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: primaryBlue,
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                        ),
-                                        icon: _isProcessing
-                                            ? const SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
-                                                ),
-                                              )
-                                            : const Icon(Icons.auto_awesome),
-                                        label: Text(
-                                          _isProcessing
-                                              ? "Analyzing..."
-                                              : "Explain Context",
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 56,
-                                      child: ElevatedButton.icon(
-                                        onPressed: _isProcessing
-                                            ? null
-                                            : _simplifyText,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.purple.withValues(alpha:0.8),
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                        ),
-                                        icon: _isProcessing
-                                            ? const SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
-                                                ),
-                                              )
-                                            : const Icon(Icons.compress),
-                                        label: Text(
-                                          _isProcessing
-                                              ? "Simplifying..."
-                                              : "Simplify Text",
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ],
-                          ),
-                        ) // End Input Card
-                      else ...[
-                        // Context Result UI matching Mockup
-                        _buildTranslationCard(
-                          _inputController.text,
-                          _contextData!['translation'] ?? '',
-                          cardDark,
-                          primaryBlue,
-                          textGrey,
-                          onPlayAudio: () => _speakInOutputLanguage(
-                            _contextData!['translation'],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // "What this means" (Meaning)
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: primaryBlue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: primaryBlue.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.lightbulb_outline,
-                                    color: primaryBlue,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    "What this means",
-                                    style: TextStyle(
-                                      color: primaryBlue,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  InkWell(
-                                    onTap: () => _speakInOutputLanguage(
-                                      _contextData!['meaning'],
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: primaryBlue.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.volume_up_rounded,
-                                        size: 20,
-                                        color: primaryBlue,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _contextData!['meaning'] ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white, // White/90
-                                  fontSize: 16,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Grid: When to use & Tone
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildInfoCard(
-                                Icons.person_pin_circle,
-                                "When to use",
-                                _contextData!['when_to_use'] ?? '',
-                                cardDark,
-                                primaryBlue,
-                                textGrey,
-                                isAccent: true,
-                                onPlayAudio: () => _speakInOutputLanguage(
-                                  _contextData!['when_to_use'],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildInfoCard(
-                                Icons.campaign,
-                                "Tone",
-                                _contextData!['tone'] ?? '',
-                                cardDark,
-                                accentWarning,
-                                textGrey,
-                                isAccent: false,
-                                onPlayAudio: () => _speakInOutputLanguage(
-                                  _contextData!['tone'],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Situational Context
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cardDark,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF3B4554)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    "Situational Context",
-                                    style: TextStyle(
-                                      color: textGrey,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  InkWell(
-                                    onTap: () => _speakInOutputLanguage(
-                                      _contextData!['cultural_insight'],
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.volume_up_rounded,
-                                        size: 18,
                                         color: textGrey,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const Row(
-                                children: [
-                                  Icon(Icons.info_outline, color: textGrey),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Situational Context",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              ...((_contextData!['situational_context']
-                                          as List<dynamic>?) ??
-                                      [])
-                                  .map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(
-                                          top: 6,
-                                        ),
-                                        child: Icon(
-                                          Icons.circle,
-                                          size: 6,
-                                          color: primaryBlue,
-                                        ),
+                                    const Spacer(),
+                                    InkWell(
+                                      onTap: () => _speakInOutputLanguage(
+                                        _contextData!['cultural_insight'],
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          item.toString(),
-                                          style: const TextStyle(
-                                            color: textGrey,
-                                            fontSize: 14,
-                                            height: 1.5,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.05,
                                           ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.volume_up_rounded,
+                                          size: 18,
+                                          color: textGrey,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Row(
+                                  children: [
+                                    Icon(Icons.info_outline, color: textGrey),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Situational Context",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                ...((_contextData!['situational_context']
+                                            as List<dynamic>?) ??
+                                        [])
+                                    .map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Padding(
+                                          padding: EdgeInsets.only(
+                                            top: 6,
+                                          ),
+                                          child: Icon(
+                                            Icons.circle,
+                                            size: 6,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            item.toString(),
+                                            style: const TextStyle(
+                                              color: textGrey,
+                                              fontSize: 14,
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Cultural Insight
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardDark,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: primaryBlue.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  right: -10,
+                                  top: -10,
+                                  child: Icon(
+                                    Icons.public,
+                                    size: 60,
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Cultural Insight",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _contextData!['cultural_insight'] ??
+                                          'No specific cultural insight.',
+                                      style: const TextStyle(
+                                        color: textGrey,
+                                        fontSize: 14,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Safety Note (Conditional)
+                          if (_contextData!['safety_note'] != null &&
+                              _contextData!['safety_note'] is String &&
+                              (_contextData!['safety_note'] as String)
+                                  .isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: accentDanger.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: accentDanger.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: accentDanger,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Safety Note",
+                                        style: TextStyle(
+                                          color: accentDanger,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Cultural Insight
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cardDark,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: primaryBlue.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Stack(
-                            children: [
-                              Positioned(
-                                right: -10,
-                                top: -10,
-                                child: Icon(
-                                  Icons.public,
-                                  size: 60,
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Cultural Insight",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    _contextData!['cultural_insight'] ??
-                                        'No specific cultural insight.',
+                                    _contextData!['safety_note'] ?? '',
                                     style: const TextStyle(
                                       color: textGrey,
                                       fontSize: 14,
@@ -1307,128 +1434,79 @@ class _ExplainModePageState extends State<ExplainModePage>
                                   ),
                                 ],
                               ),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+
+                          // Footer Actions (Share/Copy/Reset)
+                          Row(
+                            children: [
+                              _buildIconCircleButton(
+                                Icons.restart_alt,
+                                cardDark,
+                                () {
+                                  setState(() {
+                                    _contextData = null;
+                                    _inputController.clear();
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              _buildIconCircleButton(
+                                Icons.content_copy,
+                                cardDark,
+                                () {
+                                  Clipboard.setData(
+                                    ClipboardData(
+                                      text:
+                                          "${_contextData!['translation']}\nMeaning: ${_contextData!['meaning']}",
+                                    ),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Copied!')),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Share logic
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryBlue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: primaryBlue.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.share),
+                                  label: const Text(
+                                    "Share Phrase",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Safety Note (Conditional)
-                        if (_contextData!['safety_note'] != null &&
-                            _contextData!['safety_note'] is String &&
-                            (_contextData!['safety_note'] as String)
-                                .isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: accentDanger.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: accentDanger.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.warning_amber_rounded,
-                                      color: accentDanger,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Safety Note",
-                                      style: TextStyle(
-                                        color: accentDanger,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _contextData!['safety_note'] ?? '',
-                                  style: const TextStyle(
-                                    color: textGrey,
-                                    fontSize: 14,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 32),
                         ],
-
-                        // Footer Actions (Share/Copy/Reset)
-                        Row(
-                          children: [
-                            _buildIconCircleButton(
-                              Icons.restart_alt,
-                              cardDark,
-                              () {
-                                setState(() {
-                                  _contextData = null;
-                                  _inputController.clear();
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            _buildIconCircleButton(
-                              Icons.content_copy,
-                              cardDark,
-                              () {
-                                Clipboard.setData(
-                                  ClipboardData(
-                                    text:
-                                        "${_contextData!['translation']}\nMeaning: ${_contextData!['meaning']}",
-                                  ),
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Copied!')),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  // Share logic
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: primaryBlue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  elevation: 4,
-                                  shadowColor: primaryBlue.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                                icon: const Icon(Icons.share),
-                                label: const Text(
-                                  "Share Phrase",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
-                    ],
-                  ),
-              ],
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
