@@ -105,6 +105,26 @@ class AwsApiGatewayClient {
     );
   }
 
+  /// POST request to orchestrated hybrid flow (Claude + Gemini)
+  Future<Map<String, dynamic>> orchestrate({
+    required String text,
+    required String mode,
+    required String language,
+    String? context,
+    String? userId,
+  }) async {
+    return _post(
+      '/orchestrate',
+      body: {
+        'text': text,
+        'mode': mode,
+        'language': language,
+        if (context != null) 'context': context,
+        if (userId != null) 'user_id': userId,
+      },
+    );
+  }
+
   /// Generic POST request handler
   Future<Map<String, dynamic>> _post(
     String endpoint, {

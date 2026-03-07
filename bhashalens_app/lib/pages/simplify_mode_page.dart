@@ -4,6 +4,7 @@ import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/sarvam_service.dart';
 import 'package:bhashalens_app/widgets/backend_indicator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 import 'dart:convert';
 // Removed unused dart:typed_data import
 
@@ -53,18 +54,17 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
 
     try {
       final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
-      final result = await hybridService.simplifyText(
+      final result = await hybridService.orchestrate(
         text: text,
-        targetComplexity: _targetComplexity,
-        language: _selectedLanguage,
-        includeExplanation: true,
+        mode: 'simplify',
+        language: _languages[_selectedLanguage] ?? 'English',
       );
 
       if (mounted) {
         setState(() {
-          _simplifiedText = result.simplifiedText;
-          _explanation = result.explanation;
-          _backend = result.backend.name == 'awsBedrock' ? 'bedrock' : 'gemini';
+          _simplifiedText = result.response;
+          _explanation = 'Simplified version of your text using Claude + Gemini hybrid flow.';
+          _backend = result.backend == ProcessingBackend.awsBedrock ? 'bedrock' : 'gemini';
           _isLoading = false;
         });
       }
@@ -91,7 +91,9 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
       final sarvamService = Provider.of<SarvamService>(context, listen: false);
       final extractedText = await sarvamService.performOCR(base64Image);
 
-      if (mounted && extractedText.isNotEmpty) {
+      if (!mounted) return;
+      
+      if (extractedText.isNotEmpty) {
         setState(() {
           _controller.text = extractedText;
           _isLoading = false;
@@ -151,7 +153,7 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedLanguage,
+                    initialValue: _selectedLanguage,
                     decoration: const InputDecoration(labelText: "Language"),
                     items: _languages.entries.map((e) => DropdownMenuItem(
                       value: e.key,
@@ -163,7 +165,7 @@ class _SimplifyModePageState extends State<SimplifyModePage> {
                 const SizedBox(width: 20),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _targetComplexity,
+                    initialValue: _targetComplexity,
                     decoration: const InputDecoration(labelText: "Simplicity"),
                     items: const [
                       DropdownMenuItem(value: 'simple', child: Text("Very Simple")),

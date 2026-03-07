@@ -246,6 +246,58 @@ class AwsCloudService {
     }
   }
 
+  /// Detailed AI Processing Flow (Claude + Gemini Orchestration)
+  Future<CloudOrchestrationResult> orchestrate({
+    required String text,
+    required String mode,
+    required String language,
+    String? context,
+    String? userId,
+  }) async {
+    try {
+      final startTime = DateTime.now();
+      
+      final response = await _circuitBreaker.execute(() => _apiClient.orchestrate(
+        text: text,
+        mode: mode,
+        language: language,
+        context: context,
+        userId: userId,
+      ));
+
+      final processingTime = DateTime.now().difference(startTime);
+
+      return CloudOrchestrationResult(
+        response: (response['response'] ?? '') as String,
+        claudeBase: (response['claude_base'] ?? '') as String,
+        model: (response['model'] ?? 'unknown') as String,
+        processingTimeMs: response['processing_time_ms'] as int? ?? 
+            processingTime.inMilliseconds,
+        success: response['success'] as bool? ?? true,
+      );
+    } on AwsApiException catch (e) {
+      debugPrint('Cloud orchestration failed: $e');
+      return CloudOrchestrationResult(
+        response: '',
+        claudeBase: '',
+        model: '',
+        processingTimeMs: 0,
+        success: false,
+        error: e.message,
+      );
+    } catch (e) {
+      debugPrint('Unexpected orchestration error: $e');
+      return CloudOrchestrationResult(
+        response: '',
+        claudeBase: '',
+        model: '',
+        processingTimeMs: 0,
+        success: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   /// Cloud-enhanced text explanation/analysis
   Future<Map<String, dynamic>> explainText({
     required String text,
@@ -406,6 +458,24 @@ class CloudGrammarResult {
   CloudGrammarResult({
     required this.response,
     required this.corrections,
+    required this.processingTimeMs,
+    required this.success,
+    this.error,
+  });
+}
+
+class CloudOrchestrationResult {
+  final String response;
+  final String claudeBase;
+  final String model;
+  final int processingTimeMs;
+  final bool success;
+  final String? error;
+
+  CloudOrchestrationResult({
+    required this.response,
+    required this.claudeBase,
+    required this.model,
     required this.processingTimeMs,
     required this.success,
     this.error,

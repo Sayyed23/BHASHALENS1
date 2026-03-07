@@ -448,6 +448,77 @@ class HybridTranslationService {
     }
   }
 
+  /// High-level orchestration for complex AI tasks (Claude + Gemini)
+  Future<HybridOrchestrationResult> orchestrate({
+    required String text,
+    required String mode,
+    required String language,
+    String? situationalContext,
+    DataUsagePreference? userPreference,
+    String? userId,
+  }) async {
+    final context = await _router.createContext(
+      text: text,
+      userPreference: userPreference,
+    );
+
+    final backend = await _router.routeAssistance(context);
+
+    try {
+      if (backend == ProcessingBackend.awsBedrock) {
+        final cloudResult = await _cloudService.orchestrate(
+          text: text,
+          mode: mode,
+          language: language,
+          context: situationalContext,
+          userId: userId,
+        );
+
+        if (cloudResult.success) {
+          return HybridOrchestrationResult(
+            response: cloudResult.response,
+            claudeBase: cloudResult.claudeBase,
+            backend: ProcessingBackend.awsBedrock,
+            processingTimeMs: cloudResult.processingTimeMs,
+            success: true,
+          );
+        }
+      }
+
+      // On-device Fallback (using Gemini)
+      // For on-device, we'll map the orchestration to existing LLM methods
+      String resultText = '';
+      final startTime = DateTime.now();
+      
+      if (mode == 'explain') {
+        final explanation = await _onDeviceLLM.explainTextWithContext(text, targetLanguage: language);
+        resultText = explanation['meaning'] ?? explanation['explanation'] ?? 'Explanation unavailable on-device.';
+      } else if (mode == 'simplify') {
+        resultText = await _onDeviceLLM.explainAndSimplify(text, simplicity: 'simple', targetLanguage: language);
+      } else {
+        resultText = await _onDeviceLLM.refineText(text);
+      }
+
+      return HybridOrchestrationResult(
+        response: resultText,
+        claudeBase: 'N/A (On-device)',
+        backend: ProcessingBackend.gemini,
+        processingTimeMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+      );
+    } catch (e) {
+      debugPrint('Hybrid orchestration failed: $e');
+      return HybridOrchestrationResult(
+        response: 'Service unavailable.',
+        claudeBase: '',
+        backend: ProcessingBackend.error,
+        processingTimeMs: 0,
+        success: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   /// Dispose resources
   void dispose() {
     _router.dispose();
@@ -543,6 +614,24 @@ class HybridChatResult {
   HybridChatResult({
     required this.response,
     required this.backend,
+    required this.success,
+    this.error,
+  });
+}
+
+class HybridOrchestrationResult {
+  final String response;
+  final String claudeBase;
+  final ProcessingBackend backend;
+  final int processingTimeMs;
+  final bool success;
+  final String? error;
+
+  HybridOrchestrationResult({
+    required this.response,
+    required this.claudeBase,
+    required this.backend,
+    required this.processingTimeMs,
     required this.success,
     this.error,
   });

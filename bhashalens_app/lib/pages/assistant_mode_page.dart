@@ -1,6 +1,4 @@
-import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
-import 'package:bhashalens_app/services/aws_cloud_service.dart';
 import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 import 'package:flutter/material.dart';
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
@@ -8,7 +6,6 @@ import 'package:bhashalens_app/widgets/backend_indicator_widget.dart';
 import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:bhashalens_app/services/firestore_service.dart';
 
 class AssistantModePage extends StatefulWidget {
   const AssistantModePage({super.key});
@@ -19,12 +16,6 @@ class AssistantModePage extends StatefulWidget {
 
 class _AssistantModePageState extends State<AssistantModePage> {
   int _selectedSituationIndex = 0;
-  int _selectedGoalIndex = 0;
-  bool _isSlowMode = false;
-
-  // Context-Aware State
-  Map<String, dynamic>? _basicGuide;
-  bool _isLoadingGuide = false;
   List<Map<String, dynamic>> _chatMessages = [];
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -32,65 +23,31 @@ class _AssistantModePageState extends State<AssistantModePage> {
 
   final List<Map<String, dynamic>> _situations = const [
     {
-      'icon': Icons.local_hospital,
+      'icon': Icons.business_center,
+      'label': 'Office',
+    },
+    {
+      'icon': Icons.medical_services,
       'label': 'Hospital',
-      'color': Color(0xFF136DEC),
     },
-    {'icon': Icons.apartment, 'label': 'Public Office', 'color': Colors.grey},
-    {'icon': Icons.shopping_cart, 'label': 'Shop', 'color': Colors.grey},
-    {'icon': Icons.school, 'label': 'School', 'color': Colors.grey},
+    {
+      'icon': Icons.security,
+      'label': 'Police',
+    },
+    {
+      'icon': Icons.flight,
+      'label': 'Travel',
+    },
   ];
-
-  final List<String> _goals = [
-    'Ask for help',
-    'Explain a problem',
-    'Request leave',
-    'Book appointment',
-  ];
-
-  // This will now be the initial state, but chat will be dynamic
-  // Scenarios Data  // Scenarios Data
-  final Map<String, Map<String, dynamic>> _scenarios = {
-    'Hospital': {
-      'user_lang_text': 'मुझे डॉक्टर से मिलना है।',
-      'translation': '"I would like to see a doctor, please."',
-      'confidence_tip':
-          'This phrasing is polite and respectful for official use in professional environments.',
-      'tone': 'Urgent',
-    },
-    'Public Office': {
-      'user_lang_text': 'मुझे अपना आधार कार्ड अपडेट कराना है।',
-      'translation': '"I need to update my Aadhar card details."',
-      'confidence_tip': 'Be direct and have your documents ready.',
-      'tone': 'Formal',
-    },
-    'Shop': {
-      'user_lang_text': 'इसकी कीमत क्या है?',
-      'translation': '"How much does this cost?"',
-      'confidence_tip': 'It is okay to ask for a better price in some shops.',
-      'tone': 'Casual',
-    },
-    'School': {
-      'user_lang_text': 'मैं अपने बच्चे के प्रवेश के बारे में पूछना चाहता हूं।',
-      'translation': '"I want to inquire about my child\'s admission."',
-      'confidence_tip': 'Use a polite and inquiring tone with school staff.',
-      'tone': 'Polite',
-    },
-  };
-
-  late Map<String, dynamic> _currentScenario;
 
   @override
   void initState() {
     super.initState();
-    _currentScenario = _scenarios['Hospital']!; // Default
-
-    // Initialize with mock chat for demo, but enable dynamic chat
+    // Pre-populate with a welcome message or empty
     _chatMessages = [
-      {'role': 'me', 'text': 'I need leave for my appointment.'},
       {
         'role': 'other',
-        'text': 'Please fill this form first, then we can process it.',
+        'text': 'Hello! How can I help you today? Choose a category above or just ask me anything.',
       },
     ];
   }
@@ -102,112 +59,8 @@ class _AssistantModePageState extends State<AssistantModePage> {
     super.dispose();
   }
 
-  Future<void> _fetchBasicGuide() async {
-    setState(() => _isLoadingGuide = true);
-    try {
-// final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
-      final awsService = Provider.of<AwsCloudService>(context, listen: false);
-      
-      final situation = _situations[_selectedSituationIndex]['label'];
-      
-      // Use AWS for cultural guides as it tends to be more comprehensive
-      final guide = await awsService.getBasicGuide(
-        situation,
-        'English',
-      );
-
-      if (mounted) {
-        setState(() => _basicGuide = guide);
-        _showGuideModal();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(
-          content: Text('Could not load guide. Please try again.'),
-          duration: Duration(seconds: 2),
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoadingGuide = false);
-    }
-  }
-
-  void _showGuideModal() {
-    if (_basicGuide == null) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => GuideSheet(
-          initialGuide: _basicGuide!,
-          situation: _situations[_selectedSituationIndex]['label'],
-          scrollController: scrollController,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _startRoleplay() async {
-    final situation = _situations[_selectedSituationIndex]['label'];
-    final goalText = _goals[_selectedGoalIndex];
-
-    // Add loading state message
-    setState(() {
-      _chatMessages = [
-        {'role': 'other', 'text': 'Thinking...'},
-      ];
-    });
-
-    try {
-      final awsService = Provider.of<AwsCloudService>(context, listen: false);
-      
-      final greeting = await awsService.startRoleplay(
-        situation,
-        goalText,
-        'English',
-      );
-
-      if (mounted) {
-        setState(() {
-          _chatMessages = [
-            {'role': 'other', 'text': greeting},
-          ];
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _chatMessages = [
-            {
-              'role': 'other',
-              'text': 'Failed to start roleplay. Please try again.',
-            },
-          ];
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not start roleplay. Please try again.'),
-          duration: Duration(seconds: 2),
-        ));
-      }
-    }
-  }
-
   Future<void> _startListening() async {
-    final service = Provider.of<VoiceTranslationService>(
-      context,
-      listen: false,
-    );
+    final service = Provider.of<VoiceTranslationService>(context, listen: false);
     try {
       if (service.isListening) {
         await service.stopListening();
@@ -241,7 +94,45 @@ class _AssistantModePageState extends State<AssistantModePage> {
       _chatController.clear();
     });
 
-    // Scroll to bottom
+    _scrollToBottom();
+
+    try {
+      final service = Provider.of<HybridTranslationService>(context, listen: false);
+      final situation = _situations[_selectedSituationIndex]['label'];
+      
+      final result = await service.orchestrate(
+        text: text,
+        mode: 'assist',
+        language: 'English', // Target language
+        situationalContext: situation,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _chatMessages.add({'role': 'other', 'text': result.response});
+          _lastChatBackend = result.backend;
+        });
+
+        if (!result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.error ?? 'Service error occurred.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message could not be sent.')),
+        );
+      }
+    }
+  }
+
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_chatScrollController.hasClients) {
         _chatScrollController.animateTo(
@@ -251,512 +142,157 @@ class _AssistantModePageState extends State<AssistantModePage> {
         );
       }
     });
-
-    try {
-      final service = Provider.of<HybridTranslationService>(context, listen: false);
-      // Construct history
-      final history = _chatMessages.map((m) => {
-        'role': m['role'] == 'me' ? 'user' : 'assistant',
-        'content': m['text'] as String
-      }).toList();
-
-      final chatResult = await service.chat(message: text, history: history);
-      if (mounted) {
-        setState(() {
-          _chatMessages.add({'role': 'other', 'text': chatResult.response});
-          _lastChatBackend = chatResult.backend;
-        });
-
-        if (!chatResult.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(chatResult.error ?? 'Chat error occurred.'),
-              backgroundColor: Colors.redAccent,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_chatScrollController.hasClients) {
-            _chatScrollController.animateTo(
-              _chatScrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(
-          content: Text('Message could not be sent. Please try again.'),
-          duration: Duration(seconds: 2),
-        ));
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Colors from mockup
-    const Color bgDark = Color(0xFF101822);
-    const Color cardDark = Color(0xFF1C2027);
+    const Color bgLight = Color(0xFFF8FAFC);
+    const Color cardWhite = Colors.white;
     const Color primaryBlue = Color(0xFF136DEC);
-    const Color textGrey = Color(0xFF9DA8B9);
-
-    final voiceService = Provider.of<VoiceTranslationService>(context);
+    const Color textDark = Color(0xFF1E293B);
+    const Color textGrey = Color(0xFF94A3B8);
 
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: bgLight,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false, // Prevents default back button
+        automaticallyImplyLeading: false,
         title: const Text(
-          'Assistant Mode',
+          'Assist Mode',
           style: TextStyle(
-            color: Colors.white,
+            color: textDark,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 20,
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.help_outline, color: textDark),
+          ),
+        ],
       ),
       bottomNavigationBar: const CommonBottomNavBar(currentIndex: 4),
       body: wrapWithWebMaxWidth(
         context,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            // Situations
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Select Situation",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _isLoadingGuide ? null : _fetchBasicGuide,
-                  icon: _isLoadingGuide
-                      ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: Color(0xFF136DEC),
-                        ),
-                  label: Text(
-                    _isLoadingGuide ? "Loading..." : "Basic Guide",
-                    style: const TextStyle(color: Color(0xFF136DEC)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 120,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _situations.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final isSelected = _selectedSituationIndex == index;
-                  final situation = _situations[index];
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedSituationIndex = index;
-                        final label = _situations[index]['label'];
-                        if (_scenarios.containsKey(label)) {
-                          _currentScenario = _scenarios[label]!;
-                        }
-                        // Reset Chat and Guide
-                        _basicGuide = null;
-                        _chatMessages = [];
-                        _lastChatBackend = null;
-                      });
-                    },
-                    child: Container(
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF1C2027)
-                            : const Color(0xFF1C2027).withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(24), // Squircle
-                        border: isSelected
-                            ? Border.all(color: primaryBlue, width: 2)
-                            : Border.all(color: Colors.transparent),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: primaryBlue.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            situation['icon'],
-                            color: isSelected ? primaryBlue : textGrey,
-                            size: 32,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            situation['label'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            isSelected ? "Active" : "Select",
-                            style: TextStyle(
-                              color: isSelected ? primaryBlue : textGrey,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Goals
-            const Text(
-              "What is your goal?",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: List.generate(_goals.length, (index) {
-                final isSelected = _selectedGoalIndex == index;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedGoalIndex = index),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected ? primaryBlue : cardDark,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: isSelected ? primaryBlue : Colors.white12,
-                      ),
-                    ),
-                    child: Text(
-                      _goals[index],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 32),
-
-            // Recommendation Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
-              ),
+            // Top Categories & Settings
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "PRIMARY RECOMMENDATION",
-                        style: TextStyle(
-                          color: primaryBlue,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white54,
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Your language",
-                    style: TextStyle(color: textGrey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _currentScenario['user_lang_text'],
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Translation",
-                    style: TextStyle(color: primaryBlue, fontSize: 12),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _currentScenario['translation'],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Confidence Tip
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B), // Darker blueish
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: primaryBlue.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.verified_user,
-                          color: primaryBlue,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
+                  // Categories
+                  SizedBox(
+                    height: 90,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _situations.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        final isSelected = _selectedSituationIndex == index;
+                        final situation = _situations[index];
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedSituationIndex = index),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "CONFIDENCE TIP",
-                                style: TextStyle(
-                                  color: primaryBlue,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? primaryBlue : const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  situation['icon'],
+                                  color: isSelected ? Colors.white : textDark,
+                                  size: 24,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _currentScenario['confidence_tip'],
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  height: 1.4,
+                                situation['label'],
+                                style: TextStyle(
+                                  color: isSelected ? primaryBlue : textGrey,
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Language Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardWhite,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildLangCol("INPUT", "Hindi (Auto)", textGrey, textDark, primaryBlue),
+                            Container(height: 30, width: 1, color: const Color(0xFFE2E8F0), margin: const EdgeInsets.symmetric(horizontal: 16)),
+                            _buildLangCol("TARGET", "English", textGrey, primaryBlue, primaryBlue),
+                          ],
+                        ),
+                        const Divider(height: 24, color: Color(0xFFF1F5F9)),
+                        Row(
+                          children: [
+                            const Icon(Icons.volume_up, size: 20),
+                            const SizedBox(width: 8),
+                            const Text("Voice Output", style: TextStyle(fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            Switch(
+                              value: true,
+                              onChanged: (v) {},
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: primaryBlue,
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        final firestore = Provider.of<FirestoreService>(
-                          context,
-                          listen: false,
-                        );
-                        final messenger = ScaffoldMessenger.of(context);
-                        final situation =
-                            _situations[_selectedSituationIndex]['label'];
-
-                        await firestore.saveAssistantPhrase(
-                          phrase: _currentScenario['user_lang_text'],
-                          intent: situation, // Context/Situation
-                          translatedPhrase: _currentScenario['translation'],
-                        );
-
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Phrase saved to your collection",
-                            ),
-                            backgroundColor: primaryBlue,
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.bookmark_border, size: 18),
-                      label: const Text("Save this phrase"),
-                      style: TextButton.styleFrom(foregroundColor: primaryBlue),
-                    ),
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Audio Controls
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: cardDark,
-                borderRadius: BorderRadius.circular(40),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      // ... rest of play button logic
-                      // Play Button
-                      GestureDetector(
-                        onTap: () {
-                          String textToSpeak = _currentScenario['translation'];
-                          // Remove quotes if present
-                          textToSpeak = textToSpeak.replaceAll('"', '');
-                          voiceService.speakText(
-                            textToSpeak,
-                            'en',
-                            slow: _isSlowMode,
-                          );
-                        },
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
-                            color: primaryBlue,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.play_arrow,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Listen",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            "Natural AI voice",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  // Slow Toggle
-                  Row(
-                    children: [
-                      Text(
-                        "Slow",
-                        style: TextStyle(
-                          color: _isSlowMode ? Colors.white : Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: _isSlowMode,
-                        onChanged: (val) => setState(() => _isSlowMode = val),
-                        activeThumbColor: primaryBlue,
-                        activeTrackColor: primaryBlue.withValues(alpha: 0.2),
-                        inactiveThumbColor: Colors.grey,
-                        inactiveTrackColor: Colors.white10,
-                      ),
-                    ],
-                  ),
-                ],
+            // Message List
+            Expanded(
+              child: ListView.builder(
+                controller: _chatScrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _chatMessages.length,
+                itemBuilder: (context, index) {
+                  final msg = _chatMessages[index];
+                  final isMe = msg['role'] == 'me';
+                  if (isMe) {
+                    return _buildUserBubble(msg['text'], primaryBlue);
+                  } else {
+                    return _buildBotBubble(msg['text'], cardWhite, textDark, primaryBlue);
+                  }
+                },
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Practice Button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _startRoleplay,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: primaryBlue),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  foregroundColor: primaryBlue,
-                ),
-                icon: const Icon(Icons.mic),
-                label: const Text(
-                  "Practice Speaking (Start Coaching)",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Live Coaching Chat
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                "LIVE COACHING",
-                style: TextStyle(
-                  color: primaryBlue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              height: (MediaQuery.of(context).size.height * 0.4).clamp(200.0, 400.0),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF151A22), // Dark Chat bg
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white12),
-              ),
+            // Voice & Input Area
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   if (_lastChatBackend != null)
@@ -764,394 +300,152 @@ class _AssistantModePageState extends State<AssistantModePage> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: BackendIndicatorWidget(backend: _lastChatBackend),
                     ),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _chatScrollController,
-                      itemCount: _chatMessages.length,
-                      itemBuilder: (context, index) {
-                        final msg = _chatMessages[index];
-                        return _buildChatBubble(msg, msg['role'] == 'me');
-                      },
+                  // Waveform Mock
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) => Container(
+                      width: 3, height: i == 2 ? 24 : 12, margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(color: primaryBlue, borderRadius: BorderRadius.circular(2)),
+                    )),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text("LISTENING...", style: TextStyle(color: primaryBlue, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  const SizedBox(height: 12),
+                  // Large Mic
+                  GestureDetector(
+                    onTap: _startListening,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+                      child: const Icon(Icons.mic, color: Colors.white, size: 32),
                     ),
                   ),
-                  const Divider(color: Colors.white24),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          voiceService.isListening ? Icons.mic : Icons.mic_none,
-                          color: voiceService.isListening ? Colors.red : primaryBlue,
-                        ),
-                        onPressed: _startListening,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _chatController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            hintText: "Type or speak...",
-                            hintStyle: TextStyle(color: Colors.white38),
-                            border: InputBorder.none,
+                  const SizedBox(height: 16),
+                  // Chat Field
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(color: const Color(0xFFEDF2F7), borderRadius: BorderRadius.circular(30)),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _chatController,
+                            decoration: const InputDecoration(
+                              hintText: "Ask something like: How do I ask for help?",
+                              hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+                              border: InputBorder.none,
+                            ),
+                            onSubmitted: (_) => _sendMessage(),
                           ),
-                          onSubmitted: (_) => _sendMessage(),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: primaryBlue),
-                        onPressed: _sendMessage,
-                      ),
-                    ],
+                        IconButton(
+                          onPressed: _sendMessage,
+                          icon: const Icon(Icons.send, color: primaryBlue, size: 20),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 50),
           ],
         ),
       ),
-    ),
     );
   }
 
-  Widget _buildChatBubble(Map<String, dynamic> msg, bool isMe) {
-    const Color primaryBlue = Color(0xFF136DEC);
-    final text = msg['text'] as String;
-    final translation = msg['translation'] as String?;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.start
-            : MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
+  Widget _buildLangCol(String label, String value, Color labelColor, Color valColor, Color iconColor) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isMe) ...[
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                "ME",
-                style: TextStyle(
-                  color: primaryBlue,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ] else ...[
-            // Translate Icon
-            GestureDetector(
-              onTap: () async {
-                if (!mounted) return;
-                final service = Provider.of<VoiceTranslationService>(
-                  context,
-                  listen: false,
-                );
-                // Translate to 'Hindi' (hardcoded for now as requested)
-                final translated = await service.translateText(text, 'hi');
-
-                if (mounted) {
-                  setState(() {
-                    msg['translation'] = translated;
-                  });
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1E293B),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.translate,
-                  size: 16,
-                  color: primaryBlue,
-                ),
-              ),
-            ),
-            // Speaker Icon for AI
-            GestureDetector(
-              onTap: () {
-                final voiceService = Provider.of<VoiceTranslationService>(
-                  context,
-                  listen: false,
-                );
-                voiceService.speakText(text, 'en');
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1E293B),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.volume_up,
-                  size: 16,
-                  color: primaryBlue,
-                ),
-              ),
-            ),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF333A44) : primaryBlue,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomRight: isMe ? const Radius.circular(20) : Radius.zero,
-                  bottomLeft: isMe ? Radius.zero : const Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    text,
-                    style: const TextStyle(color: Colors.white, height: 1.4),
-                  ),
-                  if (translation != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      translation,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+          Text(label, style: TextStyle(color: labelColor, fontSize: 9, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(value, style: TextStyle(color: valColor, fontSize: 14, fontWeight: FontWeight.bold)),
+              Icon(Icons.keyboard_arrow_down, size: 16, color: iconColor),
+            ],
           ),
         ],
       ),
     );
   }
-}
 
-class GuideSheet extends StatefulWidget {
-  final Map<String, dynamic> initialGuide;
-  final String situation;
-  final ScrollController? scrollController;
-
-  const GuideSheet({
-    super.key,
-    required this.initialGuide,
-    required this.situation,
-    this.scrollController,
-  });
-
-  @override
-  State<GuideSheet> createState() => _GuideSheetState();
-}
-
-class _GuideSheetState extends State<GuideSheet> {
-  late Map<String, dynamic> _guide;
-  String _currentLanguage = 'English';
-  bool _isLoading = false;
-
-  final List<String> _languages = [
-    'English',
-    'Hindi',
-    'Marathi',
-    'Spanish',
-    'French',
-    'German',
-    'Japanese',
-    'Arabic',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _guide = widget.initialGuide;
+  Widget _buildUserBubble(String text, Color bg) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12, left: 40),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: Radius.circular(16),
+          ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ),
+    );
   }
 
-  Future<void> _changeLanguage(String? newLang) async {
-    if (newLang == null || newLang == _currentLanguage) return;
-
-    setState(() {
-      _isLoading = true;
-      _currentLanguage = newLang;
-    });
-
-    try {
-      final service = Provider.of<GeminiService>(context, listen: false);
-      final newGuide = await service.getBasicGuide(widget.situation, newLang);
-      if (mounted) {
-        setState(() => _guide = newGuide);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not translate guide. Please try again.'),
-            duration: Duration(seconds: 2),
+  Widget _buildBotBubble(String text, Color bg, Color textPlain, Color primary) {
+    final isSuggestion = text.contains('"');
+    if (isSuggestion) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(width: 4, decoration: BoxDecoration(color: primary, borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)))),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.auto_awesome, size: 14, color: primary),
+                          const SizedBox(width: 6),
+                          Text("SUGGESTED SENTENCE", style: TextStyle(color: primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(text, style: TextStyle(color: textPlain, fontSize: 18, fontWeight: FontWeight.bold, height: 1.3)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+        ),
+      );
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12, right: 40),
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFEDF2F7),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomRight: Radius.circular(16),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Basic Guide: ${widget.situation}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              // Language Dropdown
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _currentLanguage,
-                    dropdownColor: const Color(0xFF1E293B),
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: Colors.white70,
-                    ),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    onChanged: _changeLanguage,
-                    items: _languages.map((String lang) {
-                      return DropdownMenuItem<String>(
-                        value: lang,
-                        child: Text(lang),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(40.0),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else ...[
-            _buildGuideSection(
-              "Opening Phrase",
-              _guide['opening_phrase'],
-              Icons.chat_bubble_outline,
-            ),
-            _buildGuideSection(
-              "Etiquette",
-              _guide['etiquette'],
-              Icons.diversity_3,
-            ),
-            _buildGuideSection(
-              "Documents Needed",
-              _guide['documents'],
-              Icons.folder_copy_outlined,
-            ),
-            _buildGuideSection(
-              "Steps",
-              _guide['steps'],
-              Icons.format_list_numbered,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGuideSection(String title, dynamic content, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: const Color(0xFF136DEC), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Color(0xFF136DEC),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (content is String)
-            Text(
-              content,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
-            )
-          else if (content is List)
-            ...content.map(
-              (e) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("• ", style: TextStyle(color: Colors.white70)),
-                    Expanded(
-                      child: Text(
-                        e.toString(),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+        ),
+        child: Text(text, style: TextStyle(color: textPlain, fontSize: 14)),
       ),
     );
   }

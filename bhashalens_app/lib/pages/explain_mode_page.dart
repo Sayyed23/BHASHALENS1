@@ -198,20 +198,6 @@ class _ExplainModePageState extends State<ExplainModePage>
     }
   }
 
-  String _getLanguageCode(String languageName) {
-    if (languageName == 'Auto-detected' || languageName == 'Auto') {
-      return 'auto';
-    }
-    try {
-      final entry =
-          VoiceTranslationService.supportedLanguages.entries.firstWhere(
-        (e) => e.value.toLowerCase() == languageName.toLowerCase(),
-      );
-      return entry.key;
-    } catch (e) {
-      return 'en'; // default
-    }
-  }
 
   Future<void> _explainWithContext() async {
     final text = _inputController.text.trim();
@@ -261,29 +247,22 @@ class _ExplainModePageState extends State<ExplainModePage>
           );
         }
       } else {
-        // Use online Hybrid service
-        final result = await hybridService.explainText(
+        // Use online Hybrid service (Claude + Gemini Orchestration)
+        final orchestrateResult = await hybridService.orchestrate(
           text: text,
-          targetLanguage: _getLanguageCode(_selectedOutputLanguage),
-          sourceLanguage: _selectedInputLanguage == 'Auto-detected'
-              ? null
-              : _getLanguageCode(_selectedInputLanguage),
+          mode: 'explain',
+          language: _selectedOutputLanguage,
         );
 
         if (mounted) {
           setState(() {
-            _contextData = result;
-            final backendStr = (result['backend'] ?? result['model'])
-                ?.toString()
-                .toLowerCase();
-            if (backendStr?.contains('bedrock') == true ||
-                backendStr?.contains('claude') == true) {
-              _lastBackend = ProcessingBackend.awsBedrock;
-            } else if (backendStr?.contains('gemini') == true) {
-              _lastBackend = ProcessingBackend.gemini;
-            } else {
-              _lastBackend = ProcessingBackend.mlKit;
-            }
+            _contextData = {
+              'translation': text, // Use original as translation placeholder if needed
+              'meaning': orchestrateResult.response,
+              'claude_base': orchestrateResult.claudeBase,
+              'backend': orchestrateResult.backend.name,
+            };
+            _lastBackend = orchestrateResult.backend;
           });
         }
       }
@@ -348,25 +327,24 @@ class _ExplainModePageState extends State<ExplainModePage>
         Provider.of<HybridTranslationService>(context, listen: false);
 
     try {
-      final result = await hybridService.simplifyText(
+      final result = await hybridService.orchestrate(
         text: text,
-        targetComplexity: 'simple',
-        language: _getLanguageCode(_selectedOutputLanguage),
-        includeExplanation: true,
+        mode: 'simplify',
+        language: _selectedOutputLanguage,
       );
 
       if (mounted) {
         if (result.success) {
           setState(() {
             _contextData = {
-              'translation': result.simplifiedText,
-              'meaning':
-                  result.explanation ?? 'Simplified version of your text.',
+              'translation': result.response,
+              'meaning': 'Simplified version of your text.',
+              'claude_base': result.claudeBase,
               'when_to_use':
                   'Use this simplified text when you need a clear, easy-to-understand version of the original.',
               'tone': 'Simple and direct',
               'cultural_insight':
-                  'Simplified to reduce complexity and improve readability.',
+                  'Simplified using our Claude + Gemini hybrid flow for maximum clarity.',
             };
             _lastBackend = result.backend;
           });

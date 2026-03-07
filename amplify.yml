@@ -23,8 +23,8 @@ frontend:
         # Enable web support
         - flutter config --enable-web
 
-        # Return to app root (where Amplify started us)
-        - cd $(cat .amplify_app_root)
+        # Return to app root and enter bhashalens_app
+        - cd $(cat .amplify_app_root)/bhashalens_app
 
         # Install dependencies
         - flutter pub get
@@ -48,7 +48,7 @@ frontend:
 
     build:
       commands:
-        - cd $(cat .amplify_app_root)
+        - cd $(cat .amplify_app_root)/bhashalens_app
         # Build Flutter Web (stable for icons & fonts)
         - flutter build web --release --web-renderer html --no-tree-shake-icons --pwa-strategy=none
         # Verify output
@@ -56,7 +56,7 @@ frontend:
         - ls build/web/assets || echo "Assets folder missing"
 
   artifacts:
-    baseDirectory: build/web
+    baseDirectory: bhashalens_app/build/web
     files:
       - '**/*'
 
