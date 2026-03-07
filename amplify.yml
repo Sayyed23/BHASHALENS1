@@ -28,6 +28,7 @@ frontend:
         - 'ls -l .env'
 
         # 3. Install dependencies and provision SQLite assets
+        - 'flutter clean'
         - 'flutter pub get'
         - 'dart run sqflite_common_ffi_web:setup'
         - 'ls -l web/'
