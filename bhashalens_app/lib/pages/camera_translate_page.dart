@@ -34,6 +34,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   bool _isFlashOn = false;
   bool _isProcessing = false;
 
+  int _selectedCameraIndex = -1;
+  List<CameraDescription> _cameras = [];
+
   // Translation State
   XFile? _capturedImage;
   Uint8List? _capturedImageBytes;
@@ -120,10 +123,15 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   Future<void> _initializeCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        if (_selectedCameraIndex == -1) {
+          _selectedCameraIndex = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+          if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
+        }
+
         _cameraController = CameraController(
-          cameras[0],
+          _cameras[_selectedCameraIndex],
           ResolutionPreset.high,
           enableAudio: false,
           imageFormatGroup: imageFormatGroupForCamera,
@@ -550,15 +558,41 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     return nameToCode[key] ?? 'auto';
   }
 
-  void _toggleFlash() {
+  void _toggleFlash() async {
     if (_cameraController != null && _isCameraInitialized) {
-      setState(() {
-        _isFlashOn = !_isFlashOn;
-      });
-      _cameraController!.setFlashMode(
-        _isFlashOn ? FlashMode.torch : FlashMode.off,
-      );
+      try {
+        final newFlashOn = !_isFlashOn;
+        await _cameraController!.setFlashMode(
+          newFlashOn ? FlashMode.torch : FlashMode.off,
+        );
+        setState(() {
+          _isFlashOn = newFlashOn;
+        });
+      } catch (e) {
+        debugPrint('Flash not supported: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Flash not supported on this camera')),
+          );
+        }
+      }
     }
+  }
+
+  Future<void> _switchCamera() async {
+    if (_cameras.length < 2 || _cameraController == null) return;
+    
+    final newIndex = (_selectedCameraIndex + 1) % _cameras.length;
+    
+    setState(() {
+      _isCameraInitialized = false;
+      _selectedCameraIndex = newIndex;
+      _isFlashOn = false; // Reset flash state on switch
+    });
+    
+    await _cameraController!.dispose();
+    
+    _initializeCamera();
   }
 
   @override
@@ -726,7 +760,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
                   ),
                   const Spacer(),
-                  const SizedBox(width: 48), // Balance spacing
+                  // Flash Button
+                  _buildGlassyButton(
+                    icon: _isFlashOn
+                        ? Icons.flash_on_rounded
+                        : Icons.flash_off_rounded,
+                    onTap: _toggleFlash,
+                  ),
                 ],
               ),
             ),
@@ -781,12 +821,10 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       ),
                     ),
 
-                    // Flash
+                    // Switch Camera
                     _buildGlassyButton(
-                      icon: _isFlashOn
-                          ? Icons.flash_on_rounded
-                          : Icons.flash_off_rounded,
-                      onTap: _toggleFlash,
+                      icon: Icons.flip_camera_ios_rounded,
+                      onTap: _switchCamera,
                     ),
                   ],
                 ),
