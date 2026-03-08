@@ -126,6 +126,10 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         setState(() {
           _isCameraInitialized = true;
         });
+        // Automatically prompt for file/camera on web immediately
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pickFromNativeCamera();
+        });
       }
       return;
     }
@@ -801,13 +805,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
                   ),
                   const Spacer(),
-                  if (!kIsWeb)
-                    _buildGlassyButton(
-                      icon: Icons.flip_camera_ios_rounded,
-                      onTap: _switchCamera,
-                    )
-                  else
-                    const SizedBox(width: 50),
+                  const SizedBox(width: 50), // Balance for Back Button
                 ],
               ),
             ),
@@ -838,31 +836,20 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       onTap: _pickFromGallery,
                     ),
 
-                    // Shutter
-                    GestureDetector(
+                    // Camera (Replaces Big Shutter)
+                    _buildGlassyButton(
+                      icon: Icons.camera_alt_rounded,
                       onTap: _takePicture,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            width: 8,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
 
-                    const SizedBox(width: 50), // Balance for Gallery
+                    // Switch Camera
+                    if (!kIsWeb)
+                      _buildGlassyButton(
+                        icon: Icons.flip_camera_ios_rounded,
+                        onTap: _switchCamera,
+                      )
+                    else
+                      const SizedBox(width: 50),
                   ],
                 ),
               ),
