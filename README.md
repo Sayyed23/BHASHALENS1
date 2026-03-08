@@ -617,7 +617,7 @@ Flutter App (lib/)
 
 | Backend | Avg Latency | Max Latency | Target Met? |
 |---------|-------------|-------------|-------------|
-| **Gemini 2.0 Flash (Online)** | ~800ms | ~2s | ✅ < 5s |
+| **Gemini 2.5 Flash (Online)** | ~800ms | ~2s | ✅ < 5s |
 | **AWS Bedrock Claude (Online)** | ~1.5s | ~4s | ✅ < 5s |
 | **ML Kit (On-Device)** | ~300ms | ~500ms | ✅ < 1s |
 | **TFLite NLLB (On-Device)** | ~800ms | ~1s | ✅ < 1s |
