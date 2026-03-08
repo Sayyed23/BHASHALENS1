@@ -830,26 +830,44 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Gallery
-                    _buildGlassyButton(
+                    // Gallery (Left)
+                    _buildDarkCircularButton(
                       icon: Icons.photo_library_rounded,
                       onTap: _pickFromGallery,
                     ),
 
-                    // Camera (Replaces Big Shutter)
-                    _buildGlassyButton(
-                      icon: Icons.camera_alt_rounded,
+                    // Shutter (Center)
+                    GestureDetector(
                       onTap: _takePicture,
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 6,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
 
-                    // Switch Camera
+                    // Switch Camera (Right)
                     if (!kIsWeb)
-                      _buildGlassyButton(
+                      _buildDarkCircularButton(
                         icon: Icons.flip_camera_ios_rounded,
                         onTap: _switchCamera,
                       )
                     else
-                      const SizedBox(width: 50),
+                      const SizedBox(width: 56), // Balance for gallery button
                   ],
                 ),
               ),
@@ -1142,6 +1160,25 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDarkCircularButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C2C34).withValues(alpha: 0.9), // Dark grayish purple color 
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }
