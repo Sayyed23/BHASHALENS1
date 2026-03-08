@@ -31,7 +31,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   late AnimationController _focusAnimationController;
   late Animation<double> _focusAnimation;
   bool _isCameraInitialized = false;
-  bool _isFlashOn = false;
   bool _isProcessing = false;
 
   int _selectedCameraIndex = -1;
@@ -602,27 +601,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     return nameToCode[key] ?? 'auto';
   }
 
-  void _toggleFlash() async {
-    if (_cameraController != null && _isCameraInitialized) {
-      try {
-        final newFlashOn = !_isFlashOn;
-        await _cameraController!.setFlashMode(
-          newFlashOn ? FlashMode.torch : FlashMode.off,
-        );
-        setState(() {
-          _isFlashOn = newFlashOn;
-        });
-      } catch (e) {
-        debugPrint('Flash not supported: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Flash not supported on this camera')),
-          );
-        }
-      }
-    }
-  }
-
   Future<void> _switchCamera() async {
     if (_cameras.length < 2 || _cameraController == null) return;
     
@@ -631,7 +609,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     setState(() {
       _isCameraInitialized = false;
       _selectedCameraIndex = newIndex;
-      _isFlashOn = false; // Reset flash state on switch
     });
     
     await _cameraController!.dispose();
@@ -824,16 +801,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
                   ),
                   const Spacer(),
-                  // Flash Button
-                  if (!kIsWeb)
-                    _buildGlassyButton(
-                      icon: _isFlashOn
-                          ? Icons.flash_on_rounded
-                          : Icons.flash_off_rounded,
-                      onTap: _toggleFlash,
-                    )
-                  else
-                    const SizedBox(width: 50),
+                  const SizedBox(width: 50), // Balance for Title
                 ],
               ),
             ),
