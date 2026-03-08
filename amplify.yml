@@ -41,8 +41,15 @@ frontend:
         - 'export PATH="$PATH:$HOME/flutter/bin"'
         - 'export APP_DIR="bhashalens_app"'
         - 'if [ "$(basename $(pwd))" = "bhashalens_app" ]; then export APP_DIR="."; fi'
+        - 'echo "GEMINI_API_KEY=$GEMINI_API_KEY" > $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> $APP_DIR/.env'
+        - 'echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> $APP_DIR/.env'
+        - 'echo "AWS_REGION=$AWS_REGION" >> $APP_DIR/.env'
+        - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> $APP_DIR/.env'
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        - '(cd $APP_DIR && flutter build web --release --no-tree-shake-icons)'
+        - '(cd $APP_DIR && flutter build web --release --web-renderer canvaskit --no-tree-shake-icons)'
         
         # Verify icon fonts are present in build output
         - 'ls -l $APP_DIR/build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
