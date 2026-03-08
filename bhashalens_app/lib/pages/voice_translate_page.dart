@@ -12,6 +12,21 @@ class VoiceTranslatePage extends StatefulWidget {
 }
 
 class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Pre-check offline readiness for default languages
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vs = context.read<VoiceTranslationService>();
+      _refreshAllOfflineStatus(vs);
+    });
+  }
+
+  Future<void> _refreshAllOfflineStatus(VoiceTranslationService vs) async {
+    await vs.checkLanguageReadiness(vs.userALanguage);
+    await vs.checkLanguageReadiness(vs.userBLanguage);
+  }
+
   String convertLanguageCodeToName(String languageCode) {
     return VoiceTranslationService.supportedLanguages[languageCode] ??
         languageCode;
@@ -200,6 +215,93 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   ),
                 ),
 
+              // Offline Readiness Info Banner
+              if (voiceService.isOfflineMode)
+                Builder(builder: (_) {
+                  final langA = voiceService.userALanguage;
+                  final langB = voiceService.userBLanguage;
+                  final statusA = voiceService.offlineStatus[langA];
+                  final statusB = voiceService.offlineStatus[langB];
+                  final issues = <String>[];
+
+                  if (statusA != null && !statusA.translationModelReady) {
+                    issues.add('${_getLanguageName(langA)} translation model');
+                  }
+                  if (statusB != null && !statusB.translationModelReady) {
+                    issues.add('${_getLanguageName(langB)} translation model');
+                  }
+                  if (statusA != null && !statusA.sttAvailable) {
+                    issues.add('${_getLanguageName(langA)} speech recognition');
+                  }
+                  if (statusB != null && !statusB.sttAvailable) {
+                    issues.add('${_getLanguageName(langB)} speech recognition');
+                  }
+                  if (statusA != null && !statusA.ttsAvailable) {
+                    issues.add('${_getLanguageName(langA)} text-to-speech');
+                  }
+                  if (statusB != null && !statusB.ttsAvailable) {
+                    issues.add('${_getLanguageName(langB)} text-to-speech');
+                  }
+
+                  if (issues.isEmpty) return const SizedBox.shrink();
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.amber,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Missing: ${issues.join(", ")}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.amber.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const OfflineModelsPage(),
+                            ),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Fix',
+                              style: TextStyle(
+                                color: Colors.amber.shade900,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
               // Chat Area
               Expanded(
                 child: Container(
@@ -329,12 +431,35 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           ),
           isExpanded: true,
           onChanged: (val) {
-            if (val != null) onChanged(val);
+            if (val != null) {
+              onChanged(val);
+              _checkAndPromptOfflineModels(val);
+            }
           },
           items: VoiceTranslationService.supportedLanguages.entries.map((e) {
+            final vs = context.read<VoiceTranslationService>();
+            final status = vs.offlineStatus[e.key];
+            Widget? trailing;
+            if (status != null) {
+              if (status.isFullyReady) {
+                trailing = const Icon(Icons.check_circle,
+                    size: 14, color: Color(0xFF22C55E));
+              } else if (status.translationModelReady) {
+                trailing = const Icon(Icons.warning_amber_rounded,
+                    size: 14, color: Colors.amber);
+              } else {
+                trailing = const Icon(Icons.cloud_download_outlined,
+                    size: 14, color: Colors.grey);
+              }
+            }
             return DropdownMenuItem(
               value: e.key,
-              child: Text(e.value),
+              child: Row(
+                children: [
+                  Expanded(child: Text(e.value)),
+                  if (trailing != null) ...[const SizedBox(width: 4), trailing],
+                ],
+              ),
             );
           }).toList(),
         ),
@@ -573,9 +698,61 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         _showDownloadModelsDialog(voiceService, langA, langB);
         return;
       }
+
+      // Also warn about STT if not available for the speaker's language
+      final speakerLang = user == 'A' ? langA : langB;
+      if (!voiceService.isLocaleAvailable(speakerLang) && mounted) {
+        final langName = VoiceTranslationService.supportedLanguages[speakerLang] ?? speakerLang;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$langName speech recognition is not installed on your device. '
+              'Add it in Settings → System → Languages & input.',
+            ),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'OK',
+              onPressed: () {},
+            ),
+          ),
+        );
+        return;
+      }
     }
 
     voiceService.startListening(user);
+  }
+
+  /// Check offline readiness when a language is selected and prompt if needed
+  void _checkAndPromptOfflineModels(String languageCode) async {
+    final vs = context.read<VoiceTranslationService>();
+    final status = await vs.checkLanguageReadiness(languageCode);
+
+    if (!mounted) return;
+
+    if (!status.translationModelReady) {
+      final langName = VoiceTranslationService.supportedLanguages[languageCode] ?? languageCode;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$langName offline model not downloaded. '
+            'Download it for offline voice translation.',
+          ),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Download',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OfflineModelsPage(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
   }
 
   void _showDownloadModelsDialog(

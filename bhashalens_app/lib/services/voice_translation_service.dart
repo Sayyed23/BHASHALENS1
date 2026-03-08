@@ -7,6 +7,22 @@ import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 
+/// Offline readiness status for a language
+class LanguageOfflineStatus {
+  final bool sttAvailable;
+  final bool translationModelReady;
+  final bool ttsAvailable;
+
+  const LanguageOfflineStatus({
+    required this.sttAvailable,
+    required this.translationModelReady,
+    required this.ttsAvailable,
+  });
+
+  bool get isFullyReady => sttAvailable && translationModelReady && ttsAvailable;
+  bool get canTranslateOnly => translationModelReady; // text works even w/o STT/TTS
+}
+
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
   final SpeechToText _speechToText = SpeechToText();
@@ -29,6 +45,9 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // Available speech locales (populated after init)
   List<LocaleName> _availableLocales = [];
+
+  // Offline readiness per language (cached)
+  final Map<String, LanguageOfflineStatus> _offlineStatus = {};
 
   // Speech recognition state
   bool _isListening = false;
@@ -63,6 +82,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   MlKitTranslationService get mlKitService => _mlKitService;
   List<LocaleName> get availableLocales => _availableLocales;
+  Map<String, LanguageOfflineStatus> get offlineStatus => _offlineStatus;
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -140,11 +160,13 @@ class VoiceTranslationService extends ChangeNotifier {
   // Language management
   void setUserALanguage(String languageCode) {
     _userALanguage = languageCode;
+    _refreshOfflineStatus(languageCode);
     notifyListeners();
   }
 
   void setUserBLanguage(String languageCode) {
     _userBLanguage = languageCode;
+    _refreshOfflineStatus(languageCode);
     notifyListeners();
   }
 
@@ -153,6 +175,37 @@ class VoiceTranslationService extends ChangeNotifier {
     _userALanguage = _userBLanguage;
     _userBLanguage = temp;
     notifyListeners();
+  }
+
+  /// Refresh offline readiness status for a language (async, updates UI when done)
+  Future<void> _refreshOfflineStatus(String languageCode) async {
+    final status = await checkLanguageReadiness(languageCode);
+    _offlineStatus[languageCode] = status;
+    notifyListeners();
+  }
+
+  /// Check offline readiness for all three components: STT, Translation, TTS
+  Future<LanguageOfflineStatus> checkLanguageReadiness(String languageCode) async {
+    final stt = isLocaleAvailable(languageCode);
+    final translation = await _mlKitService.isModelDownloaded(languageCode);
+    final tts = await isTtsAvailable(languageCode);
+    return LanguageOfflineStatus(
+      sttAvailable: stt,
+      translationModelReady: translation,
+      ttsAvailable: tts,
+    );
+  }
+
+  /// Check if TTS can speak a given language
+  Future<bool> isTtsAvailable(String languageCode) async {
+    try {
+      final localeCode = _getLanguageCode(languageCode);
+      final result = await _flutterTts.isLanguageAvailable(localeCode);
+      return result == 1 || result == true;
+    } catch (e) {
+      debugPrint('TTS availability check failed for $languageCode: $e');
+      return false;
+    }
   }
 
   /// Check if a speech locale is available on this device
@@ -240,7 +293,7 @@ class VoiceTranslationService extends ChangeNotifier {
         pauseFor: const Duration(seconds: 5),
         localeId: localeId,
         listenOptions: SpeechListenOptions(
-          onDevice: false, // Let system decide; forced onDevice breaks unsupported locales
+          onDevice: _isOfflineMode, // Force on-device when offline
           cancelOnError: false, // Don't silently cancel
         ),
       );
@@ -399,7 +452,18 @@ class VoiceTranslationService extends ChangeNotifier {
   Future<void> speakText(String text, String languageCode,
       {bool slow = false}) async {
     try {
-      await _flutterTts.setLanguage(_getLanguageCode(languageCode));
+      final ttsLocale = _getLanguageCode(languageCode);
+      final available = await isTtsAvailable(languageCode);
+      if (!available) {
+        final langName = supportedLanguages[languageCode] ?? languageCode;
+        debugPrint('TTS not available for $langName ($ttsLocale)');
+        _errorMessage = '$langName text-to-speech is not installed. '
+            'Translation text is shown above. '
+            'Install $langName TTS in your device settings to hear it spoken.';
+        notifyListeners();
+        return;
+      }
+      await _flutterTts.setLanguage(ttsLocale);
       await _flutterTts.setSpeechRate(slow ? 0.3 : 0.5);
       await _flutterTts.speak(text);
     } catch (e) {
