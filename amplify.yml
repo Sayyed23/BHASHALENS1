@@ -52,8 +52,8 @@ frontend:
         - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> $APP_DIR/.env'
         - 'cat $APP_DIR/.env | head -c 50 && echo "... (.env present)"'
 
-        # Build Flutter Web with CanvasKit renderer for proper icon rendering
-        - '(cd $APP_DIR && flutter build web --release --web-renderer canvaskit --no-tree-shake-icons)'
+        # Build Flutter Web (CanvasKit is default renderer in Flutter 3.41+)
+        - '(cd $APP_DIR && flutter build web --release --no-tree-shake-icons)'
         
         # Verify icon fonts are present in build output
         - 'ls -l $APP_DIR/build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'

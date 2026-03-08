@@ -23,6 +23,7 @@
     }
   ],
   "hosting": {
+    "site": "bhashalens",
     "public": "build/web",
     "ignore": [
       "firebase.json",
