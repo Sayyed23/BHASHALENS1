@@ -759,7 +759,7 @@ BHASHALENS1/
 
 ### Completed Milestones ✅
 - [x] Core Flutter app with 21 screens
-- [x] Gemini 2.0 Flash integration (translation, explain, simplify, chat)
+- [x] Gemini 2.5 Flash integration (translation, explain, simplify, chat)
 - [x] AWS Bedrock Claude Sonnet integration
 - [x] Smart Hybrid Router with 6-rule decision engine
 - [x] ML Kit on-device translation, OCR, language detection
