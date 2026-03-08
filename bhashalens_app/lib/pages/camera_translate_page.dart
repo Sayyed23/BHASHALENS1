@@ -31,6 +31,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   late AnimationController _focusAnimationController;
   late Animation<double> _focusAnimation;
   bool _isCameraInitialized = false;
+  bool _isFlashOn = false;
   bool _isProcessing = false;
 
   int _selectedCameraIndex = -1;
@@ -125,10 +126,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
-        });
-        // Automatically prompt for file/camera on web immediately
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _pickFromNativeCamera();
         });
       }
       return;
@@ -605,6 +602,27 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     return nameToCode[key] ?? 'auto';
   }
 
+  void _toggleFlash() async {
+    if (_cameraController != null && _isCameraInitialized) {
+      try {
+        final newFlashOn = !_isFlashOn;
+        await _cameraController!.setFlashMode(
+          newFlashOn ? FlashMode.torch : FlashMode.off,
+        );
+        setState(() {
+          _isFlashOn = newFlashOn;
+        });
+      } catch (e) {
+        debugPrint('Flash not supported: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Flash not supported on this camera')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _switchCamera() async {
     if (_cameras.length < 2 || _cameraController == null) return;
     
@@ -613,6 +631,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
     setState(() {
       _isCameraInitialized = false;
       _selectedCameraIndex = newIndex;
+      _isFlashOn = false; // Reset flash state on switch
     });
     
     await _cameraController!.dispose();
@@ -805,7 +824,16 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
                   ),
                   const Spacer(),
-                  const SizedBox(width: 50), // Balance for Back Button
+                  // Flash Button
+                  if (!kIsWeb)
+                    _buildGlassyButton(
+                      icon: _isFlashOn
+                          ? Icons.flash_on_rounded
+                          : Icons.flash_off_rounded,
+                      onTap: _toggleFlash,
+                    )
+                  else
+                    const SizedBox(width: 50),
                 ],
               ),
             ),
@@ -830,29 +858,29 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Gallery (Left)
-                    _buildDarkCircularButton(
+                    // Gallery
+                    _buildGlassyButton(
                       icon: Icons.photo_library_rounded,
                       onTap: _pickFromGallery,
                     ),
 
-                    // Shutter (Center)
+                    // Shutter
                     GestureDetector(
                       onTap: _takePicture,
                       child: Container(
-                        width: 76,
-                        height: 76,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white,
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 6,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            width: 8,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 10,
+                              color: Colors.white.withValues(alpha: 0.3),
+                              blurRadius: 20,
                               spreadRadius: 2,
                             ),
                           ],
@@ -860,14 +888,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       ),
                     ),
 
-                    // Switch Camera (Right)
+                    // Switch Camera
                     if (!kIsWeb)
-                      _buildDarkCircularButton(
+                      _buildGlassyButton(
                         icon: Icons.flip_camera_ios_rounded,
                         onTap: _switchCamera,
                       )
                     else
-                      const SizedBox(width: 56), // Balance for gallery button
+                      const SizedBox(width: 50),
                   ],
                 ),
               ),
@@ -1160,25 +1188,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDarkCircularButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2C2C34).withValues(alpha: 0.9), // Dark grayish purple color 
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }
