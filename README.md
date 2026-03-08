@@ -528,7 +528,7 @@ Flutter App (lib/)
 
 | Technology | Purpose | Mode |
 |------------|---------|------|
-| **Google Gemini 2.0 Flash** | Primary AI for translation, explain, simplify, chat | Online |
+| **Google Gemini 2.5 Flash** | Primary AI for translation, explain, simplify, chat | Online |
 | **Gemini Vision** | Image-based text extraction and understanding | Online |
 | **AWS Bedrock (Claude Sonnet 4)** | Fallback AI for translation, assistance, simplification | Online |
 | **Google ML Kit** | On-device translation, OCR, language identification | Offline |
