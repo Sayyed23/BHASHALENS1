@@ -438,20 +438,58 @@ class _HistorySavedPageState extends State<HistorySavedPage>
           ),
           const SizedBox(height: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                _getCategoryIcon(item.type ?? 'General'),
-                color: const Color(0xFF22C55E),
-                size: 14,
+              Row(
+                children: [
+                  Icon(
+                    _getCategoryIcon(item.type ?? 'General'),
+                    color: const Color(0xFF22C55E),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    (item.type ?? 'General').toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF22C55E),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Text(
-                (item.type ?? 'General').toUpperCase(),
-                style: const TextStyle(
-                  color: Color(0xFF22C55E),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: item.isSynced
+                      ? const Color(0xFFFF9900).withValues(alpha: 0.1) // AWS Orange tint
+                      : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: item.isSynced
+                        ? const Color(0xFFFF9900).withValues(alpha: 0.3)
+                        : Colors.grey.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      item.isSynced ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+                      size: 12,
+                      color: item.isSynced ? const Color(0xFFFF9900) : Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      item.isSynced ? "AWS Cloud" : "In-App",
+                      style: TextStyle(
+                        color: item.isSynced ? const Color(0xFFFF9900) : Colors.grey,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

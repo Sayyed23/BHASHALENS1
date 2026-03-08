@@ -7,6 +7,8 @@ class HistoryItem {
   final String targetLang;
   final DateTime timestamp;
   final String? type; // 'translation', 'grammar', 'simplification', 'chat'
+  final bool isSynced;
+  final String backend;
 
   HistoryItem({
     required this.id,
@@ -17,20 +19,22 @@ class HistoryItem {
     required this.targetLang,
     required this.timestamp,
     this.type,
+    this.isSynced = true,
+    this.backend = 'unknown',
   });
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
     return HistoryItem(
       id: json['id'] as String? ?? '',
       userId: json['userId'] as String? ?? '',
-      sourceText: json['sourceText'] as String? ?? '',
-      targetText: json['targetText'] as String? ??
-          json['translatedText'] as String? ??
-          '',
-      sourceLang: json['sourceLang'] as String? ?? '',
-      targetLang: json['targetLang'] as String? ?? '',
+      sourceText: json['originalText'] ?? json['sourceText'] as String? ?? '',
+      targetText: json['translatedText'] ?? json['targetText'] as String? ?? '',
+      sourceLang: json['sourceLanguage'] ?? json['sourceLang'] as String? ?? '',
+      targetLang: json['targetLanguage'] ?? json['targetLang'] as String? ?? '',
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
-      type: json['type'] as String?,
+      type: json['category'] ?? json['type'] as String?,
+      isSynced: (json['isSynced'] as int?) == 1 || json['id'] != null, // Default true if from cloud
+      backend: json['backend'] as String? ?? 'unknown',
     );
   }
 
@@ -44,6 +48,8 @@ class HistoryItem {
       'targetLang': targetLang,
       'timestamp': timestamp.millisecondsSinceEpoch,
       'type': type,
+      'isSynced': isSynced ? 1 : 0,
+      'backend': backend,
     };
   }
 }

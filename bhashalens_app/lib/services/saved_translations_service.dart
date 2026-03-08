@@ -41,6 +41,8 @@ class SavedTranslationsService extends ChangeNotifier {
         targetLang: json['targetLanguage'] ?? '',
         timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] ?? 0),
         type: json['category'] ?? 'translation',
+        isSynced: (json['isSynced'] as int?) == 1,
+        backend: json['backend'] as String? ?? 'offline',
       )).toList();
 
       if (_apiClient.isEnabled) {
@@ -110,6 +112,8 @@ class SavedTranslationsService extends ChangeNotifier {
       targetLang: item['targetLang']?.toString() ?? '',
       timestamp: DateTime.fromMillisecondsSinceEpoch(tsMs),
       type: 'translation',
+      isSynced: true,
+      backend: item['backend']?.toString() ?? 'cloud',
     );
   }
 

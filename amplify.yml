@@ -20,40 +20,39 @@ frontend:
         - 'flutter doctor -v'
 
         # 2. Setup project environment with robust path handling
-        - 'echo "CURRENT DIRECTORY: $(pwd)"'
-        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
-        - 'echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env'
-        - 'echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env'
-        - 'echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env'
-        - 'echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env'
-        - 'echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env'
-        - 'echo "AWS_REGION=$AWS_REGION" >> .env'
-        - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env'
-        - 'echo "VERIFIED: .env created at $(pwd)/.env"'
-        - 'ls -l .env'
-        - 'cp ../amplify_outputs.json lib/amplify_outputs.json || echo "Warning: amplify_outputs.json not found in root"'
+        - 'export APP_DIR="bhashalens_app"'
+        - 'if [ "$(basename $(pwd))" = "bhashalens_app" ]; then export APP_DIR="."; fi'
+        - 'echo "GEMINI_API_KEY=$GEMINI_API_KEY" > $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> $APP_DIR/.env'
+        - 'echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> $APP_DIR/.env'
+        - 'echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> $APP_DIR/.env'
+        - 'echo "AWS_REGION=$AWS_REGION" >> $APP_DIR/.env'
+        - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> $APP_DIR/.env'
+        - 'ls -l $APP_DIR/.env'
+        - 'if [ -f "amplify_outputs.json" ]; then cp amplify_outputs.json $APP_DIR/lib/amplify_outputs.json; elif [ -f "../amplify_outputs.json" ]; then cp ../amplify_outputs.json $APP_DIR/lib/amplify_outputs.json; else echo "Warning: amplify_outputs.json not found"; fi'
 
         # 3. Install dependencies and provision SQLite assets
-        - 'flutter clean'
-        - 'flutter pub get'
-        - 'dart run sqflite_common_ffi_web:setup'
-        - 'ls -l web/'
+        - 'cd $APP_DIR && flutter clean'
+        - 'cd $APP_DIR && flutter pub get'
+        - 'cd $APP_DIR && dart run sqflite_common_ffi_web:setup'
+        - 'ls -l $APP_DIR/web/'
 
     build:
       commands:
         - 'export PATH="$PATH:$HOME/flutter/bin"'
-        - 'echo "CURRENT DIRECTORY: $(pwd)"'
-        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
+        - 'export APP_DIR="bhashalens_app"'
+        - 'if [ "$(basename $(pwd))" = "bhashalens_app" ]; then export APP_DIR="."; fi'
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        - 'flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
+        - 'cd $APP_DIR && flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
         
         # Verify icon fonts are present in build output
-        - 'ls -l build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
-        - 'ls -l build/web/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf || echo "WARNING: CupertinoIcons font MISSING"'
+        - 'ls -l $APP_DIR/build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
+        - 'ls -l $APP_DIR/build/web/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf || echo "WARNING: CupertinoIcons font MISSING"'
 
         # Final verification
-        - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
-        - 'ls -l build/web/index.html'
+        - "ls -l $APP_DIR/build/web/assets/.env || echo 'WARNING: .env not found in build output'"
+        - 'ls -l $APP_DIR/build/web/index.html'
 
   artifacts:
     baseDirectory: bhashalens_app/build/web

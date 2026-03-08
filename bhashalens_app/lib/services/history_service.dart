@@ -90,6 +90,8 @@ class HistoryService extends ChangeNotifier {
           targetLang: json['targetLanguage'] ?? '',
           timestamp: timestamp,
           type: json['category'] ?? 'translation',
+          isSynced: (json['isSynced'] as int?) == 1,
+          backend: json['backend'] as String? ?? 'offline',
         );
       }).toList();
 
@@ -174,6 +176,8 @@ class HistoryService extends ChangeNotifier {
       targetLang: item['targetLang']?.toString() ?? '',
       timestamp: timestamp,
       type: item['type']?.toString(),
+      isSynced: true, // It's from the cloud, so it's synced
+      backend: item['backend']?.toString() ?? 'cloud',
     );
   }
 
