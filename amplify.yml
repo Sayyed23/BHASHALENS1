@@ -33,9 +33,7 @@ frontend:
         - 'if [ -f "amplify_outputs.json" ]; then cp amplify_outputs.json $APP_DIR/lib/amplify_outputs.json; elif [ -f "../amplify_outputs.json" ]; then cp ../amplify_outputs.json $APP_DIR/lib/amplify_outputs.json; else echo "Warning: amplify_outputs.json not found"; fi'
 
         # 3. Install dependencies and provision SQLite assets
-        - 'cd $APP_DIR && flutter clean'
-        - 'cd $APP_DIR && flutter pub get'
-        - 'cd $APP_DIR && dart run sqflite_common_ffi_web:setup'
+        - '(cd $APP_DIR && flutter clean && flutter pub get && dart run sqflite_common_ffi_web:setup)'
         - 'ls -l $APP_DIR/web/'
 
     build:
@@ -44,7 +42,7 @@ frontend:
         - 'export APP_DIR="bhashalens_app"'
         - 'if [ "$(basename $(pwd))" = "bhashalens_app" ]; then export APP_DIR="."; fi'
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        - 'cd $APP_DIR && flutter build web --release --no-tree-shake-icons'
+        - '(cd $APP_DIR && flutter build web --release --no-tree-shake-icons)'
         
         # Verify icon fonts are present in build output
         - 'ls -l $APP_DIR/build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
