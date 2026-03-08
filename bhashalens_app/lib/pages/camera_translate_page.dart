@@ -868,22 +868,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     GestureDetector(
                       onTap: _takePicture,
                       child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            width: 8,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
                         ),
                       ),
                     ),
