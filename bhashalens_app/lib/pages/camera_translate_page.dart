@@ -122,6 +122,15 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   }
 
   Future<void> _initializeCamera() async {
+    if (kIsWeb) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+      return;
+    }
+
     try {
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
@@ -164,6 +173,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   }
 
   Future<void> _takePicture() async {
+    if (kIsWeb) {
+      await _pickFromNativeCamera();
+      return;
+    }
+
     if (!_isCameraInitialized || _isProcessing) return;
 
     try {
@@ -188,6 +202,36 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickFromNativeCamera() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+
+      if (image != null) {
+        if (!mounted) return;
+        setState(() {
+          _isProcessing = true;
+        });
+
+        final Uint8List bytes = await image.readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _capturedImage = image;
+          _capturedImageBytes = bytes;
+        });
+
+        await _processImage(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error picking image from native camera: $e');
+      if (mounted) {
         setState(() {
           _isProcessing = false;
         });
@@ -606,7 +650,24 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         fit: StackFit.expand,
         children: [
           // 1. Camera Preview Layer
-          if (_isCameraInitialized && _capturedImageBytes == null)
+          if (kIsWeb && _capturedImageBytes == null)
+            Container(
+              color: Colors.black,
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.camera_alt, color: Colors.white54, size: 80),
+                    SizedBox(height: 16),
+                    Text(
+                      'Tap Shutter to open Camera',
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_isCameraInitialized && _capturedImageBytes == null && _cameraController != null)
             CameraPreview(_cameraController!)
           else if (_capturedImageBytes != null)
             Image.memory(_capturedImageBytes!, fit: BoxFit.cover)
@@ -629,16 +690,17 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       backgroundBlendMode: BlendMode.dstOut,
                     ),
                   ),
-                  Center(
-                    child: Container(
-                      width: 300,
-                      height: 200, // Focus Rectangle
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                  if (!kIsWeb)
+                    Center(
+                      child: Container(
+                        width: 300,
+                        height: 200, // Focus Rectangle
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -656,30 +718,32 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   ),
                   child: Stack(
                     children: [
-                      // Top Left
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        child: _buildCorner(true, true),
-                      ),
-                      // Top Right
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: _buildCorner(true, false),
-                      ),
-                      // Bottom Left
-                      Positioned(
-                        left: 0,
-                        bottom: 0,
-                        child: _buildCorner(false, true),
-                      ),
-                      // Bottom Right
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: _buildCorner(false, false),
-                      ),
+                      if (!kIsWeb) ...[
+                        // Top Left
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: _buildCorner(true, true),
+                        ),
+                        // Top Right
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: _buildCorner(true, false),
+                        ),
+                        // Bottom Left
+                        Positioned(
+                          left: 0,
+                          bottom: 0,
+                          child: _buildCorner(false, true),
+                        ),
+                        // Bottom Right
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: _buildCorner(false, false),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -761,12 +825,15 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                   ),
                   const Spacer(),
                   // Flash Button
-                  _buildGlassyButton(
-                    icon: _isFlashOn
-                        ? Icons.flash_on_rounded
-                        : Icons.flash_off_rounded,
-                    onTap: _toggleFlash,
-                  ),
+                  if (!kIsWeb)
+                    _buildGlassyButton(
+                      icon: _isFlashOn
+                          ? Icons.flash_on_rounded
+                          : Icons.flash_off_rounded,
+                      onTap: _toggleFlash,
+                    )
+                  else
+                    const SizedBox(width: 50),
                 ],
               ),
             ),
@@ -822,10 +889,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
 
                     // Switch Camera
-                    _buildGlassyButton(
-                      icon: Icons.flip_camera_ios_rounded,
-                      onTap: _switchCamera,
-                    ),
+                    if (!kIsWeb)
+                      _buildGlassyButton(
+                        icon: Icons.flip_camera_ios_rounded,
+                        onTap: _switchCamera,
+                      )
+                    else
+                      const SizedBox(width: 50),
                   ],
                 ),
               ),
