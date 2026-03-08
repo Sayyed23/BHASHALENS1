@@ -351,6 +351,8 @@ class GeminiService {
           'IMPORTANT: Your ENTIRE response (ALL fields including meaning, analysis, cultural_insight, etc.) '
           'MUST be written in $targetLanguageName. Do NOT respond in English unless $targetLanguageName IS English. '
           'You MUST provide detailed, meaningful answers for ALL fields. Do not leave any field empty or use generic placeholders like "N/A".\n'
+          'The "meaning" field MUST provide a CLEAN, CLEAR, and EASY TO UNDERSTAND explanation module by module. '
+          'Avoid technical jargon and keep it simple (ELI5 - Explain Like I\'m Five).\n'
           'Do NOT append labels like "**Original:**" or "**Translation:**". Just output the pure sentence directly.\n'
           'Return a valid JSON object with the following keys and no markdown formatting outside the JSON: '
           '{'
@@ -358,6 +360,7 @@ class GeminiService {
           '"analysis": "String - A brief contextual summary IN $targetLanguageName (1-2 sentences). Who is speaking? What is the main topic?", '
           '"meaning": "String - A detailed module-by-module breakdown. For every part of the text, format it concisely as pure proper sentences like this:\\n\\n🔹 [text]\\n🔸 [translation in $targetLanguageName]\\n💡 [very short, simple ELI5 explanation in $targetLanguageName (MAX 1 SENTENCE)]\\n---", '
           '"suggested_questions": ["String IN $targetLanguageName", "String IN $targetLanguageName"], '
+          '"instructions": "String IN $targetLanguageName - Provide proper, step-by-step instructions or advice based on the text. CLEAR and EASY TO READ.", '
           '"when_to_use": "String IN $targetLanguageName - Describe exactly when and how to use this phrase", '
           '"tone": "String IN $targetLanguageName - Describe the tone (e.g. Formal, Polite, Casual)", '
           '"situational_context": ["String IN $targetLanguageName - Situation 1", "String IN $targetLanguageName - Situation 2"], '
@@ -494,6 +497,60 @@ class GeminiService {
     } catch (e) {
       debugPrint("Error fetching initial greeting: $e");
       return "Hello, how can I help you?";
+    }
+  }
+
+  // Improved Assistant Response (JSON)
+  Future<Map<String, dynamic>> getAssistantResponse(
+    String text,
+    String situationalContext,
+    String language,
+  ) async {
+    if (!_isInitialized) {
+      throw Exception('Gemini service not initialized');
+    }
+
+    try {
+      final String targetLanguageName = _getLanguageName(language);
+      final prompt =
+          'You are a helpful language assistant in a "$situationalContext" scenario. '
+          'The user says/asks: "$text". '
+          'YOUR TASK: Provide a helpful, concise response and linguistic guidance. '
+          'Return a valid JSON object (no markdown) with these keys: '
+          '{'
+          '"response": "String - Direct, helpful answer in $targetLanguageName", '
+          '"better_way": "String - A more natural, polite, or professional way to say the input phrase in $targetLanguageName (or null if not applicable)", '
+          '"cultural_note": "String - A short cultural tip relevant to this $situationalContext situation in $targetLanguageName (or null)", '
+          '"suggested_replies": ["String 1", "String 2"] - List of 2 short things the user can say next in $targetLanguageName'
+          '} '
+          'IMPORTANT: Your ENTIRE response MUST be in $targetLanguageName.';
+
+      await _checkAndIncrementLimit();
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null) {
+        throw Exception('Empty response from Gemini');
+      }
+
+      String jsonString = responseText.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replaceAll('```', '');
+      }
+
+      return jsonDecode(jsonString);
+    } catch (e) {
+      debugPrint('Error getting assistant response: $e');
+      return {
+        'response': 'I am sorry, I am having trouble understanding that right now.',
+        'better_way': null,
+        'cultural_note': null,
+        'suggested_replies': ['Can you repeat that?', 'Help me with something else'],
+      };
     }
   }
 

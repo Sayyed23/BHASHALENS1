@@ -32,6 +32,21 @@ class ExplanationTemplates {
         'This type of text can appear in various everyday situations.',
   };
 
+  // ============ INSTRUCTIONS TEMPLATES ============
+
+  static const Map<IntentType, String> instructionsTemplates = {
+    IntentType.question:
+        '1. If you know the answer, respond clearly.\n2. If unsure, ask for more details.\n3. Keep your response polite.',
+    IntentType.request:
+        '1. Consider if you can fulfill the request.\n2. Respond politely with "Yes" or "No".\n3. If accepting, ask for any next steps.',
+    IntentType.warning:
+        '1. READ carefully to understand the restriction.\n2. FOLLOW the rule immediately to avoid issues.\n3. LOOK around for related signs or staff.',
+    IntentType.statement:
+        '1. NOTE the information provided.\n2. CHECK if any action is needed from your side.\n3. KEEP this information for future reference.',
+    IntentType.unknown:
+        '1. READ the text once more to understand the context.\n2. SEEK help from a local or staff if unsure.\n3. DO NOT take risky actions if the meaning is unclear.',
+  };
+
   // ============ TONE TEMPLATES ============
 
   static const Map<ToneType, String> toneTemplates = {

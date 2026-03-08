@@ -8,6 +8,7 @@ class ExplanationResult {
   final List<String> suggestions;
   final String? culturalNote;
   final String? safetyNote;
+  final String? instructions;
   final bool offlineGenerated;
   final DateTime timestamp;
   final DetectedIntent? detectedIntent;
@@ -19,6 +20,7 @@ class ExplanationResult {
     this.suggestions = const [],
     this.culturalNote,
     this.safetyNote,
+    this.instructions,
     this.offlineGenerated = true,
     required this.timestamp,
     this.detectedIntent,
@@ -30,6 +32,7 @@ class ExplanationResult {
       'meaning': meaning,
       'analysis': meaning, // Alias for existing UI compatibility
       'when_to_use': usage,
+      'instructions': instructions, // New field
       'tone': toneDescription,
       'suggested_questions': suggestions,
       'cultural_insight': culturalNote ?? 'N/A',
@@ -44,6 +47,7 @@ class ExplanationResult {
     return ExplanationResult(
       meaning: map['meaning'] ?? map['analysis'] ?? '',
       usage: map['when_to_use'] ?? map['usage'] ?? '',
+      instructions: map['instructions'],
       toneDescription: map['tone'] ?? 'Neutral',
       suggestions: List<String>.from(map['suggested_questions'] ?? []),
       culturalNote: map['cultural_insight'],

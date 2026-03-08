@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:bhashalens_app/models/translation_history_entry.dart';
 import 'package:bhashalens_app/services/smart_hybrid_router.dart';
 import 'package:flutter/foundation.dart';
@@ -368,10 +369,12 @@ class HybridTranslationService {
       if (mode == 'explain') {
         final explanation = await _onDeviceLLM.explainTextWithContext(text,
             targetLanguage: language);
-        // Return the full rich explanation
-        resultText = explanation['meaning'] ??
-            explanation['explanation'] ??
-            'Explanation unavailable.';
+        // Return the full JSON for the UI to parse everything (translation, meaning, instructions, etc.)
+        resultText = jsonEncode(explanation);
+      } else if (mode == 'assist') {
+        final response = await _onDeviceLLM.getAssistantResponse(
+            text, situationalContext ?? 'General', language);
+        resultText = jsonEncode(response);
       } else if (mode == 'simplify') {
         resultText = await _onDeviceLLM.explainAndSimplify(text,
             simplicity: complexity ?? 'simple', targetLanguage: language);

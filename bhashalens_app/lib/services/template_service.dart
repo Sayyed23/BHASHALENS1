@@ -68,6 +68,10 @@ class TemplateService {
     String? safetyNote =
         ExplanationTemplates.sensitivityNotes[intent.sensitivity];
 
+    // Get instructions
+    String? instructions =
+        ExplanationTemplates.instructionsTemplates[intent.intent];
+
     return ExplanationResult(
       meaning: meaning,
       usage: usage,
@@ -75,6 +79,7 @@ class TemplateService {
       suggestions: suggestions,
       culturalNote: culturalNote,
       safetyNote: safetyNote,
+      instructions: instructions,
       offlineGenerated: true,
       timestamp: DateTime.now(),
       detectedIntent: intent,
@@ -109,6 +114,10 @@ class TemplateService {
     String? safetyNote =
         ExplanationTemplates.sensitivityNotes[intent.sensitivity];
 
+    // Get basic instructions
+    String? instructions =
+        ExplanationTemplates.instructionsTemplates[intent.intent];
+
     return ExplanationResult(
       meaning: meaning,
       usage: usage,
@@ -116,6 +125,7 @@ class TemplateService {
       suggestions: suggestions,
       culturalNote: null,
       safetyNote: safetyNote,
+      instructions: instructions,
       offlineGenerated: true,
       timestamp: DateTime.now(),
       detectedIntent: intent,
@@ -128,6 +138,10 @@ class TemplateService {
     String? safetyNote =
         ExplanationTemplates.sensitivityNotes[intent.sensitivity];
 
+    // Get generic instructions
+    String? instructions =
+        ExplanationTemplates.instructionsTemplates[IntentType.unknown];
+
     return ExplanationResult(
       meaning: ExplanationTemplates.genericTemplates['meaning']!,
       usage: ExplanationTemplates.genericTemplates['usage']!,
@@ -137,6 +151,7 @@ class TemplateService {
       ],
       culturalNote: null,
       safetyNote: safetyNote,
+      instructions: instructions,
       offlineGenerated: true,
       timestamp: DateTime.now(),
       detectedIntent: intent,

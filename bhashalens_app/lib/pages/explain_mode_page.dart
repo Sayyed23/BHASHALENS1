@@ -251,6 +251,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                   parsedResponse['meaning'] ?? orchestrateResult.response,
               'analysis': parsedResponse['analysis'],
               'suggested_questions': parsedResponse['suggested_questions'],
+              'instructions': parsedResponse['instructions'], // New field
               'when_to_use': parsedResponse['when_to_use'],
               'tone': parsedResponse['tone'],
               'situational_context': parsedResponse['situational_context'],
@@ -1231,6 +1232,59 @@ class _ExplainModePageState extends State<ExplainModePage>
                               ],
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          // Proper Instructions Section
+                          if (_contextData!['instructions'] != null &&
+                              _contextData!['instructions']
+                                  .toString()
+                                  .isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.green.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.assignment_outlined,
+                                          color: Colors.green, size: 22),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'Recommended Steps',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      IconButton(
+                                        icon: const Icon(Icons.volume_up,
+                                            color: Colors.green, size: 20),
+                                        onPressed: () => _speakInOutputLanguage(
+                                          _contextData!['instructions'],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _contextData!['instructions'],
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           const SizedBox(height: 20),
 
                           // Have questions?
