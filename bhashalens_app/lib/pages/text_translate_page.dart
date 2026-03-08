@@ -597,6 +597,11 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
 
       if (mounted) {
         setState(() => _translatedText = translation);
+        if (translation.isEmpty || translation.startsWith('Translation failed') || translation.startsWith('Offline')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(translation.isNotEmpty ? translation : 'Translation failed. Please try again.')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -86,6 +86,18 @@ class HybridTranslationService {
         }
       }
 
+      // On web, ML Kit is unavailable — return error instead of silent failure
+      if (kIsWeb) {
+        return HybridTranslationResult(
+          translatedText: '',
+          confidence: 0.0,
+          backend: ProcessingBackend.gemini,
+          processingTimeMs: DateTime.now().difference(startTime).inMilliseconds,
+          success: false,
+          error: 'Translation failed. Please check your internet connection and try again.',
+        );
+      }
+
       // Use ML Kit translation (either as primary choice or fallback from Gemini)
       final onDeviceResult = await _onDeviceTranslation.translate(
         text: sourceText,

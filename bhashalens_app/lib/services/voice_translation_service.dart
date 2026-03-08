@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -358,6 +359,9 @@ class VoiceTranslationService extends ChangeNotifier {
       String actualSourceLanguage = fromLanguage ?? 'en';
 
       if (_isOfflineMode) {
+        if (kIsWeb) {
+          return 'Offline translation is not available on web. Please connect to the internet.';
+        }
         if (fromLanguage == 'auto') {
           actualSourceLanguage = await _mlKitService.identifyLanguage(text);
           if (actualSourceLanguage == 'und') {
@@ -395,6 +399,9 @@ class VoiceTranslationService extends ChangeNotifier {
           sourceLang: actualSourceLanguage,
           targetLang: toLanguage,
         );
+        if (!result.success) {
+          return result.error ?? 'Translation failed. Please try again.';
+        }
         return result.translatedText;
       }
     } catch (e) {

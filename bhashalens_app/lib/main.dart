@@ -84,6 +84,12 @@ void main() async {
 
   final localStorageService = LocalStorageService();
   final geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  
+  debugPrint('--- BOOTSTRAP DIAGNOSTICS ---');
+  debugPrint('Dotenv keys loaded: ${dotenv.env.keys.length}');
+  debugPrint('GEMINI_API_KEY present: ${geminiApiKey != null && geminiApiKey.isNotEmpty}');
+  debugPrint('-----------------------------');
+
   final geminiService = GeminiService(
     apiKey: geminiApiKey,
     localStorageService: localStorageService,
