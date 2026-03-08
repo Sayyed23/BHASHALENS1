@@ -135,7 +135,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
         if (_selectedCameraIndex == -1) {
-          _selectedCameraIndex = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+          _selectedCameraIndex = _cameras
+              .indexWhere((c) => c.lensDirection == CameraLensDirection.back);
           if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
         }
 
@@ -291,7 +292,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         );
         // #endregion
         try {
-          final geminiService = Provider.of<GeminiService>(context, listen: false);
+          final geminiService =
+              Provider.of<GeminiService>(context, listen: false);
           if (!geminiService.isInitialized) {
             await geminiService.initialize();
           }
@@ -306,11 +308,14 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         if (extracted.isNotEmpty && !extracted.startsWith('Error')) {
           // Use Gemini to detect source language when auto-detect is selected
           String sourceLang = _sourceLanguageCode;
-          final geminiServiceForDetect = Provider.of<GeminiService>(context, listen: false);
-          final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+          final geminiServiceForDetect =
+              Provider.of<GeminiService>(context, listen: false);
+          final hybridService =
+              Provider.of<HybridTranslationService>(context, listen: false);
           if (_sourceLanguageCode == 'auto') {
             try {
-              final detected = await geminiServiceForDetect.detectLanguage(extracted);
+              final detected =
+                  await geminiServiceForDetect.detectLanguage(extracted);
               debugPrint('Gemini detected source language (Web): $detected');
               detectedLang = _mapDetectedLanguageToCode(detected);
               sourceLang = detectedLang;
@@ -434,7 +439,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         }
       } else {
         // Online Logic - STRICT GEMINI
-        final geminiService = Provider.of<GeminiService>(context, listen: false);
+        final geminiService =
+            Provider.of<GeminiService>(context, listen: false);
         final hybridService = Provider.of<HybridTranslationService>(
           context,
           listen: false,
@@ -444,7 +450,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         if (!geminiService.isInitialized) {
           final initialized = await geminiService.initialize();
           if (!initialized) {
-            throw Exception('Gemini service failed to initialize. Check API key.');
+            throw Exception(
+                'Gemini service failed to initialize. Check API key.');
           }
         }
 
@@ -469,7 +476,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             }
           }
 
-          debugPrint('Camera Translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
+          debugPrint(
+              'Camera Translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
           final result = await hybridService.translateText(
             sourceText: extracted,
             targetLang: _targetLanguageCode,
@@ -541,7 +549,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         String sourceLang = _sourceLanguageCode;
         if (_sourceLanguageCode == 'auto') {
           try {
-            final geminiService = Provider.of<GeminiService>(context, listen: false);
+            final geminiService =
+                Provider.of<GeminiService>(context, listen: false);
             final detected = await geminiService.detectLanguage(_extractedText);
             sourceLang = _mapDetectedLanguageToCode(detected);
           } catch (e) {
@@ -550,7 +559,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           }
         }
 
-        debugPrint('Re-translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
+        debugPrint(
+            'Re-translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
         final result = await hybridService.translateText(
           sourceText: _extractedText,
           targetLang: _targetLanguageCode,
@@ -591,11 +601,26 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   /// Maps a detected language name (from Gemini) to its BCP-47 code
   String _mapDetectedLanguageToCode(String detectedName) {
     final nameToCode = <String, String>{
-      'english': 'en', 'spanish': 'es', 'french': 'fr', 'german': 'de',
-      'italian': 'it', 'portuguese': 'pt', 'russian': 'ru', 'japanese': 'ja',
-      'korean': 'ko', 'chinese': 'zh', 'arabic': 'ar', 'hindi': 'hi',
-      'bengali': 'bn', 'tamil': 'ta', 'telugu': 'te', 'malayalam': 'ml',
-      'kannada': 'kn', 'gujarati': 'gu', 'marathi': 'mr', 'punjabi': 'pa',
+      'english': 'en',
+      'spanish': 'es',
+      'french': 'fr',
+      'german': 'de',
+      'italian': 'it',
+      'portuguese': 'pt',
+      'russian': 'ru',
+      'japanese': 'ja',
+      'korean': 'ko',
+      'chinese': 'zh',
+      'arabic': 'ar',
+      'hindi': 'hi',
+      'bengali': 'bn',
+      'tamil': 'ta',
+      'telugu': 'te',
+      'malayalam': 'ml',
+      'kannada': 'kn',
+      'gujarati': 'gu',
+      'marathi': 'mr',
+      'punjabi': 'pa',
       'urdu': 'ur',
     };
     final key = detectedName.toLowerCase().trim();
@@ -625,17 +650,17 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
   Future<void> _switchCamera() async {
     if (_cameras.length < 2 || _cameraController == null) return;
-    
+
     final newIndex = (_selectedCameraIndex + 1) % _cameras.length;
-    
+
     setState(() {
       _isCameraInitialized = false;
       _selectedCameraIndex = newIndex;
       _isFlashOn = false; // Reset flash state on switch
     });
-    
+
     await _cameraController!.dispose();
-    
+
     _initializeCamera();
   }
 
@@ -667,7 +692,9 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 ),
               ),
             )
-          else if (_isCameraInitialized && _capturedImageBytes == null && _cameraController != null)
+          else if (_isCameraInitialized &&
+              _capturedImageBytes == null &&
+              _cameraController != null)
             CameraPreview(_cameraController!)
           else if (_capturedImageBytes != null)
             Image.memory(_capturedImageBytes!, fit: BoxFit.cover)
@@ -862,19 +889,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     _buildGlassyButton(
                       icon: Icons.photo_library_rounded,
                       onTap: _pickFromGallery,
-                    ),
-
-                    // Shutter
-                    GestureDetector(
-                      onTap: _takePicture,
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                      ),
                     ),
 
                     // Switch Camera
