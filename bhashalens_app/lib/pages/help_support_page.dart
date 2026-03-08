@@ -8,46 +8,30 @@ class HelpSupportPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Help & Support')),
       body: ListView(
-        children: [
+        children: const [
           ListTile(
-            leading: const Icon(Icons.live_help),
-            title: const Text('FAQ'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('FAQ Section Coming Soon')),
-              );
-            },
+            leading: Icon(Icons.live_help),
+            title: Text('FAQ'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            // TODO: Navigate to FAQ page
           ),
           ListTile(
-            leading: const Icon(Icons.book),
-            title: const Text('Tutorials'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tutorials Coming Soon')),
-              );
-            },
+            leading: Icon(Icons.book),
+            title: Text('Tutorials'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            // TODO: Navigate to tutorials page
           ),
           ListTile(
-            leading: const Icon(Icons.contact_support),
-            title: const Text('Contact Support'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Contact Support Coming Soon')),
-              );
-            },
+            leading: Icon(Icons.contact_support),
+            title: Text('Contact Support'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            // TODO: Navigate to contact support page
           ),
           ListTile(
-            leading: const Icon(Icons.feedback),
-            title: const Text('Send Feedback'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Feedback System Coming Soon')),
-              );
-            },
+            leading: Icon(Icons.feedback),
+            title: Text('Send Feedback'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            // TODO: Navigate to feedback system
           ),
         ],
       ),

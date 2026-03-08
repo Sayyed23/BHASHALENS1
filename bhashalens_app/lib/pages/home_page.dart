@@ -1,9 +1,10 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:bhashalens_app/pages/home/home_content.dart';
+import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
+import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
-import 'package:bhashalens_app/widgets/main_bottom_navbar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,19 +14,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final int _currentIndex = 0;
   final _connectivity = Connectivity();
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A), // Dark background
+        backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
         title: Row(
           children: [
@@ -43,7 +38,8 @@ class _HomePageState extends State<HomePage> {
               stream: _connectivity.onConnectivityChanged,
               builder: (context, snapshot) {
                 final results = snapshot.data;
-                final hasConnection = results != null &&
+                final hasConnection =
+                    results != null &&
                     (results.contains(ConnectivityResult.mobile) ||
                         results.contains(ConnectivityResult.wifi) ||
                         results.contains(ConnectivityResult.ethernet));
@@ -133,8 +129,11 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: const SafeArea(child: HomeContent()),
-      bottomNavigationBar: MainBottomNavBar(currentIndex: _currentIndex),
+      body: wrapWithWebMaxWidth(
+        context,
+        child: const SafeArea(child: HomeContent()),
+      ),
+      bottomNavigationBar: const CommonBottomNavBar(currentIndex: 0),
     );
   }
 }

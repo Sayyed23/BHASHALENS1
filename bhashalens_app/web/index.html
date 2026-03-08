@@ -31,6 +31,27 @@
 
   <title>bhashalens_app</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Material Icons from Google Fonts CDN (primary source for web) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet">
+  <style>
+    /* Local fallback for icon fonts if CDN is unavailable */
+    @font-face {
+      font-family: 'MaterialIcons';
+      src: url('assets/fonts/MaterialIcons-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'CupertinoIcons';
+      src: url('assets/packages/cupertino_icons/assets/CupertinoIcons.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

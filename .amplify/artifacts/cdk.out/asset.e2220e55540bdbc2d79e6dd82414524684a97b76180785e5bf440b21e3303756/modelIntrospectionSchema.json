@@ -1,0 +1,363 @@
+{
+    "version": 1,
+    "models": {},
+    "enums": {},
+    "nonModels": {},
+    "queries": {
+        "translate": {
+            "name": "translate",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "source_text": {
+                    "name": "source_text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "source_lang": {
+                    "name": "source_lang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "target_lang": {
+                    "name": "target_lang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        },
+        "assist": {
+            "name": "assist",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "request_type": {
+                    "name": "request_type",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "text": {
+                    "name": "text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "language": {
+                    "name": "language",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "context": {
+                    "name": "context",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                },
+                "conversation_history": {
+                    "name": "conversation_history",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": false
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        },
+        "simplify": {
+            "name": "simplify",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "text": {
+                    "name": "text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "target_complexity": {
+                    "name": "target_complexity",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "language": {
+                    "name": "language",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "explain": {
+                    "name": "explain",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        },
+        "getHistory": {
+            "name": "getHistory",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "page": {
+                    "name": "page",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                },
+                "pageSize": {
+                    "name": "pageSize",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                },
+                "startDate": {
+                    "name": "startDate",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                },
+                "endDate": {
+                    "name": "endDate",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        },
+        "getSavedTranslations": {
+            "name": "getSavedTranslations",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "page": {
+                    "name": "page",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                },
+                "pageSize": {
+                    "name": "pageSize",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                },
+                "search": {
+                    "name": "search",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        },
+        "getPreferences": {
+            "name": "getPreferences",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false
+        }
+    },
+    "mutations": {
+        "addHistoryItem": {
+            "name": "addHistoryItem",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "sourceText": {
+                    "name": "sourceText",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "sourceLang": {
+                    "name": "sourceLang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "targetText": {
+                    "name": "targetText",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "targetLang": {
+                    "name": "targetLang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "timestamp": {
+                    "name": "timestamp",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                },
+                "type": {
+                    "name": "type",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                },
+                "backend": {
+                    "name": "backend",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                },
+                "processingTime": {
+                    "name": "processingTime",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false
+                }
+            }
+        },
+        "deleteHistoryItem": {
+            "name": "deleteHistoryItem",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                }
+            }
+        },
+        "saveTranslation": {
+            "name": "saveTranslation",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "translation_id": {
+                    "name": "translation_id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "source_text": {
+                    "name": "source_text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "source_lang": {
+                    "name": "source_lang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "translated_text": {
+                    "name": "translated_text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "target_lang": {
+                    "name": "target_lang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "tags": {
+                    "name": "tags",
+                    "isArray": true,
+                    "type": "String",
+                    "isRequired": false,
+                    "isArrayNullable": true
+                }
+            }
+        },
+        "deleteSavedTranslation": {
+            "name": "deleteSavedTranslation",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                }
+            }
+        },
+        "updatePreferences": {
+            "name": "updatePreferences",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "preferences": {
+                    "name": "preferences",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": true
+                }
+            }
+        },
+        "exportData": {
+            "name": "exportData",
+            "isArray": false,
+            "type": "AWSJSON",
+            "isRequired": false,
+            "arguments": {
+                "exportType": {
+                    "name": "exportType",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "format": {
+                    "name": "format",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true
+                },
+                "startDate": {
+                    "name": "startDate",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                },
+                "endDate": {
+                    "name": "endDate",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false
+                }
+            }
+        }
+    }
+}

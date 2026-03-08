@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 
 class AccessibilityService extends ChangeNotifier {
-  final FlutterTts _flutterTts = FlutterTts();
-  double _textSizeFactor = 1.0; 
-  ThemeMode _themeMode = ThemeMode.dark; 
+  double _textSizeFactor = 1.0; // Default text size
+  ThemeMode _themeMode = ThemeMode.dark; // Default theme mode
 
   double get textSizeFactor => _textSizeFactor;
   ThemeMode get themeMode => _themeMode;
 
-  AccessibilityService() {
-    _initTts();
-  }
+  // AccessibilityService() {
+  //   _initTts();
+  // }
 
-  void _initTts() {
-    _flutterTts.setLanguage("en-US");
-    _flutterTts.setSpeechRate(0.5);
-    _flutterTts.setPitch(1.0);
-  }
+  // void _initTts() {
+  //   // TODO: Configure TTS settings (e.g., language, pitch, rate)
+  //   _flutterTts.setLanguage("en-US");
+  //   _flutterTts.setSpeechRate(0.5);
+  //   _flutterTts.setPitch(1.0);
+  // }
 
-  Future<void> speak(String text) async {
-    await _flutterTts.speak(text);
-  }
+  // Future<void> speak(String text) async {
+  //   await _flutterTts.speak(text);
+  // }
 
   void setTextSizeFactor(double factor) {
     if (factor > 0) {

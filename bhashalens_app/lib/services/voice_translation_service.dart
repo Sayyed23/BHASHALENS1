@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:bhashalens_app/services/gemini_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
-import 'package:bhashalens_app/services/amplify_data_service.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 
 class VoiceTranslationService extends ChangeNotifier {
   // Speech recognition
@@ -16,10 +14,13 @@ class VoiceTranslationService extends ChangeNotifier {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // API configuration
-  String? _geminiApiKey;
-  final bool _useOpenAI = false; // This will now control online/offline
+  final bool _useOpenAI = false;
 
-  GeminiService? _geminiService;
+  HybridTranslationService? _hybridService;
+
+  set hybridService(HybridTranslationService? service) =>
+      _hybridService = service;
+
   final LocalStorageService localStorageService;
 
   // ML Kit for offline translation
@@ -32,7 +33,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String _lastWords = '';
   String _currentTranscript = '';
   String _currentTranslatedText = '';
-  bool _isTranslating = false; // New state for translation status
+  bool _isTranslating = false;
 
   // Translation state
   String _userALanguage = 'en'; // Default to English
@@ -52,9 +53,9 @@ class VoiceTranslationService extends ChangeNotifier {
   String get userBLanguage => _userBLanguage;
   String get currentSpeaker => _currentSpeaker;
   List<ConversationMessage> get conversationHistory => _conversationHistory;
-  bool get useOpenAI => _useOpenAI; // This now refers to online/offline toggle
-  bool get isTranslating => _isTranslating; // New getter
-  bool get isOfflineMode => _isOfflineMode; // Offline mode getter
+  bool get useOpenAI => _useOpenAI;
+  bool get isTranslating => _isTranslating;
+  bool get isOfflineMode => _isOfflineMode;
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -83,30 +84,12 @@ class VoiceTranslationService extends ChangeNotifier {
 
   VoiceTranslationService({
     required this.localStorageService,
-    String? geminiApiKey,
-  }) : _geminiApiKey = geminiApiKey {
+    HybridTranslationService? hybridService,
+  }) : _hybridService = hybridService {
     _initializeServices();
   }
 
   Future<void> _initializeServices() async {
-    // API key is now injected, or fallback to dotenv if needed (but prefer injection)
-    _geminiApiKey ??= dotenv.env['GEMINI_API_KEY'];
-
-    // debugPrint with masked key
-    debugPrint(
-      'VoiceTranslationService: Loaded GEMINI_API_KEY: ${_geminiApiKey != null ? "Present" : "Missing"}',
-    );
-
-    if (_geminiApiKey == null || _geminiApiKey!.isEmpty) {
-      debugPrint('GEMINI_API_KEY not found in .env');
-    } else {
-      _geminiService = GeminiService(
-        apiKey: _geminiApiKey,
-        localStorageService: localStorageService,
-      );
-      await _geminiService!.initialize();
-    }
-
     // Initialize speech recognition
     _speechEnabled = await _speechToText.initialize(
       onStatus: (status) {
@@ -133,7 +116,6 @@ class VoiceTranslationService extends ChangeNotifier {
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen((results) {
       _isOfflineMode = results.contains(ConnectivityResult.none);
-      debugPrint('Connectivity changed: isOfflineMode=$_isOfflineMode');
       notifyListeners();
     });
 
@@ -160,22 +142,17 @@ class VoiceTranslationService extends ChangeNotifier {
 
   // Speech recognition
   Future<void> startListening(String speaker) async {
-    if (!_speechEnabled) {
-      debugPrint('Speech recognition not enabled');
-      return;
-    }
-
     _currentSpeaker = speaker;
     _currentTranscript = '';
     _currentTranslatedText = '';
     _lastWords = '';
 
+    await checkConnectivity();
+
+    if (!_speechEnabled) return;
+
     String localeId = _getLanguageCode(
       _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
-    );
-
-    debugPrint(
-      'Starting listening for speaker: $_currentSpeaker with locale: $localeId',
     );
 
     await _speechToText.listen(
@@ -188,37 +165,34 @@ class VoiceTranslationService extends ChangeNotifier {
         }
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(
-          seconds: 5), // Increased pause duration for better offline experience
+      pauseFor: const Duration(seconds: 5),
       localeId: localeId,
       listenOptions: SpeechListenOptions(
         onDevice: _isOfflineMode,
         cancelOnError: true,
       ),
-      onSoundLevelChange: (level) {
-        // Handle sound level changes if needed
-      },
     );
+
     _isListening = true;
     notifyListeners();
   }
 
+  // Removed Sarvam streaming STT logic as it is being decommissioned in favor of Hybrid/AWS stack.
+  // Future<void> _startSarvamStreamingSTT() async { ... }
+
   Future<void> stopListening() async {
     if (_speechToText.isListening) {
       await _speechToText.stop();
-      _isListening = false;
-      notifyListeners();
-      debugPrint('Stopped listening');
-      // Translation will be triggered in the onResult callback when speech ends
+      if (_currentTranscript.trim().isNotEmpty && !_isTranslating) {
+        processConversationTurn();
+      }
     }
+    _isListening = false;
+    notifyListeners();
   }
 
-  // Simple listening for Assistant Mode
   Future<void> listenOnce(Function(String) onResult, {String? localeId}) async {
-    if (!_speechEnabled) {
-      debugPrint('Speech recognition not enabled');
-      return;
-    }
+    if (!_speechEnabled) return;
 
     _isListening = true;
     notifyListeners();
@@ -232,246 +206,106 @@ class VoiceTranslationService extends ChangeNotifier {
         }
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 5),
       localeId: localeId ?? 'en-US',
       listenOptions: SpeechListenOptions(
         onDevice: _isOfflineMode,
         cancelOnError: true,
       ),
     );
-  } // Translation
+  }
 
-  Future<String> translateText(
-    String text,
-    String toLanguage, {
-    String? fromLanguage,
-  }) async {
+  // Translation using Gemini AI for online
+  Future<String> translateText(String text, String toLanguage,
+      {String? fromLanguage}) async {
     if (text.trim().isEmpty) return '';
 
     try {
-      // Check connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
-      _isOfflineMode = connectivityResult.contains(ConnectivityResult.none);
-      notifyListeners();
+      await checkConnectivity();
 
-      debugPrint('VoiceTranslation: isOfflineMode=$_isOfflineMode');
-
-      String actualSourceLanguage =
-          fromLanguage ?? 'en'; // Default to English if not provided
+      String actualSourceLanguage = fromLanguage ?? 'en';
 
       if (_isOfflineMode) {
         if (fromLanguage == 'auto') {
           actualSourceLanguage = await _mlKitService.identifyLanguage(text);
           if (actualSourceLanguage == 'und') {
-            return 'Offline Mode: Could not auto-detect language.';
+            return 'Offline: Language detection failed.';
           }
-          debugPrint('Offline detected language: $actualSourceLanguage');
         }
-
-        // Use ML Kit for offline translation
-        debugPrint(
-          'Using ML Kit for offline translation: $actualSourceLanguage -> $toLanguage',
-        );
-
-        final mlKitResult = await _mlKitService.translate(
-          text: text,
-          sourceLanguage: actualSourceLanguage,
-          targetLanguage: toLanguage,
-        );
-
-        if (mlKitResult != null && mlKitResult.isNotEmpty) {
-          return mlKitResult;
-        } else {
-          // Check what models are missing for better error message
-          final missingModels =
-              await _mlKitService.getMissingModelsForTranslation(
-            actualSourceLanguage,
-            toLanguage,
-          );
-
-          if (missingModels.isNotEmpty) {
-            final languageNames = missingModels.map((code) {
-              final lang = _mlKitService.getSupportedLanguages().firstWhere(
-                  (l) => l['code'] == code,
-                  orElse: () => <String, String>{'name': code, 'code': code});
-              return lang['name'] ?? code;
-            }).join(', ');
-
-            return 'Missing language models: $languageNames. Please download them in Settings → Offline Models.';
-          }
-          return 'Translation failed. Please try again.';
-        }
+        return await _mlKitService.translate(
+              text: text,
+              sourceLanguage: actualSourceLanguage,
+              targetLanguage: toLanguage,
+            ) ??
+            'Offline translation failed';
       } else {
-        // Use Gemini for online translation (better quality)
-        if (_geminiApiKey == null ||
-            _geminiApiKey!.isEmpty ||
-            _geminiService == null ||
-            !_geminiService!.isInitialized) {
-          // Fall back to ML Kit if Gemini is not available
-          debugPrint('Gemini not available, falling back to ML Kit');
-          final mlKitResult = await _mlKitService.translate(
-            text: text,
-            sourceLanguage: actualSourceLanguage,
-            targetLanguage: toLanguage,
-          );
-          return mlKitResult ?? 'Translation failed';
+        // Online: Use Hybrid Translation Service (chains to Gemini API)
+        if (_hybridService == null) {
+          return 'Translation Service not initialized';
         }
 
-        if (fromLanguage == 'auto') {
-          try {
-            final detectedLanguage = await _geminiService!.detectLanguage(text);
-            // Convert detected language name to language code
-            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
-            debugPrint(
-              'Detected language: $detectedLanguage -> $actualSourceLanguage',
-            );
-          } catch (e) {
-            debugPrint('Language detection failed, using default: $e');
-            actualSourceLanguage = 'en'; // fallback to English
-          }
-        }
-
-        try {
-          // Use GeminiService for translation
-          return await _geminiService!.translateText(
-            text,
-            toLanguage,
-            sourceLanguage: actualSourceLanguage,
-          );
-        } catch (e) {
-          debugPrint('Online translation failed, falling back to offline: $e');
-          // If online translation fails (e.g. timeout or sudden disconnect), try ML Kit
-          final mlKitResult = await _mlKitService.translate(
-            text: text,
-            sourceLanguage: actualSourceLanguage,
-            targetLanguage: toLanguage,
-          );
-          return mlKitResult ?? 'Translation failed: $e';
-        }
+        // When auto-detect is selected online, let Gemini handle it
+        debugPrint('VoiceTranslationService: Using Gemini API (Online) - $actualSourceLanguage → $toLanguage');
+        final result = await _hybridService!.translateText(
+          sourceText: text,
+          sourceLang: actualSourceLanguage,
+          targetLang: toLanguage,
+        );
+        return result.translatedText;
       }
     } catch (e) {
       debugPrint('Translation error: $e');
-      return 'Translation failed: $e';
+      return 'Translation error: $e';
     }
   }
 
-  // Process conversation turn
   Future<void> processConversationTurn() async {
-    debugPrint('processConversationTurn called.');
-    if (_currentTranscript.trim().isEmpty) {
-      debugPrint('No transcript to process.');
-      return;
-    }
+    if (_currentTranscript.trim().isEmpty) return;
 
-    // Force connectivity check before processing
     await checkConnectivity();
 
     final speaker = _currentSpeaker;
     final originalText = _currentTranscript;
-    final speakerLanguage = speaker == 'A' ? _userALanguage : _userBLanguage;
     final targetLanguage = speaker == 'A' ? _userBLanguage : _userALanguage;
 
-    debugPrint(
-      'Processing turn: Speaker: $speaker, Lang: $speakerLanguage, Target: $targetLanguage, Text: $originalText',
-    );
-
-    // Show loading state
     _currentTranslatedText = 'Translating...';
-    _isTranslating = true; // Set translating state to true
+    _isTranslating = true;
     notifyListeners();
 
     try {
-      String actualSourceLanguage = speakerLanguage;
-
-      // If source language is 'auto', detect it first
-      if (speakerLanguage == 'auto') {
-        if (_isOfflineMode) {
-          actualSourceLanguage =
-              await _mlKitService.identifyLanguage(originalText);
-          if (actualSourceLanguage == 'und') {
-            actualSourceLanguage = 'en'; // Fallback
-          }
-          debugPrint('Offline detected language: $actualSourceLanguage');
-        } else {
-          if (_geminiService == null || !_geminiService!.isInitialized) {
-            throw Exception(
-              'Gemini service not initialized for language detection',
-            );
-          }
-          try {
-            final detectedLanguage = await _geminiService!.detectLanguage(
-              originalText,
-            );
-            actualSourceLanguage = _convertLanguageNameToCode(detectedLanguage);
-            debugPrint(
-              'Detected language: $detectedLanguage -> $actualSourceLanguage',
-            );
-          } catch (e) {
-            debugPrint('Language detection failed, using default: $e');
-            actualSourceLanguage = 'en'; // fallback to English
-          }
-        }
-      }
-
-      // Translate the text
       final translatedText = await translateText(
         originalText,
         targetLanguage,
-        fromLanguage: actualSourceLanguage,
+        fromLanguage: speaker == 'A' ? _userALanguage : _userBLanguage,
       );
 
-      // Update current translated text
       _currentTranslatedText = translatedText;
 
-      // Add to conversation history
       final message = ConversationMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         speaker: speaker,
         originalText: originalText,
         translatedText: translatedText,
         timestamp: DateTime.now(),
-        speakerLanguage: actualSourceLanguage, // Use actual detected language
+        speakerLanguage: speaker == 'A' ? _userALanguage : _userBLanguage,
         targetLanguage: targetLanguage,
-        detectedLanguage:
-            (speakerLanguage == 'auto') ? actualSourceLanguage : null,
       );
 
       _conversationHistory.add(message);
-
-      // Save to Amplify Cloud History
-      try {
-        amplifyDataService.saveHistoryItem({
-          'originalText': originalText,
-          'translatedText': translatedText,
-          'fromLanguage': actualSourceLanguage,
-          'toLanguage': targetLanguage,
-          'type': 'voice_translate',
-          'backend': 'gemini', // or mlkit depending on _isOfflineMode
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-        }).catchError((e) => debugPrint("Failed to save history: $e"));
-      } catch (e) {
-        debugPrint('Failed to queue history save: $e');
-      }
-
-      // Speak the translated text
       await speakText(translatedText, targetLanguage);
 
-      _isTranslating = false; // Set translating state to false after completion
+      _isTranslating = false;
+      _currentTranscript = ''; // Clear to prevent duplicate processing
       notifyListeners();
     } catch (e) {
-      debugPrint('Error processing conversation turn: $e');
-      _currentTranslatedText = 'Translation failed: ${e.toString()}';
-      _isTranslating = false; // Set translating state to false on error
+      _currentTranslatedText = 'Translation failed';
+      _isTranslating = false;
+      _currentTranscript = ''; // Clear to prevent duplicate processing
       notifyListeners();
     }
   }
 
-  // Text-to-speech
-  Future<void> speakText(
-    String text,
-    String languageCode, {
-    bool slow = false,
-  }) async {
+  Future<void> speakText(String text, String languageCode,
+      {bool slow = false}) async {
     try {
       await _flutterTts.setLanguage(_getLanguageCode(languageCode));
       await _flutterTts.setSpeechRate(slow ? 0.3 : 0.5);
@@ -481,12 +315,10 @@ class VoiceTranslationService extends ChangeNotifier {
     }
   }
 
-  // Helper methods
   String _getLanguageCode(String languageCode) {
-    // Convert language codes to speech recognition format
     switch (languageCode) {
       case 'en':
-        return 'en-US'; // For FlutterTts, use BCP-47 codes
+        return 'en-US';
       case 'es':
         return 'es-ES';
       case 'fr':
@@ -496,7 +328,7 @@ class VoiceTranslationService extends ChangeNotifier {
       case 'it':
         return 'it-IT';
       case 'pt':
-        return 'pt-PT';
+        return 'pt-BR';
       case 'ru':
         return 'ru-RU';
       case 'ja':
@@ -532,7 +364,6 @@ class VoiceTranslationService extends ChangeNotifier {
     }
   }
 
-  // Conversation management
   void clearConversation() {
     _conversationHistory.clear();
     _currentTranscript = '';
@@ -540,66 +371,12 @@ class VoiceTranslationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  String getConversationTranscript() {
-    return _conversationHistory
-        .map(
-          (msg) =>
-              '${msg.speaker}: ${msg.originalText}\nTranslated: ${msg.translatedText}',
-        )
-        .join('\n\n');
-  }
-
-  String _convertLanguageNameToCode(String languageName) {
-    // Convert language names to language codes
-    final lowerName = languageName.toLowerCase();
-
-    if (lowerName.contains('english')) return 'en';
-    if (lowerName.contains('spanish')) return 'es';
-    if (lowerName.contains('french')) return 'fr';
-    if (lowerName.contains('german')) return 'de';
-    if (lowerName.contains('italian')) return 'it';
-    if (lowerName.contains('portuguese')) return 'pt';
-    if (lowerName.contains('russian')) return 'ru';
-    if (lowerName.contains('japanese')) return 'ja';
-    if (lowerName.contains('korean')) return 'ko';
-    if (lowerName.contains('chinese')) return 'zh';
-    if (lowerName.contains('arabic')) return 'ar';
-    if (lowerName.contains('hindi')) return 'hi';
-    if (lowerName.contains('bengali')) return 'bn';
-    if (lowerName.contains('tamil')) return 'ta';
-    if (lowerName.contains('telugu')) return 'te';
-    if (lowerName.contains('malayalam')) return 'ml';
-    if (lowerName.contains('kannada')) return 'kn';
-    if (lowerName.contains('gujarati')) return 'gu';
-    if (lowerName.contains('marathi')) return 'mr';
-    if (lowerName.contains('punjabi')) return 'pa';
-
-    // Default to English if no match found
-    return 'en';
-  }
-
-  String convertLanguageCodeToName(String languageCode) {
-    return supportedLanguages[languageCode] ?? languageCode;
-  }
-
-  /// Check if offline translation models are downloaded for current language pair
-  Future<bool> areOfflineModelsReady() async {
-    final sourceReady = await _mlKitService.isModelDownloaded(_userALanguage);
-    final targetReady = await _mlKitService.isModelDownloaded(_userBLanguage);
-    return sourceReady && targetReady;
-  }
-
-  /// Manually check and update connectivity status
   Future<void> checkConnectivity() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     _isOfflineMode = connectivityResult.contains(ConnectivityResult.none);
     notifyListeners();
   }
 
-  /// Get the ML Kit service for model management
-  MlKitTranslationService get mlKitService => _mlKitService;
-
-  // Dispose
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
@@ -617,7 +394,6 @@ class ConversationMessage {
   final DateTime timestamp;
   final String speakerLanguage;
   final String targetLanguage;
-  final String? detectedLanguage; // For auto-detection
 
   ConversationMessage({
     required this.id,
@@ -627,6 +403,5 @@ class ConversationMessage {
     required this.timestamp,
     required this.speakerLanguage,
     required this.targetLanguage,
-    this.detectedLanguage,
   });
 }

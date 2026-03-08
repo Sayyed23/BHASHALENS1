@@ -388,31 +388,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  void _showLegalDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(child: Text(content)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFooterBlock() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextButton(
-          onPressed: () => _showLegalDialog(
-            'Terms of Service',
-            'Welcome to BhashaLens. By using this app, you agree to our terms of service. This is a placeholder for the full legal text.',
-          ),
+          onPressed: () {
+            // TODO: Navigate to Terms of Service
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Coming soon: Terms of Service')),
+            );
+          },
           child: Text(
             'Terms of Service',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -420,10 +406,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         Text('|', style: TextStyle(color: Colors.grey[600])),
         TextButton(
-          onPressed: () => _showLegalDialog(
-            'Privacy Policy',
-            'Your privacy is important. We use Gemini API to process your requests. This is a placeholder for the full privacy policy.',
-          ),
+          onPressed: () {
+            // TODO: Navigate to Privacy Policy
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Coming soon: Privacy Policy')),
+            );
+          },
           child: Text(
             'Privacy Policy',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),

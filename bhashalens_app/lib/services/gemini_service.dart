@@ -52,7 +52,7 @@ class GeminiService {
       }
 
       _model = GenerativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -63,7 +63,7 @@ class GeminiService {
       );
 
       _visionModel = GenerativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.3,
@@ -260,54 +260,36 @@ class GeminiService {
     }
   }
 
-  // Explain and Simplify text with detailed context
-  Future<Map<String, dynamic>> explainAndSimplifyWithContext(
+  // Explain and Simplify text
+  Future<String> explainAndSimplify(
     String text, {
     String simplicity = 'Simple',
     String targetLanguage = 'English',
-    String sourceLanguage = 'Hindi',
   }) async {
     if (!_isInitialized) {
       throw Exception('Gemini service not initialized');
     }
 
     try {
-      final prompt = 'Analyze and explain the following text. '
-          'Source Language: $sourceLanguage. '
-          'Simplicity Level: $simplicity. '
-          'Target Language for both simplified text and explanation: $targetLanguage. '
-          '\n\n'
-          'Input Text: "$text"'
-          '\n\n'
-          'Return a valid JSON object (no markdown, no backticks) with these keys: '
-          '{'
-          '"simplified_text": "The input text rewritten to be $simplicity in $targetLanguage", '
-          '"explanation": "A simple, jargon-free explanation of the SUBJECT MATTER in $targetLanguage", '
-          '"key_points": ["Point 1 in $targetLanguage", "Point 2 in $targetLanguage"], '
-          '"tone": "Description of the tone in $targetLanguage", '
-          '"suggested_questions": ["Question 1 in $targetLanguage", "Question 2 in $targetLanguage"]'
-          '}';
-
+      final String targetLanguageName = _getLanguageName(targetLanguage);
+      final prompt =
+          'You are a language simplification expert. '
+          'Take the following text and simplify it to a "$simplicity" level of complexity. '
+          'Your ENTIRE response MUST be written in $targetLanguageName. '
+          'Do NOT respond in English unless $targetLanguageName IS English. '
+          'Break it down into key points if necessary. Use simple, clear sentences. Avoid jargon. '
+          'Provide the simplified explanation directly without any preamble or meta-commentary.\n\n'
+          'Input text: $text';
       await _checkAndIncrementLimit();
 
       final content = [Content.text(prompt)];
+      debugPrint('Gemini Simplify Prompt (target: $targetLanguageName)');
       final response = await _model.generateContent(content);
-      final responseText = response.text;
+      final simplifiedText = response.text ?? 'Simplification failed';
 
-      if (responseText == null) {
-        throw Exception('Empty response from Gemini');
-      }
-
-      String jsonString = responseText.trim();
-      if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.replaceAll('```json', '').replaceAll('```', '');
-      } else if (jsonString.startsWith('```')) {
-        jsonString = jsonString.replaceAll('```', '');
-      }
-
-      return jsonDecode(jsonString);
+      return simplifiedText.trim();
     } catch (e) {
-      debugPrint('Error in explainAndSimplifyWithContext: $e');
+      debugPrint('Error simplifying text: $e');
       throw Exception('Failed to simplify text: $e');
     }
   }
@@ -349,31 +331,30 @@ class GeminiService {
     }
 
     try {
-      String prompt = 'Analyze the following text provided in ';
-      if (sourceLanguage != null && sourceLanguage != 'Auto-detected') {
-        prompt += '$sourceLanguage. ';
+      final String targetLanguageName = _getLanguageName(targetLanguage);
+      final String? sourceLanguageName = sourceLanguage != null ? _getLanguageName(sourceLanguage) : null;
+      
+      String prompt = 'You are a language explanation expert. Analyze the following text. ';
+      if (sourceLanguageName != null && sourceLanguageName != 'Auto-detect') {
+        prompt += 'The input text is in $sourceLanguageName. ';
       } else {
-        prompt += 'any language. ';
+        prompt += 'The input text may be in any language. ';
       }
 
       prompt +=
-          'Target Language for translation and explanation: $targetLanguage. '
-          'INSTRUCTION: Do NOT just describe the grammar or sentence type (e.g., do not say "This is a statement"). '
-          'Instead, focus on the SUBJECT MATTER and CONTEXT of the text. '
-          'Explain the CONCEPTS, FACTS, and MEANING of the actual words. '
-          'IMPORTANT: Every single value in the JSON response MUST be written in $targetLanguage. '
-          'For the "meaning" field, use the ELI5 (Explain Like I\'m 5) method to explain the CONTENT of the text simply. '
+          'IMPORTANT: Your ENTIRE response (ALL fields including meaning, analysis, cultural_insight, etc.) '
+          'MUST be written in $targetLanguageName. Do NOT respond in English unless $targetLanguageName IS English. '
           'Return a valid JSON object with the following keys and no markdown formatting: '
           '{'
-          '"translation": "The input text translated to $targetLanguage", '
-          '"analysis": "A brief contextual summary of the CONTENT (1-2 sentences). Who is involved? What is the core topic?", '
-          '"meaning": "A very simple, jargon-free explanation of the SUBJECT MATTER in $targetLanguage. (ELI5 approach)", '
-          '"suggested_questions": ["Question 1 in $targetLanguage", "Question 2 in $targetLanguage"], '
-          '"when_to_use": "Description in $targetLanguage", '
-          '"tone": "Description in $targetLanguage", '
-          '"situational_context": ["Context 1 in $targetLanguage", "Context 2 in $targetLanguage"], '
-          '"cultural_insight": "Insight in $targetLanguage or null", '
-          '"safety_note": "Safety advice in $targetLanguage or null"'
+          '"translation": "String - The text translated to $targetLanguageName", '
+          '"analysis": "String - A brief contextual summary IN $targetLanguageName (1-2 sentences). Who is speaking? What is the main topic?", '
+          '"meaning": "String - A very simple, jargon-free explanation IN $targetLanguageName of what this means. Imagine explaining to a child (ELI5). Use clear, short sentences.", '
+          '"suggested_questions": ["String IN $targetLanguageName", "String IN $targetLanguageName"], '
+          '"when_to_use": "String IN $targetLanguageName", '
+          '"tone": "String IN $targetLanguageName", '
+          '"situational_context": ["String IN $targetLanguageName", "String IN $targetLanguageName"], '
+          '"cultural_insight": "String IN $targetLanguageName", '
+          '"safety_note": "String IN $targetLanguageName or null"'
           '} '
           'Input Text: "$text"';
 

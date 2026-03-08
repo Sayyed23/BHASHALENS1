@@ -1,0 +1,17 @@
+type Mutation {
+  addHistoryItem(sourceText: String!, sourceLang: String!, targetText: String!, targetLang: String!, timestamp: Int, type: String, backend: String, processingTime: Int): AWSJSON @function(name: "FnAddHistoryItem") @auth(rules: [{allow: public, provider: iam}])
+  deleteHistoryItem(id: String!): AWSJSON @function(name: "FnDeleteHistoryItem") @auth(rules: [{allow: public, provider: iam}])
+  saveTranslation(translation_id: String!, source_text: String!, source_lang: String!, translated_text: String!, target_lang: String!, tags: [String]): AWSJSON @function(name: "FnSaveTranslation") @auth(rules: [{allow: public, provider: iam}])
+  deleteSavedTranslation(id: String!): AWSJSON @function(name: "FnDeleteSavedTranslation") @auth(rules: [{allow: public, provider: iam}])
+  updatePreferences(preferences: AWSJSON!): AWSJSON @function(name: "FnUpdatePreferences") @auth(rules: [{allow: public, provider: iam}])
+  exportData(exportType: String!, format: String!, startDate: String, endDate: String): AWSJSON @function(name: "FnExportData") @auth(rules: [{allow: public, provider: iam}])
+}
+
+type Query {
+  translate(source_text: String!, source_lang: String!, target_lang: String!, user_id: String): AWSJSON @function(name: "FnTranslate") @auth(rules: [{allow: public, provider: iam}])
+  assist(request_type: String!, text: String!, language: String!, context: String, conversation_history: AWSJSON, user_id: String): AWSJSON @function(name: "FnAssist") @auth(rules: [{allow: public, provider: iam}])
+  simplify(text: String!, target_complexity: String!, language: String!, explain: Boolean, user_id: String): AWSJSON @function(name: "FnSimplify") @auth(rules: [{allow: public, provider: iam}])
+  getHistory(page: Int, pageSize: Int, startDate: String, endDate: String): AWSJSON @function(name: "FnGetHistory") @auth(rules: [{allow: public, provider: iam}])
+  getSavedTranslations(page: Int, pageSize: Int, search: String): AWSJSON @function(name: "FnGetSavedTranslations") @auth(rules: [{allow: public, provider: iam}])
+  getPreferences: AWSJSON @function(name: "FnGetPreferences") @auth(rules: [{allow: public, provider: iam}])
+}

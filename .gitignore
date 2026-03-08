@@ -1,1 +1,87 @@
-node_modules
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.env
+*.env.*
+
+# AWS Credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials
+aws-credentials.json
+terraform.tfvars
+terraform.tfvars.json
+*.tfvars
+*.auto.tfvars
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+firebase-adminsdk-*.json
+serviceAccountKey.json
+
+# API Keys and Secrets (but allow documentation)
+*secret*
+*secrets*
+!SECRETS_CHECKLIST.md
+!SECURITY_SETUP.md
+*apikey*
+*api-key*
+*api_key*
+*.credentials
+
+# Build outputs
+build/
+dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules
+node_modules/
+
+# Flutter/Dart
+.dart_tool/
+.amplify_app_root
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+tfplan
+outputs.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+logs/
+
+# Data sets (Large files)
+ml_pipeline/

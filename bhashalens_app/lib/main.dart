@@ -1,11 +1,15 @@
-import 'package:bhashalens_app/services/firestore_service.dart'; // Import FirestoreService
+import 'package:bhashalens_app/services/firestore_service.dart';
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
-import 'pages/saved_translations_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart' show rootBundle;
+// Removed unused import
+import 'dart:async';
+
+// Pages
 import 'package:bhashalens_app/pages/onboarding_page.dart';
 import 'package:bhashalens_app/pages/auth/login_page.dart';
 import 'package:bhashalens_app/pages/auth/signup_page.dart';
@@ -17,15 +21,6 @@ import 'package:bhashalens_app/pages/help_support_page.dart';
 import 'package:bhashalens_app/pages/emergency_page.dart';
 import 'package:bhashalens_app/pages/offline_models_page.dart';
 import 'package:bhashalens_app/pages/error_fallback_page.dart';
-import 'package:bhashalens_app/services/accessibility_service.dart';
-import 'package:bhashalens_app/services/local_storage_service.dart'; // Import LocalStorageService
-import 'package:bhashalens_app/services/gemini_service.dart';
-import 'package:bhashalens_app/services/voice_translation_service.dart'; // Import VoiceTranslationService
-import 'package:bhashalens_app/theme/app_theme.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
-
 import 'package:bhashalens_app/pages/voice_translate_page.dart';
 import 'package:bhashalens_app/pages/text_translate_page.dart';
 import 'package:bhashalens_app/pages/translation_mode_page.dart';
@@ -33,71 +28,148 @@ import 'package:bhashalens_app/pages/explain_mode_page.dart';
 import 'package:bhashalens_app/pages/assistant_mode_page.dart';
 import 'package:bhashalens_app/pages/history_saved_page.dart';
 import 'package:bhashalens_app/pages/splash_screen.dart';
+import 'package:bhashalens_app/pages/saved_translations_page.dart';
+import 'package:bhashalens_app/pages/simplify_mode_page.dart';
 
-import 'package:bhashalens_app/firebase_options.dart';
-
+// Services
+import 'package:bhashalens_app/services/accessibility_service.dart';
+import 'package:bhashalens_app/services/local_storage_service.dart';
+import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/db_initializer.dart';
+import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
+import 'package:bhashalens_app/services/history_service.dart';
+import 'package:bhashalens_app/services/saved_translations_service.dart';
+import 'package:bhashalens_app/services/preferences_service.dart';
+import 'package:bhashalens_app/services/export_service.dart';
+import 'package:bhashalens_app/services/monitoring_service.dart';
+import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
+
+// Other
+import 'package:bhashalens_app/theme/app_theme.dart';
+import 'package:bhashalens_app/firebase_options.dart';
+// Removed unused import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize database factory
   initializeDatabaseFactory();
 
-  // Load environment variables with error handling (non-blocking)
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("Warning: Failed to load .env file: $e");
-    // Continue without .env - app should still work with google-services.json
   }
 
-  // Initialize Firebase with error handling (non-blocking)
+  // Load Amplify Config
+  String amplifyConfig = '';
+  try {
+    amplifyConfig = await rootBundle.loadString('lib/amplify_outputs.json');
+  } catch (e) {
+    debugPrint('Warning: Failed to load amplify_outputs.json: $e');
+  }
+
   bool firebaseInitialized = false;
   try {
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+    firebaseInitialized = true;
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
     try {
-      // First try with generated options (requires complete .env)
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      firebaseInitialized = true;
-      debugPrint("Firebase initialized successfully with options");
-    } catch (e) {
-      // Fallback: try without options (uses google-services.json on Android)
-      debugPrint("Warning: Failed to initialize Firebase with options: $e");
-      debugPrint("Attempting fallback initialization...");
       await Firebase.initializeApp();
       firebaseInitialized = true;
-      debugPrint("Firebase initialized successfully via fallback");
-    }
-  } catch (e) {
-    debugPrint("Warning: Failed to initialize Firebase (Final): $e");
-    // Continue without Firebase - app should still work in offline mode
+    } catch (_) {}
   }
 
-  // Initialize services
   final localStorageService = LocalStorageService();
+  final geminiApiKey = dotenv.env['GEMINI_API_KEY'];
+  final geminiService = GeminiService(
+    apiKey: geminiApiKey,
+    localStorageService: localStorageService,
+  );
+  await geminiService.initialize();
 
-  // Create provider list with conditional Firebase services
   final providers = <SingleChildWidget>[
     ChangeNotifierProvider(create: (context) => AccessibilityService()),
     Provider<LocalStorageService>.value(value: localStorageService),
-    Provider<GeminiService>(
-      create: (_) => GeminiService(
-        apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-        localStorageService: localStorageService,
-      )..initialize(),
+    Provider<GeminiService>.value(value: geminiService),
+    ChangeNotifierProvider<AwsApiGatewayClient>(create: (_) {
+      final client = AwsApiGatewayClient();
+      if (amplifyConfig.isNotEmpty) {
+        client.configure(amplifyConfig);
+      }
+      return client;
+    }),
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        HistoryService>(
+      create: (context) => HistoryService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
+      )..fetchHistory(),
+      update: (_, apiClient, localStorage, history) => history!,
     ),
-    ChangeNotifierProvider<VoiceTranslationService>(
-      create: (_) => VoiceTranslationService(
-        localStorageService: localStorageService,
-        geminiApiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        SavedTranslationsService>(
+      create: (context) => SavedTranslationsService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
+      )..fetchSavedTranslations(),
+      update: (_, apiClient, localStorage, saved) => saved!,
+    ),
+    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
+        PreferencesService>(
+      create: (context) => PreferencesService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService:
+            Provider.of<LocalStorageService>(context, listen: false),
+      )..fetchPreferences(),
+      update: (_, apiClient, localStorage, prefs) => prefs!,
+    ),
+    ChangeNotifierProxyProvider<AwsApiGatewayClient, ExportService>(
+      create: (context) => ExportService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
       ),
+      update: (_, apiClient, export) => export!,
+    ),
+    Provider<MonitoringService>(
+      create: (context) => MonitoringService(
+        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+      ),
+    ),
+    ProxyProvider<LocalStorageService, HybridTranslationService>(
+      update: (_, localStorage, __) {
+        debugPrint('Providing HybridTranslationService (Gemini Strict)...');
+        try {
+          final service = HybridTranslationService(
+            localStorageService: localStorage,
+            onDeviceTranslation: MlKitTranslationService(),
+            onDeviceLLM: geminiService,
+          );
+          debugPrint('HybridTranslationService provided successfully.');
+          return service;
+        } catch (e, stack) {
+          debugPrint('Error creating HybridTranslationService: $e');
+          debugPrint(stack.toString());
+          rethrow;
+        }
+      },
+    ),
+    ChangeNotifierProxyProvider<HybridTranslationService,
+        VoiceTranslationService>(
+      create: (context) => VoiceTranslationService(
+        localStorageService: localStorageService,
+      ),
+      update: (context, hybrid, voice) {
+        debugPrint('Updating VoiceTranslationService with hybrid provider');
+        return voice!..hybridService = hybrid;
+      },
     ),
     ChangeNotifierProvider(create: (_) => SavedTranslationsProvider()),
   ];
 
-  // Only add Firebase services if initialization succeeded
   if (firebaseInitialized) {
     final authService = FirebaseAuthService();
     providers.addAll([
@@ -124,8 +196,7 @@ class BhashaLensApp extends StatefulWidget {
 class _BhashaLensAppState extends State<BhashaLensApp> {
   bool _showSplash = true;
   bool _isOnboardingCompleted = false;
-  bool _isInitialized = false;
-  bool _initCancelled = false;
+// Removed unused _isInitialized field
 
   @override
   void initState() {
@@ -134,209 +205,115 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   }
 
   Future<void> _initializeApp() async {
-    try {
-      // Set a maximum timeout for the entire initialization
-      await _performInitialization().timeout(
-        const Duration(seconds: 3),
-      );
-    } catch (e) {
-      debugPrint("Initialization failed or timed out: $e");
-      // Cancel any ongoing initialization to prevent setState after timeout
-      _initCancelled = true;
+    final localStorage =
+        Provider.of<LocalStorageService>(context, listen: false);
+    final completed = await localStorage.isOnboardingCompleted();
 
-      // Continue with defaults (this should still run on timeout)
-      if (mounted) {
-        setState(() {
-          _isOnboardingCompleted = false;
-          _isInitialized = true;
-        });
-
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) {
-          setState(() {
-            _showSplash = false;
-          });
-        }
-      }
-    }
-  }
-
-  Future<void> _performInitialization() async {
-    // Quick initialization without blocking
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    // Check if initialization was cancelled
-    if (_initCancelled) return;
-
-    bool completed = false;
-    try {
-      // Try to check onboarding status with timeout
-      if (!mounted) return;
-      final localStorage = Provider.of<LocalStorageService>(
-        context,
-        listen: false,
-      );
-      completed = await localStorage.isOnboardingCompleted();
-    } catch (e) {
-      debugPrint("Failed to check onboarding: $e");
-      completed = false;
-    }
-
-    // Check cancellation before proceeding
-    if (_initCancelled) return;
-
-    // Initialize auth in background (don't wait for it)
-    _checkAuth();
-
-    if (!_initCancelled && mounted) {
+    if (mounted) {
       setState(() {
         _isOnboardingCompleted = completed;
-        _isInitialized = true;
       });
-
-      // Hide splash after short delay
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (!_initCancelled && mounted) {
-        setState(() {
-          _showSplash = false;
-        });
-      }
     }
   }
 
-  Future<void> _checkAuth() async {
-    if (!mounted) return;
-    try {
-      // Only try to access Firebase auth if the service is available
-      // The provider is registered as non-nullable, so we must catch the exception
-      // if Firebase wasn't initialized and the provider wasn't added.
-      late final FirebaseAuthService authService;
-      try {
-        authService = Provider.of<FirebaseAuthService>(
-          context,
-          listen: false,
-        );
-      } catch (e) {
-        debugPrint('FirebaseAuthService not available in provider tree: $e');
-        return;
-      }
-
-      if (authService.currentUser == null) {
-        await authService.signInAnonymously().timeout(
-              const Duration(seconds: 3),
-            );
-      }
-    } catch (e) {
-      debugPrint('Failed to sign in anonymously: $e');
-    }
+  String _normalizeRouteName(String? routeName) {
+    if (routeName == null || routeName.isEmpty) return '/';
+    var normalized = routeName.trim();
+    if (!normalized.startsWith('/')) normalized = '/$normalized';
+    return normalized;
   }
 
-  Stream<User?> _getAuthStream() {
-    try {
-      // Check if Firebase is initialized before accessing FirebaseAuth
-      Firebase.app();
-      return FirebaseAuth.instance.authStateChanges();
-    } catch (e) {
-      debugPrint('Firebase Auth not available: $e');
-      // Return a stream that emits null (no user) if Firebase is not available
-      return Stream.value(null);
+  Route<dynamic> _onGenerateRoute(RouteSettings settings) {
+    final routeName = _normalizeRouteName(settings.name);
+
+    Widget builder;
+    switch (routeName) {
+      case '/':
+        // The root route is now handled by the 'home' property for better reactivity
+        builder =
+            _isOnboardingCompleted ? const HomePage() : const OnboardingPage();
+        break;
+      case '/onboarding':
+        builder = const OnboardingPage();
+        break;
+      case '/login':
+        builder = const LoginPage();
+        break;
+      case '/signup':
+        builder = const SignupPage();
+        break;
+      case '/forgot_password':
+        builder = const ForgotPasswordPage();
+        break;
+      case '/home':
+        builder = const HomePage();
+        break;
+      case '/camera_translate':
+        builder = const CameraTranslatePage();
+        break;
+      case '/voice_translate':
+        builder = const VoiceTranslatePage();
+        break;
+      case '/saved_translations':
+        builder = const SavedTranslationsPage();
+        break;
+      case '/history_saved':
+        builder =
+            HistorySavedPage(initialIndex: settings.arguments as int? ?? 0);
+        break;
+      case '/settings':
+        builder = const SettingsPage();
+        break;
+      case '/help_support':
+        builder = const HelpSupportPage();
+        break;
+      case '/emergency':
+        builder = const EmergencyPage();
+        break;
+      case '/offline_models':
+        builder = const OfflineModelsPage();
+        break;
+      case '/translation_mode':
+        builder = const TranslationModePage();
+        break;
+      case '/explain_mode':
+        builder = const ExplainModePage();
+        break;
+      case '/assistant_mode':
+        builder = const AssistantModePage();
+        break;
+      case '/text_translate':
+        builder = const TextTranslatePage();
+        break;
+      case '/simplify_mode':
+        builder = const SimplifyModePage();
+        break;
+      case '/error':
+        builder = ErrorFallbackPage(
+            error: settings.arguments as String? ?? 'Unknown error');
+        break;
+      default:
+        builder = ErrorFallbackPage(error: 'Route not found: $routeName');
     }
+
+    return MaterialPageRoute(builder: (_) => builder, settings: settings);
   }
 
   @override
   Widget build(BuildContext context) {
     final accessibilityService = Provider.of<AccessibilityService>(context);
-
     return MaterialApp(
       title: 'BhashaLens',
-      theme: AppTheme.lightTheme.copyWith(
-        textTheme: AppTheme.lightTheme.textTheme.apply(
-          fontSizeFactor: accessibilityService.textSizeFactor,
-        ),
-      ),
-      darkTheme: AppTheme.darkTheme.copyWith(
-        textTheme: AppTheme.darkTheme.textTheme.apply(
-          fontSizeFactor: accessibilityService.textSizeFactor,
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: accessibilityService.themeMode,
       debugShowCheckedModeBanner: false,
       home: _showSplash
-          ? SplashScreen(
-              onComplete: () {
-                if (mounted) {
-                  setState(() {
-                    _showSplash = false;
-                  });
-                }
-              },
-            )
-          : !_isInitialized
-              ? const Scaffold(
-                  backgroundColor: Color(0xFFFFF8F5),
-                  body: Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
-                    ),
-                  ),
-                )
-              : StreamBuilder<User?>(
-                  stream: _getAuthStream(),
-                  builder: (context, snapshot) {
-                    // Don't wait for auth - show app immediately
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return _isOnboardingCompleted
-                          ? const HomePage()
-                          : const OnboardingPage();
-                    }
-
-                    // Handle errors gracefully
-                    if (snapshot.hasError) {
-                      debugPrint('Auth stream error: ${snapshot.error}');
-                      return _isOnboardingCompleted
-                          ? const HomePage()
-                          : const OnboardingPage();
-                    }
-
-                    // If user is logged in, show HomePage
-                    if (snapshot.hasData) {
-                      return const HomePage();
-                    }
-
-                    // Fallback to onboarding or home
-                    return _isOnboardingCompleted
-                        ? const HomePage()
-                        : const OnboardingPage();
-                  },
-                ),
-      routes: {
-        '/onboarding': (context) => const OnboardingPage(),
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        '/forgot_password': (context) => const ForgotPasswordPage(),
-        '/home': (context) => const HomePage(),
-        '/camera_translate': (context) => const CameraTranslatePage(),
-        '/voice_translate': (context) => const VoiceTranslatePage(),
-        '/saved_translations': (context) => const SavedTranslationsPage(),
-        '/history_saved': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
-          return HistorySavedPage(initialIndex: args);
-        },
-        '/settings': (context) => const SettingsPage(),
-        '/help_support': (context) => const HelpSupportPage(),
-        '/emergency': (context) => const EmergencyPage(),
-        '/offline_models': (context) => const OfflineModelsPage(),
-        '/translation_mode': (context) => const TranslationModePage(),
-        '/explain_mode': (context) => const ExplainModePage(),
-        '/assistant_mode': (context) => const AssistantModePage(),
-        '/text_translate': (context) => const TextTranslatePage(),
-        '/error': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as String? ??
-              'Unknown error';
-          return ErrorFallbackPage(error: args);
-        },
-      },
+          ? SplashScreen(onComplete: () => setState(() => _showSplash = false))
+          : (_isOnboardingCompleted
+              ? const HomePage()
+              : const OnboardingPage()),
+      onGenerateRoute: _onGenerateRoute,
     );
   }
 }

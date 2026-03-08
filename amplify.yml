@@ -3,20 +3,65 @@ backend:
   phases:
     build:
       commands:
-        - cd bhashalens_app
-        - npm ci --cache .npm --prefer-offline
+        - npm ci
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+env:
+  variables:
+    FLUTTER_VERSION: "3.41.3"
+
 frontend:
   phases:
+    preBuild:
+      commands:
+        # 1. Install Flutter efficiently
+        - 'if [ ! -d "$HOME/flutter" ]; then git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git $HOME/flutter; fi'
+        - 'export PATH="$PATH:$HOME/flutter/bin"'
+        - 'flutter config --enable-web --no-analytics'
+        - 'flutter doctor -v'
+
+        # 2. Setup project environment with robust path handling
+        - 'echo "CURRENT DIRECTORY: $(pwd)"'
+        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
+        - 'echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env'
+        - 'echo "FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY" >> .env'
+        - 'echo "FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID" >> .env'
+        - 'echo "FIREBASE_WEB_PROJECT_ID=$FIREBASE_WEB_PROJECT_ID" >> .env'
+        - 'echo "AWS_API_GATEWAY_URL=$AWS_API_GATEWAY_URL" >> .env'
+        - 'echo "AWS_REGION=$AWS_REGION" >> .env'
+        - 'echo "AWS_ENABLE_CLOUD=$AWS_ENABLE_CLOUD" >> .env'
+        - 'echo "VERIFIED: .env created at $(pwd)/.env"'
+        - 'ls -l .env'
+        - 'cp ../amplify_outputs.json lib/amplify_outputs.json || echo "Warning: amplify_outputs.json not found in root"'
+
+        # 3. Install dependencies and provision SQLite assets
+        - 'flutter clean'
+        - 'flutter pub get'
+        - 'dart run sqflite_common_ffi_web:setup'
+        - 'ls -l web/'
+
     build:
       commands:
-        - cd bhashalens_app
-        - flutter pub get
-        - flutter build web --release
+        - 'export PATH="$PATH:$HOME/flutter/bin"'
+        - 'echo "CURRENT DIRECTORY: $(pwd)"'
+        - 'if [[ "$(basename $(pwd))" != "bhashalens_app" ]]; then cd bhashalens_app || exit 1; fi'
+        # Build Flutter Web with optimizations for Flutter 3.41.3
+        - 'flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
+        
+        # Verify icon fonts are present in build output
+        - 'ls -l build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
+        - 'ls -l build/web/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf || echo "WARNING: CupertinoIcons font MISSING"'
+
+        # Final verification
+        - "ls -l build/web/assets/.env || echo 'WARNING: .env not found in build output'"
+        - 'ls -l build/web/index.html'
+
   artifacts:
     baseDirectory: bhashalens_app/build/web
     files:
       - '**/*'
+
   cache:
     paths:
-      - bhashalens_app/.npm/**/*
+      - '$HOME/flutter'
+      - '$HOME/.pub-cache'
+      - 'bhashalens_app/.dart_tool'

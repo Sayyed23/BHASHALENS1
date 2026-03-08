@@ -1,15 +1,19 @@
+import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/pages/explain_mode_page.dart'; // Import ExplainModePage
-import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/pages/explain_mode_page.dart';
+import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
-import 'package:bhashalens_app/services/amplify_data_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:bhashalens_app/services/gemini_service.dart';
+import 'package:bhashalens_app/core/platform_image_format.dart';
+import 'package:bhashalens_app/core/path_to_file.dart';
+import 'package:bhashalens_app/debug_session_log.dart';
 import 'dart:ui' as ui; // Import for ImageFilter
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -122,9 +126,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           cameras[0],
           ResolutionPreset.high,
           enableAudio: false,
-          imageFormatGroup: Platform.isAndroid
-              ? ImageFormatGroup.jpeg
-              : ImageFormatGroup.bgra8888,
+          imageFormatGroup: imageFormatGroupForCamera,
         );
 
         await _cameraController!.initialize();
@@ -227,7 +229,58 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       String translated = '';
       String detectedLang = _sourceLanguageCode;
 
-      if (isOffline) {
+      if (kIsWeb) {
+        // #region agent log
+        DebugSessionLog.log(
+          'camera_translate_page.dart',
+          'web_image_path',
+          data: {},
+          hypothesisId: 'H5',
+        );
+        // #endregion
+        try {
+          final geminiService = Provider.of<GeminiService>(context, listen: false);
+          if (!geminiService.isInitialized) {
+            await geminiService.initialize();
+          }
+          extracted = await geminiService.extractTextFromImage(bytes);
+        } catch (e) {
+          extracted = "Error extracting text on Web: $e";
+          extractedIsError = true;
+        }
+
+        if (!mounted) return;
+
+        if (extracted.isNotEmpty && !extracted.startsWith('Error')) {
+          // Use Gemini to detect source language when auto-detect is selected
+          String sourceLang = _sourceLanguageCode;
+          final geminiServiceForDetect = Provider.of<GeminiService>(context, listen: false);
+          final hybridService = Provider.of<HybridTranslationService>(context, listen: false);
+          if (_sourceLanguageCode == 'auto') {
+            try {
+              final detected = await geminiServiceForDetect.detectLanguage(extracted);
+              debugPrint('Gemini detected source language (Web): $detected');
+              detectedLang = _mapDetectedLanguageToCode(detected);
+              sourceLang = detectedLang;
+            } catch (e) {
+              debugPrint('Language detection failed, using auto: $e');
+              sourceLang = 'auto';
+            }
+          }
+
+          final result = await hybridService.translateText(
+            sourceText: extracted,
+            targetLang: _targetLanguageCode,
+            sourceLang: sourceLang,
+          );
+          translated = result.translatedText;
+        } else {
+          if (!extractedIsError) {
+            extracted = "No text found in image.";
+            extractedIsError = true;
+          }
+        }
+      } else if (isOffline) {
         if (_sourceLanguageCode == 'auto') {
           // Attempt offline language detection
           final detectedCode = await _mlKitService.identifyLanguage(
@@ -235,7 +288,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
             // If we are here, we haven't extracted text yet.
             // Let's perform OCR with Latin script first to get some text for detection.
             await _mlKitService.extractTextFromFile(
-              File(_capturedImage!.path),
+              pathToFile(_capturedImage!.path),
               languageCode: 'en',
             ),
           );
@@ -278,7 +331,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         // Assuming we have _capturedImage path
         if (_capturedImage != null) {
           extracted = await _mlKitService.extractTextFromFile(
-            File(_capturedImage!.path),
+            pathToFile(_capturedImage!.path),
             languageCode: _sourceLanguageCode,
           );
         } else {
@@ -328,29 +381,49 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           }
         }
       } else {
-        // Gemini Online Logic
-        final geminiService = Provider.of<GeminiService>(
+        // Online Logic - STRICT GEMINI
+        final geminiService = Provider.of<GeminiService>(context, listen: false);
+        final hybridService = Provider.of<HybridTranslationService>(
           context,
           listen: false,
         );
+
+        // Ensure Gemini is initialized before OCR
         if (!geminiService.isInitialized) {
-          throw Exception("Gemini Service not initialized");
+          final initialized = await geminiService.initialize();
+          if (!initialized) {
+            throw Exception('Gemini service failed to initialize. Check API key.');
+          }
         }
 
+        // Use Gemini for OCR in Online Mode as per "Strict Gemini" rule
+        debugPrint('Camera OCR: Using Gemini Vision API (Online)');
         extracted = await geminiService.extractTextFromImage(bytes);
+
         if (!mounted) return;
 
-        if (extracted.isNotEmpty && extracted != 'No text detected') {
+        if (extracted.isNotEmpty && !extracted.startsWith('Error')) {
+          // Detect source language with Gemini when auto-detect is active
+          String sourceLang = _sourceLanguageCode;
           if (_sourceLanguageCode == 'auto') {
-            detectedLang = await geminiService.detectLanguage(extracted);
-            if (!mounted) return;
+            try {
+              final detected = await geminiService.detectLanguage(extracted);
+              debugPrint('Gemini detected source language: $detected');
+              detectedLang = _mapDetectedLanguageToCode(detected);
+              sourceLang = detectedLang;
+            } catch (e) {
+              debugPrint('Language detection failed, using auto: $e');
+              sourceLang = 'auto';
+            }
           }
-          translated = await geminiService.translateText(
-            extracted,
-            _targetLanguageCode,
-            sourceLanguage:
-                null, // Let Gemini handle detection during translation
+
+          debugPrint('Camera Translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
+          final result = await hybridService.translateText(
+            sourceText: extracted,
+            targetLang: _targetLanguageCode,
+            sourceLang: sourceLang,
           );
+          translated = result.translatedText;
         } else {
           extracted = "No text found in image.";
           extractedIsError = true;
@@ -366,19 +439,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               _sourceLanguageCode == 'auto' ? detectedLang : null;
           _isProcessing = false;
         });
-        
-        // Auto save to history
-        if (!extractedIsError && translated.isNotEmpty) {
-          amplifyDataService.saveHistoryItem({
-            'originalText': extracted,
-            'translatedText': translated,
-            'fromLanguage': detectedLang,
-            'toLanguage': _targetLanguageCode,
-            'type': 'camera_translate',
-            'backend': isOffline ? 'mlkit' : 'gemini',
-            'timestamp': DateTime.now().millisecondsSinceEpoch,
-          }).catchError((e) => debugPrint("Failed to save history: $e"));
-        }
       }
     } catch (e) {
       debugPrint('Processing error: $e');
@@ -422,15 +482,29 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
         );
         translated = result ?? "Translation failed (Offline)";
       } else {
-        final geminiService =
-            Provider.of<GeminiService>(context, listen: false);
-        translated = await geminiService.translateText(
-          _extractedText,
-          _targetLanguageCode,
-          sourceLanguage: _sourceLanguageCode == 'auto'
-              ? _detectedLanguageCode
-              : _sourceLanguageCode,
+        final hybridService =
+            Provider.of<HybridTranslationService>(context, listen: false);
+
+        // Detect source language with Gemini when auto-detect is active
+        String sourceLang = _sourceLanguageCode;
+        if (_sourceLanguageCode == 'auto') {
+          try {
+            final geminiService = Provider.of<GeminiService>(context, listen: false);
+            final detected = await geminiService.detectLanguage(_extractedText);
+            sourceLang = _mapDetectedLanguageToCode(detected);
+          } catch (e) {
+            debugPrint('Re-translate language detection failed: $e');
+            sourceLang = 'auto';
+          }
+        }
+
+        debugPrint('Re-translate: Using Gemini API (Online) - $sourceLang → $_targetLanguageCode');
+        final result = await hybridService.translateText(
+          sourceText: _extractedText,
+          targetLang: _targetLanguageCode,
+          sourceLang: sourceLang,
         );
+        translated = result.translatedText;
       }
 
       if (mounted) {
@@ -438,19 +512,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
           _translatedText = translated;
           _isProcessing = false;
         });
-
-        // Auto save to history
-        if (translated.isNotEmpty && !translated.startsWith("Error")) {
-          amplifyDataService.saveHistoryItem({
-            'originalText': _extractedText,
-            'translatedText': translated,
-            'fromLanguage': _sourceLanguageCode == 'auto' ? _detectedLanguageCode : _sourceLanguageCode,
-            'toLanguage': _targetLanguageCode,
-            'type': 'camera_translate',
-            'backend': isOffline ? 'mlkit' : 'gemini',
-            'timestamp': DateTime.now().millisecondsSinceEpoch,
-          }).catchError((e) => debugPrint("Failed to save history: $e"));
-        }
       }
     } catch (e) {
       debugPrint('Re-translation error: $e');
@@ -473,6 +534,20 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       _detectedLanguageCode = null;
     });
     _initializeCamera(); // Re-init preview if needed
+  }
+
+  /// Maps a detected language name (from Gemini) to its BCP-47 code
+  String _mapDetectedLanguageToCode(String detectedName) {
+    final nameToCode = <String, String>{
+      'english': 'en', 'spanish': 'es', 'french': 'fr', 'german': 'de',
+      'italian': 'it', 'portuguese': 'pt', 'russian': 'ru', 'japanese': 'ja',
+      'korean': 'ko', 'chinese': 'zh', 'arabic': 'ar', 'hindi': 'hi',
+      'bengali': 'bn', 'tamil': 'ta', 'telugu': 'te', 'malayalam': 'ml',
+      'kannada': 'kn', 'gujarati': 'gu', 'marathi': 'mr', 'punjabi': 'pa',
+      'urdu': 'ur',
+    };
+    final key = detectedName.toLowerCase().trim();
+    return nameToCode[key] ?? 'auto';
   }
 
   void _toggleFlash() {
@@ -1043,15 +1118,16 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   void _saveTranslation() async {
     if (_extractedText.isEmpty || _translatedText.isEmpty) return;
     try {
-      await amplifyDataService.saveTranslation({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      final localStorage = Provider.of<LocalStorageService>(
+        context,
+        listen: false,
+      );
+      await localStorage.insertTranslation({
         'originalText': _extractedText,
         'translatedText': _translatedText,
-        'fromLanguage': _sourceLanguageCode == 'auto' 
-          ? (_detectedLanguageCode ?? 'Auto-detect') 
-          : _sourceLanguageCode,
-        'toLanguage': _targetLanguageCode,
-        'category': 'Camera',
+        'sourceLanguage': _sourceLanguageCode,
+        'targetLanguage': _targetLanguageCode,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
       if (mounted) {
         ScaffoldMessenger.of(
@@ -1063,11 +1139,6 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       }
     } catch (e) {
       debugPrint("Error saving: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
-        );
-      }
     }
   }
 
