@@ -801,7 +801,13 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                     ),
                   ),
                   const Spacer(),
-                  const SizedBox(width: 50), // Balance for Title
+                  if (!kIsWeb)
+                    _buildGlassyButton(
+                      icon: Icons.flip_camera_ios_rounded,
+                      onTap: _switchCamera,
+                    )
+                  else
+                    const SizedBox(width: 50),
                 ],
               ),
             ),
@@ -856,14 +862,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                       ),
                     ),
 
-                    // Switch Camera
-                    if (!kIsWeb)
-                      _buildGlassyButton(
-                        icon: Icons.flip_camera_ios_rounded,
-                        onTap: _switchCamera,
-                      )
-                    else
-                      const SizedBox(width: 50),
+                    const SizedBox(width: 50), // Balance for Gallery
                   ],
                 ),
               ),
