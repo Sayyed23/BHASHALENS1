@@ -27,6 +27,9 @@ class VoiceTranslationService extends ChangeNotifier {
   final MlKitTranslationService _mlKitService = MlKitTranslationService();
   bool _isOfflineMode = false;
 
+  // Available speech locales (populated after init)
+  List<LocaleName> _availableLocales = [];
+
   // Speech recognition state
   bool _isListening = false;
   bool _speechEnabled = false;
@@ -34,6 +37,7 @@ class VoiceTranslationService extends ChangeNotifier {
   String _currentTranscript = '';
   String _currentTranslatedText = '';
   bool _isTranslating = false;
+  String? _errorMessage; // User-facing error message
 
   // Translation state
   String _userALanguage = 'en'; // Default to English
@@ -56,6 +60,9 @@ class VoiceTranslationService extends ChangeNotifier {
   bool get useOpenAI => _useOpenAI;
   bool get isTranslating => _isTranslating;
   bool get isOfflineMode => _isOfflineMode;
+  String? get errorMessage => _errorMessage;
+  MlKitTranslationService get mlKitService => _mlKitService;
+  List<LocaleName> get availableLocales => _availableLocales;
 
   // Language options
   static const Map<String, String> supportedLanguages = {
@@ -99,9 +106,17 @@ class VoiceTranslationService extends ChangeNotifier {
       onError: (error) {
         debugPrint('Speech recognition error: $error');
         _isListening = false;
+        _errorMessage = 'Speech recognition error. Please try again.';
         notifyListeners();
       },
     );
+
+    // Cache available locales for later checks
+    if (_speechEnabled) {
+      _availableLocales = await _speechToText.locales();
+      debugPrint(
+          'Available speech locales: ${_availableLocales.map((l) => l.localeId).toList()}');
+    }
 
     // Initialize text-to-speech
     await _flutterTts.setLanguage('en-US');
@@ -140,41 +155,106 @@ class VoiceTranslationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Check if a speech locale is available on this device
+  bool isLocaleAvailable(String languageCode) {
+    final localeId = _getLanguageCode(languageCode);
+    // Check both exact match and prefix match (e.g., 'mr' matches 'mr-IN')
+    return _availableLocales.any((locale) =>
+        locale.localeId == localeId ||
+        locale.localeId.startsWith('${languageCode}_') ||
+        locale.localeId.startsWith('$languageCode-'));
+  }
+
+  /// Clear error message
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Check if offline translation models are ready for a language pair
+  Future<bool> areOfflineModelsReady(String langA, String langB) async {
+    final aReady = await _mlKitService.isModelDownloaded(langA);
+    final bReady = await _mlKitService.isModelDownloaded(langB);
+    // English is needed as intermediate for non-English pairs
+    if (langA != 'en' && langB != 'en') {
+      final enReady = await _mlKitService.isModelDownloaded('en');
+      return aReady && bReady && enReady;
+    }
+    return aReady && bReady;
+  }
+
+  /// Download offline model for a language
+  Future<bool> downloadOfflineModel(String languageCode) async {
+    return await _mlKitService.downloadModel(languageCode);
+  }
+
   // Speech recognition
   Future<void> startListening(String speaker) async {
     _currentSpeaker = speaker;
     _currentTranscript = '';
     _currentTranslatedText = '';
     _lastWords = '';
+    _errorMessage = null;
 
     await checkConnectivity();
 
-    if (!_speechEnabled) return;
+    if (!_speechEnabled) {
+      _errorMessage = 'Speech recognition is not available on this device.';
+      notifyListeners();
+      return;
+    }
 
-    String localeId = _getLanguageCode(
-      _currentSpeaker == 'A' ? _userALanguage : _userBLanguage,
-    );
+    final langCode = _currentSpeaker == 'A' ? _userALanguage : _userBLanguage;
+    String localeId = _getLanguageCode(langCode);
 
-    await _speechToText.listen(
-      onResult: (result) {
-        _currentTranscript = result.recognizedWords;
-        _lastWords = result.recognizedWords;
+    // Check if locale is available on device
+    if (!isLocaleAvailable(langCode)) {
+      // Try a fallback: find any matching locale prefix
+      final fallback = _availableLocales.where((locale) =>
+          locale.localeId.startsWith('${langCode}_') ||
+          locale.localeId.startsWith('$langCode-'));
+      if (fallback.isNotEmpty) {
+        localeId = fallback.first.localeId;
+        debugPrint('Using fallback locale: $localeId for $langCode');
+      } else {
+        final langName = supportedLanguages[langCode] ?? langCode;
+        _errorMessage =
+            '$langName speech recognition is not installed on your device. '
+            'Please add $langName in your device\'s language settings.';
         notifyListeners();
-        if (result.finalResult) {
-          processConversationTurn();
-        }
-      },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 5),
-      localeId: localeId,
-      listenOptions: SpeechListenOptions(
-        onDevice: _isOfflineMode,
-        cancelOnError: true,
-      ),
-    );
+        return;
+      }
+    }
 
-    _isListening = true;
-    notifyListeners();
+    try {
+      await _speechToText.listen(
+        onResult: (result) {
+          _currentTranscript = result.recognizedWords;
+          _lastWords = result.recognizedWords;
+          notifyListeners();
+          if (result.finalResult) {
+            processConversationTurn();
+          }
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+        localeId: localeId,
+        listenOptions: SpeechListenOptions(
+          onDevice: false, // Let system decide; forced onDevice breaks unsupported locales
+          cancelOnError: false, // Don't silently cancel
+        ),
+      );
+
+      _isListening = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to start listening: $e');
+      final langName = supportedLanguages[langCode] ?? langCode;
+      _errorMessage = 'Could not start $langName speech recognition. '
+          'Please check your device language settings.';
+      _isListening = false;
+      notifyListeners();
+    }
   }
 
   // Removed Sarvam streaming STT logic as it is being decommissioned in favor of Hybrid/AWS stack.
@@ -231,20 +311,32 @@ class VoiceTranslationService extends ChangeNotifier {
             return 'Offline: Language detection failed.';
           }
         }
-        return await _mlKitService.translate(
-              text: text,
-              sourceLanguage: actualSourceLanguage,
-              targetLanguage: toLanguage,
-            ) ??
-            'Offline translation failed';
+
+        // Check if models are available before attempting translation
+        final missingModels = await _mlKitService
+            .getMissingModelsForTranslation(actualSourceLanguage, toLanguage);
+        if (missingModels.isNotEmpty) {
+          final names = missingModels
+              .map((code) => supportedLanguages[code] ?? code)
+              .join(', ');
+          return 'Offline models needed: $names. '
+              'Go to Settings → Offline Models to download.';
+        }
+
+        final result = await _mlKitService.translate(
+          text: text,
+          sourceLanguage: actualSourceLanguage,
+          targetLanguage: toLanguage,
+        );
+        return result ?? 'Offline translation failed. Models may be corrupted.';
       } else {
         // Online: Use Hybrid Translation Service (chains to Gemini API)
         if (_hybridService == null) {
           return 'Translation Service not initialized';
         }
 
-        // When auto-detect is selected online, let Gemini handle it
-        debugPrint('VoiceTranslationService: Using Gemini API (Online) - $actualSourceLanguage → $toLanguage');
+        debugPrint(
+            'VoiceTranslationService: Using Gemini API (Online) - $actualSourceLanguage → $toLanguage');
         final result = await _hybridService!.translateText(
           sourceText: text,
           sourceLang: actualSourceLanguage,

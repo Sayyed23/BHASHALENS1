@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
+import 'package:bhashalens_app/pages/offline_models_page.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 
 class VoiceTranslatePage extends StatefulWidget {
@@ -38,6 +39,16 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(Icons.download_rounded, color: colorScheme.onSurface),
+            tooltip: 'Offline Models',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OfflineModelsPage(),
+              ),
+            ),
+          ),
           IconButton(
             icon:
                 Icon(Icons.help_outline_rounded, color: colorScheme.onSurface),
@@ -106,6 +117,88 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
                   ],
                 ),
               ),
+
+              // Offline Mode Banner
+              if (voiceService.isOfflineMode)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_rounded,
+                        color: Colors.orange,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Offline Mode — Using on-device translation',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const OfflineModelsPage(),
+                          ),
+                        ),
+                        child: const Text(
+                          'Models',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Error Banner
+              if (voiceService.errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  color: AppColors.error.withValues(alpha: 0.15),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.error,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          voiceService.errorMessage!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => voiceService.clearError(),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Chat Area
               Expanded(
@@ -464,12 +557,116 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
     );
   }
 
-  void _handleMicrophoneTap(String user, VoiceTranslationService voiceService) {
+  void _handleMicrophoneTap(
+      String user, VoiceTranslationService voiceService) async {
     if (voiceService.isListening) {
       voiceService.stopListening();
-    } else {
-      voiceService.startListening(user);
+      return;
     }
+
+    // When offline, check if translation models are available
+    if (voiceService.isOfflineMode) {
+      final langA = voiceService.userALanguage;
+      final langB = voiceService.userBLanguage;
+      final modelsReady = await voiceService.areOfflineModelsReady(langA, langB);
+      if (!modelsReady && mounted) {
+        _showDownloadModelsDialog(voiceService, langA, langB);
+        return;
+      }
+    }
+
+    voiceService.startListening(user);
+  }
+
+  void _showDownloadModelsDialog(
+    VoiceTranslationService voiceService,
+    String langA,
+    String langB,
+  ) async {
+    final theme = Theme.of(context);
+    final missingModels = await voiceService.mlKitService
+        .getMissingModelsForTranslation(langA, langB);
+
+    if (!mounted || missingModels.isEmpty) return;
+
+    final missingNames = missingModels
+        .map((code) =>
+            VoiceTranslationService.supportedLanguages[code] ?? code)
+        .toList();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.download_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Download Offline Models',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To translate offline, download these language models:',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            ...missingNames.map((name) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, size: 8,
+                          color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(name,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                )),
+            const SizedBox(height: 12),
+            Text(
+              'Requires internet to download (~30MB each).',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OfflineModelsPage(),
+                ),
+              );
+            },
+            child: Text(
+              'Download',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showHelpDialog(ThemeData theme) {
