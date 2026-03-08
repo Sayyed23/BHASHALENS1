@@ -816,18 +816,16 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Camera Capture
-                    _buildGlassyButton(
-                      icon: Icons.camera_alt_rounded,
-                      onTap: _takePicture,
-                    ),
-
                     // Gallery
                     _buildGlassyButton(
                       icon: Icons.photo_library_rounded,
                       onTap: _pickFromGallery,
                     ),
-
+                    // Camera Capture
+                    _buildGlassyButton(
+                      icon: Icons.camera_alt_rounded,
+                      onTap: _takePicture,
+                    ),
                     // Flip Camera
                     _buildGlassyButton(
                       icon: Icons.flip_camera_ios_rounded,
