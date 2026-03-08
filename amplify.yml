@@ -44,7 +44,7 @@ frontend:
         - 'export APP_DIR="bhashalens_app"'
         - 'if [ "$(basename $(pwd))" = "bhashalens_app" ]; then export APP_DIR="."; fi'
         # Build Flutter Web with optimizations for Flutter 3.41.3
-        - 'cd $APP_DIR && flutter build web --release --no-tree-shake-icons --no-wasm-dry-run'
+        - 'cd $APP_DIR && flutter build web --release --no-tree-shake-icons'
         
         # Verify icon fonts are present in build output
         - 'ls -l $APP_DIR/build/web/assets/fonts/MaterialIcons-Regular.otf || echo "CRITICAL: MaterialIcons font MISSING"'
