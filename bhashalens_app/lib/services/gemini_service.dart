@@ -52,7 +52,7 @@ class GeminiService {
       }
 
       _model = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -63,7 +63,7 @@ class GeminiService {
       );
 
       _visionModel = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         apiKey: apiKey!,
         generationConfig: GenerationConfig(
           temperature: 0.3,
@@ -273,12 +273,17 @@ class GeminiService {
     try {
       final String targetLanguageName = _getLanguageName(targetLanguage);
       final prompt =
-          'You are a language simplification expert. '
-          'Take the following text and simplify it to a "$simplicity" level of complexity. '
-          'Your ENTIRE response MUST be written in $targetLanguageName. '
+          'You are an expert language teacher and translation assistant. '
+          'Your task is to analyze the following text module by module (sentence by sentence or phrase by phrase). '
+          'For EACH module, you MUST provide a PROPER EXPLANATION in very SIMPLE terms (ELI5), and a DIRECT TRANSLATION into $targetLanguageName. '
+          'Format your response exactly like this template for every module:\n\n'
+          '🔹 **Original part:** [The original text segment]\n'
+          '🔸 **Translation:** [Direct translation in $targetLanguageName]\n'
+          '💡 **Explanation:** [A very simple, jargon-free explanation in $targetLanguageName]\n'
+          '---\n\n'
+          'Your ENTIRE explanation and translation MUST be written in $targetLanguageName. '
           'Do NOT respond in English unless $targetLanguageName IS English. '
-          'Break it down into key points if necessary. Use simple, clear sentences. Avoid jargon. '
-          'Provide the simplified explanation directly without any preamble or meta-commentary.\n\n'
+          'Provide the formatted response directly without any introductory preamble.\n\n'
           'Input text: $text';
       await _checkAndIncrementLimit();
 
@@ -344,11 +349,11 @@ class GeminiService {
       prompt +=
           'IMPORTANT: Your ENTIRE response (ALL fields including meaning, analysis, cultural_insight, etc.) '
           'MUST be written in $targetLanguageName. Do NOT respond in English unless $targetLanguageName IS English. '
-          'Return a valid JSON object with the following keys and no markdown formatting: '
+          'Return a valid JSON object with the following keys and no markdown formatting outside the JSON: '
           '{'
-          '"translation": "String - The text translated to $targetLanguageName", '
+          '"translation": "String - The translation of the FULL text to $targetLanguageName", '
           '"analysis": "String - A brief contextual summary IN $targetLanguageName (1-2 sentences). Who is speaking? What is the main topic?", '
-          '"meaning": "String - A very simple, jargon-free explanation IN $targetLanguageName of what this means. Imagine explaining to a child (ELI5). Use clear, short sentences.", '
+          '"meaning": "String - A detailed module-by-module breakdown. For every part of the text, format it exactly as:\\n\\n🔹 **Original part:** [text]\\n🔸 **Translation:** [translation in $targetLanguageName]\\n💡 **Explanation:** [simple ELI5 explanation in $targetLanguageName]\\n---", '
           '"suggested_questions": ["String IN $targetLanguageName", "String IN $targetLanguageName"], '
           '"when_to_use": "String IN $targetLanguageName", '
           '"tone": "String IN $targetLanguageName", '
