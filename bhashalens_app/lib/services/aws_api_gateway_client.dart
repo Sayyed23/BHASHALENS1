@@ -36,19 +36,40 @@ class AwsApiGatewayClient extends ChangeNotifier {
   }
 
   /// Handles generic GraphQL Request execution with retries and error handling
-  Future<Map<String, dynamic>> _executeRequest(String operationName, GraphQLRequest<String> request) async {
+  Future<Map<String, dynamic>> _executeRequest(String operationName, GraphQLRequest<String> request, {bool isMutation = false}) async {
     if (!isEnabled) {
       throw AwsApiException('AWS cloud integration is not enabled or configured.', statusCode: 0);
     }
     return retryPolicy.execute(() async {
       try {
-        final operation = Amplify.API.query(request: request);
+        final operation = isMutation 
+            ? Amplify.API.mutate(request: request) 
+            : Amplify.API.query(request: request);
         final response = await operation.response;
 
         final data = response.data;
         if (data != null) {
           final Map<String, dynamic> parsedData = jsonDecode(data);
-          return parsedData[operationName] != null ? jsonDecode(parsedData[operationName] as String) as Map<String, dynamic> : parsedData;
+          
+          if (parsedData[operationName] != null) {
+            final rawValue = parsedData[operationName];
+            if (rawValue is String) {
+               try {
+                 // AWSJSON arrays and objects are returned as strings
+                 final decoded = jsonDecode(rawValue);
+                 // If it's a Top-level array (like getHistory), wrap it in 'items' so it behaves like Map<String, dynamic>
+                 if (decoded is List) {
+                   return {'items': decoded};
+                 }
+                 return decoded as Map<String, dynamic>;
+               } catch (_) {
+                 return {'value': rawValue};
+               }
+            } else if (rawValue is Map) {
+               return rawValue as Map<String, dynamic>;
+            }
+          }
+          return parsedData;
         }
 
         if (response.errors.isNotEmpty) {
@@ -92,7 +113,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
         deleteHistoryItem(id: \$id)
       }
     ''';
-    return _executeRequest('deleteHistoryItem', _createPostRequest(document, {'id': id}));
+    return _executeRequest('deleteHistoryItem', _createPostRequest(document, {'id': id}), isMutation: true);
   }
 
   Future<Map<String, dynamic>> addHistoryItem({
@@ -120,7 +141,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
       if (backend != null) 'backend': backend,
       if (processingTime != null) 'processingTime': processingTime,
     };
-    return _executeRequest('addHistoryItem', _createPostRequest(document, variables));
+    return _executeRequest('addHistoryItem', _createPostRequest(document, variables), isMutation: true);
   }
 
   // --- Saved Translations Endpoints ---
@@ -164,7 +185,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
       'target_lang': targetLang,
       if (tags != null) 'tags': tags,
     };
-    return _executeRequest('saveTranslation', _createPostRequest(document, variables));
+    return _executeRequest('saveTranslation', _createPostRequest(document, variables), isMutation: true);
   }
 
   Future<Map<String, dynamic>> deleteSavedTranslation(String id) async {
@@ -173,7 +194,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
         deleteSavedTranslation(id: \$id)
       }
     ''';
-    return _executeRequest('deleteSavedTranslation', _createPostRequest(document, {'id': id}));
+    return _executeRequest('deleteSavedTranslation', _createPostRequest(document, {'id': id}), isMutation: true);
   }
 
   // --- Preferences Endpoints ---
@@ -193,7 +214,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
         updatePreferences(preferences: \$preferences)
       }
     ''';
-    return _executeRequest('updatePreferences', _createPostRequest(document, {'preferences': jsonEncode(preferences)}));
+    return _executeRequest('updatePreferences', _createPostRequest(document, {'preferences': jsonEncode(preferences)}), isMutation: true);
   }
 
   // --- Export Endpoint ---
@@ -215,7 +236,7 @@ class AwsApiGatewayClient extends ChangeNotifier {
       if (startDate != null) 'startDate': startDate,
       if (endDate != null) 'endDate': endDate,
     };
-    return _executeRequest('exportData', _createPostRequest(document, variables));
+    return _executeRequest('exportData', _createPostRequest(document, variables), isMutation: true);
   }
 }
 

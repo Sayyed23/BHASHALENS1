@@ -1,10 +1,10 @@
-import 'package:bhashalens_app/models/translation_history_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/ml_kit_translation_service.dart';
@@ -13,7 +13,6 @@ import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/gemini_service.dart';
 
 import 'package:bhashalens_app/widgets/common_bottom_nav_bar.dart';
-import 'package:bhashalens_app/widgets/backend_indicator.dart';
 import 'package:bhashalens_app/core/ocr_extractor.dart';
 
 class ExplainModePage extends StatefulWidget {
@@ -34,11 +33,6 @@ class _ExplainModePageState extends State<ExplainModePage>
   String _selectedOutputLanguage = 'Hindi';
   String _selectedInputLanguage = 'English';
   late TabController _tabController;
-  ProcessingBackend? _lastBackend;
-  // Removed unused _lastBackendLabel
-
-  // Removed unused _tabs
-
   bool _readExplanationAloud = true;
   final TextEditingController _followUpController = TextEditingController();
 
@@ -202,7 +196,6 @@ class _ExplainModePageState extends State<ExplainModePage>
     setState(() {
       _isProcessing = true;
       _contextData = null;
-      _lastBackend = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -225,7 +218,6 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
-            _lastBackend = ProcessingBackend.mlKit;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -245,14 +237,28 @@ class _ExplainModePageState extends State<ExplainModePage>
 
         if (mounted) {
           setState(() {
+            Map<String, dynamic> parsedResponse = {};
+            try {
+              parsedResponse = jsonDecode(orchestrateResult.response);
+            } catch (e) {
+              parsedResponse = {'meaning': orchestrateResult.response};
+            }
+
             _contextData = {
-              'translation':
-                  text, // Use original as translation placeholder if needed
-              'meaning': orchestrateResult.response,
+              'translation': parsedResponse['translation'] ??
+                  text, // Use translation from Gemini JSON
+              'meaning':
+                  parsedResponse['meaning'] ?? orchestrateResult.response,
+              'analysis': parsedResponse['analysis'],
+              'suggested_questions': parsedResponse['suggested_questions'],
+              'when_to_use': parsedResponse['when_to_use'],
+              'tone': parsedResponse['tone'],
+              'situational_context': parsedResponse['situational_context'],
+              'cultural_insight': parsedResponse['cultural_insight'],
+              'safety_note': parsedResponse['safety_note'],
               'claude_base': 'N/A (Strict Gemini)',
               'backend': orchestrateResult.backend.name,
             };
-            _lastBackend = orchestrateResult.backend;
           });
         }
       }
@@ -266,7 +272,6 @@ class _ExplainModePageState extends State<ExplainModePage>
         if (mounted) {
           setState(() {
             _contextData = result;
-            _lastBackend = ProcessingBackend.mlKit;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -309,7 +314,6 @@ class _ExplainModePageState extends State<ExplainModePage>
     setState(() {
       _isProcessing = true;
       _contextData = null;
-      _lastBackend = null;
     });
     FocusScope.of(context).unfocus();
 
@@ -336,7 +340,6 @@ class _ExplainModePageState extends State<ExplainModePage>
               'cultural_insight':
                   'Simplified using Gemini Strict Mode for maximum clarity.',
             };
-            _lastBackend = result.backend;
           });
         } else {
           ScaffoldMessenger.of(
@@ -364,7 +367,6 @@ class _ExplainModePageState extends State<ExplainModePage>
               'cultural_insight':
                   offlineResult['cultural_insight'] ?? 'Cloud unavailable.',
             };
-            _lastBackend = ProcessingBackend.mlKit;
           });
 
           if (!mounted) return;
@@ -1130,11 +1132,7 @@ class _ExplainModePageState extends State<ExplainModePage>
                             ),
                           ) // End Input Card
                         else ...[
-                          BackendIndicator(
-                            backend: _lastBackend == ProcessingBackend.gemini
-                                ? 'gemini'
-                                : 'offline',
-                          ),
+                          const SizedBox(height: 16),
                           // Context Result UI matching Mockup
                           _buildTranslationCard(
                             _inputController.text,
