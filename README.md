@@ -53,7 +53,7 @@ BhashaLens goes beyond simple word-for-word translation — it **explains**, **s
 Traditional translation tools rely on **rule-based** or **statistical** methods that produce rigid, often inaccurate translations — especially for low-resource languages (Hindi, Marathi, Tamil, etc.). BhashaLens requires AI for the following critical reasons:
 
 ### 1. Context-Aware Translation (Not Just Word-for-Word)
-Rule-based translators fail at idiomatic expressions, slang, and context. AI models like **Gemini 2.0 Flash** and **Claude Sonnet** understand sentence-level semantics, producing translations that preserve meaning, tone, and cultural nuance.
+Rule-based translators fail at idiomatic expressions, slang, and context. AI models like **Gemini 2.5 Flash** and **Claude Sonnet** understand sentence-level semantics, producing translations that preserve meaning, tone, and cultural nuance.
 
 > **Example:** "It's raining cats and dogs" → AI correctly translates to "बहुत तेज़ बारिश हो रही है" (Hindi) instead of literally translating "cats and dogs."
 
