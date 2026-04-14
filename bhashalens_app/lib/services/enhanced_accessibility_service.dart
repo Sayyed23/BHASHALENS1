@@ -2,63 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/accessibility_settings.dart';
-import '../models/voice_command.dart';
+import 'voice_navigation/voice_navigation_service.dart';
+import 'audio_feedback/audio_feedback_service.dart' as audio;
 
-/// Abstract interface for voice navigation functionality
-abstract class VoiceNavigationService {
-  /// Stream of voice commands being processed
-  Stream<VoiceCommand> get commandStream;
-
-  /// Start listening for voice commands
-  Future<void> startListening();
-
-  /// Stop listening for voice commands
-  Future<void> stopListening();
-
-  /// Execute a navigation command
-  Future<void> executeNavigationCommand(VoiceCommand command);
-
-  /// Execute page-specific commands
-  Future<void> executePageSpecificCommand(
-      VoiceCommand command, String currentPage);
-
-  /// Provide audio feedback for commands
-  Future<void> provideCommandFeedback(String message);
-
-  /// List available commands for current context
-  Future<void> listAvailableCommands(String context);
-}
-
-/// Abstract interface for audio feedback functionality
-abstract class AudioFeedbackService {
-  /// Speak text using TTS
-  Future<void> speak(String text, {String? language});
-
-  /// Announce page changes
-  Future<void> announcePageChange(String pageName, String description);
-
-  /// Announce button actions
-  Future<void> announceButtonAction(String buttonName, String action);
-
-  /// Announce error messages
-  Future<void> announceError(String errorMessage);
-
-  /// Announce success messages
-  Future<void> announceSuccess(String successMessage);
-
-  /// Control speech playback
-  Future<void> pauseSpeech();
-  Future<void> resumeSpeech();
-  Future<void> stopSpeech();
-
-  /// Configure TTS settings
-  Future<void> setSpeechRate(double rate);
-  Future<void> setSpeechPitch(double pitch);
-  Future<void> setVoice(String voiceId);
-
-  /// Get available voices
-  List<dynamic> getAvailableVoices();
-}
+// Re-export so consumers can use a single import
+export 'voice_navigation/voice_navigation_service.dart'
+    show VoiceNavigationService, VoiceNavigationController;
 
 /// Abstract interface for visual accessibility functionality
 abstract class VisualAccessibilityController {
@@ -82,16 +31,17 @@ abstract class VisualAccessibilityController {
 /// Core accessibility controller that coordinates all accessibility features
 class AccessibilityController extends ChangeNotifier {
   final VoiceNavigationService? _voiceNavigation;
-  final AudioFeedbackService? _audioFeedback;
+  final audio.AudioFeedbackService? _audioFeedback;
   final VisualAccessibilityController? _visualAccessibility;
   final SharedPreferences _preferences;
 
   AccessibilitySettings _settings = const AccessibilitySettings();
+  ThemeMode _themeMode = ThemeMode.dark;
 
   AccessibilityController._({
     required SharedPreferences preferences,
     VoiceNavigationService? voiceNavigation,
-    AudioFeedbackService? audioFeedback,
+    audio.AudioFeedbackService? audioFeedback,
     VisualAccessibilityController? visualAccessibility,
   })  : _preferences = preferences,
         _voiceNavigation = voiceNavigation,
@@ -102,7 +52,7 @@ class AccessibilityController extends ChangeNotifier {
   static Future<AccessibilityController> create({
     required SharedPreferences preferences,
     VoiceNavigationService? voiceNavigation,
-    AudioFeedbackService? audioFeedback,
+    audio.AudioFeedbackService? audioFeedback,
     VisualAccessibilityController? visualAccessibility,
   }) async {
     final controller = AccessibilityController._(
@@ -123,7 +73,7 @@ class AccessibilityController extends ChangeNotifier {
   VoiceNavigationService? get voiceNavigation => _voiceNavigation;
 
   /// Audio feedback service getter
-  AudioFeedbackService? get audioFeedback => _audioFeedback;
+  audio.AudioFeedbackService? get audioFeedback => _audioFeedback;
 
   /// Visual accessibility controller getter
   VisualAccessibilityController? get visualAccessibility =>
@@ -138,29 +88,87 @@ class AccessibilityController extends ChangeNotifier {
   /// Check if visual accessibility is enabled
   bool get isVisualAccessibilityEnabled => _settings.highContrastEnabled;
 
-  /// Enable voice navigation
-  Future<void> enableVoiceNavigation() async {
-    _settings = _settings.copyWith(voiceNavigationEnabled: true);
-    await _saveSettings();
+  /// Backwards compatibility with old AccessibilityService
+  double get textSizeFactor => _settings.textScale;
+  ThemeMode get themeMode => _themeMode;
+
+  void setTextSizeFactor(double factor) {
+    if (factor > 0) {
+      updateSettings(_settings.copyWith(textScale: factor));
+    }
+  }
+
+  void toggleThemeMode() {
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _preferences.setString('theme_mode', _themeMode.toString());
     notifyListeners();
   }
 
-  /// Disable voice navigation
+  /// Enable voice navigation — delegates to the actual service
+  Future<void> enableVoiceNavigation() async {
+    try {
+      final voiceNav = _voiceNavigation;
+      if (voiceNav != null) {
+        await voiceNav.enableVoiceNavigation();
+        // Wire audio feedback so voice nav commands produce TTS output
+        final feedback = _audioFeedback;
+        if (feedback != null && voiceNav is VoiceNavigationController) {
+          voiceNav.setAudioFeedbackCallback(
+            (message, {String? language}) async {
+              await feedback.speak(message, language: language);
+            },
+          );
+        }
+      }
+      _settings = _settings.copyWith(voiceNavigationEnabled: true);
+      await _saveSettings();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to enable voice navigation: $e');
+      rethrow;
+    }
+  }
+
+  /// Disable voice navigation — delegates to the actual service
   Future<void> disableVoiceNavigation() async {
+    try {
+      final voiceNav = _voiceNavigation;
+      if (voiceNav != null) {
+        await voiceNav.disableVoiceNavigation();
+      }
+    } catch (e) {
+      debugPrint('Failed to disable voice navigation: $e');
+    }
     _settings = _settings.copyWith(voiceNavigationEnabled: false);
     await _saveSettings();
     notifyListeners();
   }
 
-  /// Enable audio feedback
+  /// Enable audio feedback — initializes the TTS service
   Future<void> enableAudioFeedback() async {
+    try {
+      final feedback = _audioFeedback;
+      if (feedback != null) {
+        await feedback.initialize(_settings);
+      }
+    } catch (e) {
+      debugPrint('Failed to initialize audio feedback: $e');
+    }
     _settings = _settings.copyWith(audioFeedbackEnabled: true);
     await _saveSettings();
     notifyListeners();
   }
 
-  /// Disable audio feedback
+  /// Disable audio feedback — stops TTS
   Future<void> disableAudioFeedback() async {
+    try {
+      final feedback = _audioFeedback;
+      if (feedback != null) {
+        await feedback.stopSpeech();
+      }
+    } catch (e) {
+      debugPrint('Failed to stop audio feedback: $e');
+    }
     _settings = _settings.copyWith(audioFeedbackEnabled: false);
     await _saveSettings();
     notifyListeners();
@@ -199,16 +207,49 @@ class AccessibilityController extends ChangeNotifier {
     // Ensuring user settings are maintained during the upgrade
   }
 
-  /// Load settings from SharedPreferences
+  /// Load settings from SharedPreferences and restore services
   Future<void> _loadSettings() async {
     try {
       final settingsJson = _preferences.getString('accessibility_settings');
       if (settingsJson != null) {
         _settings = AccessibilitySettings.fromJson(settingsJson);
       }
+      final themeStr = _preferences.getString('theme_mode');
+      if (themeStr != null) {
+        _themeMode = themeStr == ThemeMode.light.toString() ? ThemeMode.light : ThemeMode.dark;
+      }
     } catch (e) {
       // If loading fails, use default settings
       _settings = const AccessibilitySettings();
+    }
+
+    // Restore services that were previously enabled
+    await _restoreServices();
+  }
+
+  /// Re-enable services that were enabled in persisted settings
+  Future<void> _restoreServices() async {
+    try {
+      final feedback = _audioFeedback;
+      if (_settings.audioFeedbackEnabled && feedback != null) {
+        await feedback.initialize(_settings);
+        debugPrint('Audio feedback service restored from saved settings');
+      }
+      final voiceNav = _voiceNavigation;
+      if (_settings.voiceNavigationEnabled && voiceNav != null) {
+        await voiceNav.enableVoiceNavigation();
+        // Wire audio feedback callback
+        if (feedback != null && voiceNav is VoiceNavigationController) {
+          voiceNav.setAudioFeedbackCallback(
+            (message, {String? language}) async {
+              await feedback.speak(message, language: language);
+            },
+          );
+        }
+        debugPrint('Voice navigation service restored from saved settings');
+      }
+    } catch (e) {
+      debugPrint('Error restoring accessibility services: $e');
     }
   }
 
@@ -233,7 +274,7 @@ class AccessibilityServiceContainer {
   AccessibilityServiceContainer._();
 
   VoiceNavigationService? _voiceNavigationService;
-  AudioFeedbackService? _audioFeedbackService;
+  audio.AudioFeedbackService? _audioFeedbackService;
   VisualAccessibilityController? _visualAccessibilityController;
   AccessibilityController? _accessibilityController;
   Completer<AccessibilityController>? _accessibilityControllerCompleter;
@@ -244,7 +285,7 @@ class AccessibilityServiceContainer {
   }
 
   /// Register audio feedback service
-  void registerAudioFeedbackService(AudioFeedbackService service) {
+  void registerAudioFeedbackService(audio.AudioFeedbackService service) {
     _audioFeedbackService = service;
   }
 
@@ -286,7 +327,8 @@ class AccessibilityServiceContainer {
       completer.completeError(error);
       _accessibilityControllerCompleter = null;
       rethrow;
-    }  }
+    }
+  }
 
   /// Clear all registered services (for testing)
   void clear() {

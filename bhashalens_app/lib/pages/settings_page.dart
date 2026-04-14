@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bhashalens_app/services/accessibility_service.dart';
+import 'package:bhashalens_app/services/enhanced_accessibility_service.dart';
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:bhashalens_app/services/preferences_service.dart';
 import 'package:bhashalens_app/services/history_service.dart';
@@ -17,7 +17,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _simplifiedInterface = false;
-  bool _voiceGuidance = false;
   bool _wifiOnlyDownloads = false;
   bool _offlineMode = false;
 
@@ -144,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final accessibilityService = Provider.of<AccessibilityService>(context);
+    final accessibilityController = Provider.of<AccessibilityController>(context);
     final prefsService = Provider.of<PreferencesService>(context);
 
     // Theme Colors
@@ -317,11 +316,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         trackHeight: 4,
                       ),
                       child: Slider(
-                        value: accessibilityService.textSizeFactor,
+                        value: accessibilityController.textSizeFactor,
                         min: 0.8,
                         max: 1.4,
                         onChanged: (val) =>
-                            accessibilityService.setTextSizeFactor(val),
+                            accessibilityController.setTextSizeFactor(val),
                       ),
                     ),
                   ),
@@ -346,9 +345,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       icon: Icons.contrast,
                       iconColor: primaryBlue,
                       title: "High Contrast Mode",
-                      value: accessibilityService.themeMode == ThemeMode.dark,
+                      value: accessibilityController.themeMode == ThemeMode.dark,
                       onChanged: (val) =>
-                          accessibilityService.toggleThemeMode(),
+                          accessibilityController.toggleThemeMode(),
                     ),
                     const Divider(height: 1, color: dividerColor),
                     _buildSwitchTile(
@@ -364,8 +363,32 @@ class _SettingsPageState extends State<SettingsPage> {
                       icon: Icons.record_voice_over,
                       iconColor: primaryBlue,
                       title: "Voice Guidance",
-                      value: _voiceGuidance,
-                      onChanged: (val) => setState(() => _voiceGuidance = val),
+                      value: accessibilityController.isVoiceNavigationEnabled,
+                      onChanged: (val) async {
+                        try {
+                          if (val) {
+                            await accessibilityController.enableAudioFeedback();
+                            await accessibilityController.enableVoiceNavigation();
+                          } else {
+                            await accessibilityController.disableVoiceNavigation();
+                            await accessibilityController.disableAudioFeedback();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Voice guidance error: $e',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: const Color(0xFFEF5350),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                   ],
                 ),

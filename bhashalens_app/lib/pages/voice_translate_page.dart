@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/pages/offline_models_page.dart';
+import 'package:bhashalens_app/widgets/accessibility_wrapper.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 
 class VoiceTranslatePage extends StatefulWidget {
@@ -71,7 +72,9 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
           ),
         ],
       ),
-      body: Consumer<VoiceTranslationService>(
+      body: AccessibilityWrapper(
+        currentPage: '/voice',
+        child: Consumer<VoiceTranslationService>(
         builder: (context, voiceService, child) {
           return Column(
             children: [
@@ -395,6 +398,7 @@ class _VoiceTranslatePageState extends State<VoiceTranslatePage> {
             ],
           );
         },
+      ),
       ),
     );
   }

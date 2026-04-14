@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:bhashalens_app/widgets/accessibility_wrapper.dart';
 
 class TextTranslatePage extends StatefulWidget {
   const TextTranslatePage({super.key});
@@ -47,7 +48,9 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: AccessibilityWrapper(
+        currentPage: '/text',
+        child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
           children: [
@@ -341,6 +344,7 @@ class _TextTranslatePageState extends State<TextTranslatePage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

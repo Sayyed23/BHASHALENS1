@@ -1,5 +1,6 @@
 import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
+import 'package:bhashalens_app/widgets/accessibility_wrapper.dart';
 import 'package:bhashalens_app/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
@@ -43,8 +44,8 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
   String _extractedText = '';
   bool _extractedIsError = false;
   String _translatedText = '';
-  String _sourceLanguageCode = 'auto'; // 'auto' means detect
-  String _targetLanguageCode = 'en'; // Default target
+  String _sourceLanguageCode = 'en'; // 'auto' means detect
+  String _targetLanguageCode = 'hi'; // Default target
   String? _detectedLanguageCode; // For showing badge
 
   // Mapping for display
@@ -490,7 +491,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
       String translated = '';
 
-      if (isOffline) {
+      if (isOffline && !kIsWeb) {
         final result = await _mlKitService.translate(
           text: _extractedText,
           sourceLanguage: _sourceLanguageCode,
@@ -627,9 +628,11 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
+      body: AccessibilityWrapper(
+        currentPage: '/camera',
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           // 1. Camera Preview Layer
           if (_isCameraInitialized && _capturedImageBytes == null)
             CameraPreview(_cameraController!)
@@ -1062,6 +1065,7 @@ class _CameraTranslatePageState extends State<CameraTranslatePage>
               },
             ),
         ],
+      ),
       ),
     );
   }

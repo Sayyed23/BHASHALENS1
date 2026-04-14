@@ -107,12 +107,14 @@ class SmartHybridRouter {
   ) async {
     debugPrint('### SMART_ROUTER_GEMINI_STRICT ### kIsWeb: $kIsWeb');
     
+    // Rule 0: If web environment, ALWAYS use Gemini as ML Kit is not supported
+    if (kIsWeb) {
+      debugPrint('### SMART_ROUTER_GEMINI_STRICT ### Web environment detected, enforcing Gemini for all requests.');
+      return ProcessingBackend.gemini;
+    }
+
     // Helper to determine if we should use ML Kit or Gemini
     ProcessingBackend mlKitOrGemini(String ruleName) {
-      if (kIsWeb) {
-        debugPrint('### SMART_ROUTER_GEMINI_STRICT ### Rule $ruleName: Web detected, forcing Gemini');
-        return ProcessingBackend.gemini;
-      }
       return ProcessingBackend.mlKit;
     }
 

@@ -32,13 +32,13 @@ class HybridTranslationService {
     String? userId,
   }) async {
     debugPrint('HybridTranslationService: Translating text: $sourceText');
-    // Determine if we should use offline ML Kit or online Gemini
     final connectivityResult = await Connectivity().checkConnectivity();
     final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
-    final backend =
-        isOffline ? ProcessingBackend.mlKit : ProcessingBackend.gemini;
-    debugPrint('HybridTranslationService: Decision: ${backend.name}');
+    // Rule 0: If web environment, ALWAYS use Gemini as ML Kit is not supported
+    final backend = kIsWeb ? ProcessingBackend.gemini : (isOffline ? ProcessingBackend.mlKit : ProcessingBackend.gemini);
+    
+    debugPrint('HybridTranslationService: Decision (Web-Aware): ${backend.name}');
     final startTime = DateTime.now();
     // #region agent log
     DebugSessionLog.log(
@@ -207,7 +207,7 @@ class HybridTranslationService {
     final startTime = DateTime.now();
     try {
       // Strictly use Gemini for online, or provide info if offline
-      if (isOffline) {
+      if (isOffline && !kIsWeb) {
         return HybridSimplificationResult(
           simplifiedText:
               'Simplification requires an internet connection for advanced processing. Please connect and try again.',
@@ -299,7 +299,7 @@ class HybridTranslationService {
     final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
     try {
-      if (isOffline) {
+      if (isOffline && !kIsWeb) {
         throw Exception('Explanation requires an internet connection.');
       }
 
@@ -350,7 +350,7 @@ class HybridTranslationService {
 
     final startTime = DateTime.now();
     try {
-      if (isOffline) {
+      if (isOffline && !kIsWeb) {
         return HybridOrchestrationResult(
           response: 'Orchestration requires an internet connection.',
           claudeBase: 'N/A',

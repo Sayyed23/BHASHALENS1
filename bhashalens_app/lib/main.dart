@@ -6,8 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart' show rootBundle;
-// Removed unused import
 import 'dart:async';
+import 'package:bhashalens_app/models/voice_command.dart';
 
 // Pages
 import 'package:bhashalens_app/pages/onboarding_page.dart';
@@ -32,7 +32,8 @@ import 'package:bhashalens_app/pages/saved_translations_page.dart';
 import 'package:bhashalens_app/pages/simplify_mode_page.dart';
 
 // Services
-import 'package:bhashalens_app/services/accessibility_service.dart';
+import 'package:bhashalens_app/services/enhanced_accessibility_service.dart';
+import 'package:bhashalens_app/services/audio_feedback/audio_feedback_service.dart';
 import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/db_initializer.dart';
@@ -96,8 +97,15 @@ void main() async {
   );
   await geminiService.initialize();
 
+  // Initialize Accessibility Services
+  final voiceNavigation = VoiceNavigationController();
+  final audioFeedback = AudioFeedbackServiceFactory.create();
+  AccessibilityServiceContainer.instance.registerVoiceNavigationService(voiceNavigation);
+  AccessibilityServiceContainer.instance.registerAudioFeedbackService(audioFeedback);
+  final accessibilityController = await AccessibilityServiceContainer.instance.getAccessibilityController();
+
   final providers = <SingleChildWidget>[
-    ChangeNotifierProvider(create: (context) => AccessibilityService()),
+    ChangeNotifierProvider<AccessibilityController>.value(value: accessibilityController),
     Provider<LocalStorageService>.value(value: localStorageService),
     Provider<GeminiService>.value(value: geminiService),
     ChangeNotifierProvider<AwsApiGatewayClient>(create: (_) {
@@ -200,6 +208,7 @@ class BhashaLensApp extends StatefulWidget {
 }
 
 class _BhashaLensAppState extends State<BhashaLensApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _showSplash = true;
   bool _isOnboardingCompleted = false;
 // Removed unused _isInitialized field
@@ -219,6 +228,54 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
       setState(() {
         _isOnboardingCompleted = completed;
       });
+    }
+
+    // Wire navigation callback for voice commands after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _wireVoiceNavigationCallback();
+    });
+  }
+
+  /// Wire voice navigation commands to the app's Navigator
+  void _wireVoiceNavigationCallback() {
+    try {
+      final controller =
+          Provider.of<AccessibilityController>(context, listen: false);
+      final voiceNav = controller.voiceNavigation;
+      if (voiceNav is VoiceNavigationController) {
+        voiceNav.setNavigationCallback(
+          (NavigationAction action, Map<String, dynamic> params) {
+            final navigator = _navigatorKey.currentState;
+            if (navigator == null) return;
+
+            switch (action) {
+              case NavigationAction.home:
+                navigator.pushNamedAndRemoveUntil('/home', (r) => false);
+                break;
+              case NavigationAction.cameraTranslation:
+                navigator.pushNamed('/camera_translate');
+                break;
+              case NavigationAction.voiceTranslation:
+                navigator.pushNamed('/voice_translate');
+                break;
+              case NavigationAction.textTranslation:
+                navigator.pushNamed('/text_translate');
+                break;
+              case NavigationAction.settings:
+                navigator.pushNamed('/settings');
+                break;
+              case NavigationAction.back:
+                navigator.maybePop();
+                break;
+              default:
+                debugPrint('Unhandled navigation action: $action');
+            }
+          },
+        );
+        debugPrint('Voice navigation callback wired to Navigator');
+      }
+    } catch (e) {
+      debugPrint('Error wiring voice navigation callback: $e');
     }
   }
 
@@ -307,12 +364,13 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
 
   @override
   Widget build(BuildContext context) {
-    final accessibilityService = Provider.of<AccessibilityService>(context);
+    final accessibilityController = Provider.of<AccessibilityController>(context);
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'BhashaLens',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: accessibilityService.themeMode,
+      themeMode: accessibilityController.themeMode,
       debugShowCheckedModeBanner: false,
       home: _showSplash
           ? SplashScreen(onComplete: () => setState(() => _showSplash = false))

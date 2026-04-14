@@ -358,10 +358,7 @@ class VoiceTranslationService extends ChangeNotifier {
 
       String actualSourceLanguage = fromLanguage ?? 'en';
 
-      if (_isOfflineMode) {
-        if (kIsWeb) {
-          return 'Offline translation is not available on web. Please connect to the internet.';
-        }
+      if (_isOfflineMode && !kIsWeb) {
         if (fromLanguage == 'auto') {
           actualSourceLanguage = await _mlKitService.identifyLanguage(text);
           if (actualSourceLanguage == 'und') {

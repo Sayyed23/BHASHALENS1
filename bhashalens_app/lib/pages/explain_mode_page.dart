@@ -137,7 +137,7 @@ class _ExplainModePageState extends State<ExplainModePage>
         final connectivityResult = await Connectivity().checkConnectivity();
         final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
-        if (isOffline) {
+        if (isOffline && !kIsWeb) {
           // Fallback to ML Kit if offline
           extracted = await extractTextFromImageFile(image,
               languageCode: _selectedInputLanguage == 'Auto-detected'
@@ -207,8 +207,7 @@ class _ExplainModePageState extends State<ExplainModePage>
     final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
     try {
-      if (isOffline) {
-        // Use offline explain service
+      if (isOffline && !kIsWeb) {
         final offlineService = OfflineExplainService();
         final result = await offlineService.explainAsMap(text);
 
