@@ -53,7 +53,7 @@ BhashaLens goes beyond simple word-for-word translation — it **explains**, **s
 Traditional translation tools rely on **rule-based** or **statistical** methods that produce rigid, often inaccurate translations — especially for low-resource languages (Hindi, Marathi, Tamil, etc.). BhashaLens requires AI for the following critical reasons:
 
 ### 1. Context-Aware Translation (Not Just Word-for-Word)
-Rule-based translators fail at idiomatic expressions, slang, and context. AI models like **Gemini 2.0 Flash** and **Claude Sonnet** understand sentence-level semantics, producing translations that preserve meaning, tone, and cultural nuance.
+Rule-based translators fail at idiomatic expressions, slang, and context. AI models like **Gemini 2.5 Flash** and **Claude Sonnet** understand sentence-level semantics, producing translations that preserve meaning, tone, and cultural nuance.
 
 > **Example:** "It's raining cats and dogs" → AI correctly translates to "बहुत तेज़ बारिश हो रही है" (Hindi) instead of literally translating "cats and dogs."
 
@@ -528,7 +528,7 @@ Flutter App (lib/)
 
 | Technology | Purpose | Mode |
 |------------|---------|------|
-| **Google Gemini 2.0 Flash** | Primary AI for translation, explain, simplify, chat | Online |
+| **Google Gemini 2.5 Flash** | Primary AI for translation, explain, simplify, chat | Online |
 | **Gemini Vision** | Image-based text extraction and understanding | Online |
 | **AWS Bedrock (Claude Sonnet 4)** | Fallback AI for translation, assistance, simplification | Online |
 | **Google ML Kit** | On-device translation, OCR, language identification | Offline |
@@ -617,7 +617,7 @@ Flutter App (lib/)
 
 | Backend | Avg Latency | Max Latency | Target Met? |
 |---------|-------------|-------------|-------------|
-| **Gemini 2.0 Flash (Online)** | ~800ms | ~2s | ✅ < 5s |
+| **Gemini 2.5 Flash (Online)** | ~800ms | ~2s | ✅ < 5s |
 | **AWS Bedrock Claude (Online)** | ~1.5s | ~4s | ✅ < 5s |
 | **ML Kit (On-Device)** | ~300ms | ~500ms | ✅ < 1s |
 | **TFLite NLLB (On-Device)** | ~800ms | ~1s | ✅ < 1s |
@@ -759,7 +759,7 @@ BHASHALENS1/
 
 ### Completed Milestones ✅
 - [x] Core Flutter app with 21 screens
-- [x] Gemini 2.0 Flash integration (translation, explain, simplify, chat)
+- [x] Gemini 2.5 Flash integration (translation, explain, simplify, chat)
 - [x] AWS Bedrock Claude Sonnet integration
 - [x] Smart Hybrid Router with 6-rule decision engine
 - [x] ML Kit on-device translation, OCR, language detection
