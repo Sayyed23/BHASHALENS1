@@ -227,29 +227,48 @@ class AccessibilityController extends ChangeNotifier {
     await _restoreServices();
   }
 
+  /// Manually re-initialize all accessibility services (troubleshooting button)
+  Future<void> reinitializeServices() async {
+    debugPrint('Manually re-initializing accessibility services...');
+    await _restoreServices();
+    notifyListeners();
+  }
+
   /// Re-enable services that were enabled in persisted settings
   Future<void> _restoreServices() async {
-    try {
-      final feedback = _audioFeedback;
-      if (_settings.audioFeedbackEnabled && feedback != null) {
+    final feedback = _audioFeedback;
+    final voiceNav = _voiceNavigation;
+
+    // 1. Restore Audio Feedback (TTS)
+    if (_settings.audioFeedbackEnabled && feedback != null) {
+      try {
         await feedback.initialize(_settings);
         debugPrint('Audio feedback service restored from saved settings');
+      } catch (e) {
+        debugPrint('Failed to restore audio feedback during startup: $e');
       }
-      final voiceNav = _voiceNavigation;
-      if (_settings.voiceNavigationEnabled && voiceNav != null) {
+    }
+
+    // 2. Restore Voice Navigation (STT)
+    if (_settings.voiceNavigationEnabled && voiceNav != null) {
+      try {
         await voiceNav.enableVoiceNavigation();
-        // Wire audio feedback callback
-        if (feedback != null && voiceNav is VoiceNavigationController) {
-          voiceNav.setAudioFeedbackCallback(
-            (message, {String? language}) async {
-              await feedback.speak(message, language: language);
-            },
-          );
-        }
         debugPrint('Voice navigation service restored from saved settings');
+      } catch (e) {
+        debugPrint('Failed to restore voice navigation during startup: $e');
       }
-    } catch (e) {
-      debugPrint('Error restoring accessibility services: $e');
+
+      // 3. Wire callbacks regardless of individual service success (retry logic)
+      if (feedback != null && voiceNav is VoiceNavigationController) {
+        voiceNav.setAudioFeedbackCallback(
+          (message, {String? language}) async {
+            if (_settings.audioFeedbackEnabled) {
+              await feedback.speak(message, language: language);
+            }
+          },
+        );
+        debugPrint('Voice navigation callbacks wired');
+      }
     }
   }
 

@@ -6,25 +6,20 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
-# Google ML Kit
--keep class com.google.mlkit.** { *; }
--keep class com.google.android.gms.** { *; }
+# Google ML Kit - Refined (Letting AAR-provided rules handle most cases)
+-keep class com.google.mlkit.vision.common.internal.VisionCommonRegistrar { *; }
+-keep class com.google.mlkit.vision.text.internal.TextRegistrar { *; }
 
 # Prevent specific warnings
 -dontwarn com.google.mlkit.**
 -dontwarn com.google.android.gms.**
 
-# Specific classes mentioned in error logs (defensive)
--keep class com.google.mlkit.vision.text.** { *; }
-
 # Play Core (Deferred Components)
 -keep class com.google.android.play.core.** { *; }
 -dontwarn com.google.android.play.core.**
 
-# MediaPipe (flutter_gemma)
--keep class com.google.mediapipe.** { *; }
--keep class com.google.mediapipe.proto.** { *; }
--keep class com.google.mediapipe.framework.** { *; }
+# MediaPipe (flutter_gemma) - Refined
+-keep class com.google.mediapipe.framework.Model { *; }
 -dontwarn com.google.mediapipe.**
 
 # Protobuf
@@ -33,8 +28,6 @@
 
 # TensorFlow Lite
 -keep class org.tensorflow.lite.** { *; }
--keep class org.tensorflow.lite.gpu.** { *; }
--keep class org.tensorflow.lite.gpu.GpuDelegate { *; }
--keep class org.tensorflow.lite.gpu.GpuDelegateFactory** { *; }
 -dontwarn org.tensorflow.lite.**
+
 

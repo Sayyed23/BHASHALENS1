@@ -112,7 +112,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Column(
       children: [
         Image.asset(
-          'assets/logo2.png',
+          'assets/logo2.webp',
           height: 120, // Adjust height as needed
         ),
         const SizedBox(height: 12),

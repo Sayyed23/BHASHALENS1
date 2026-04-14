@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../models/voice_command.dart';
 import 'command_processor.dart';
 import 'context_aware_commands.dart';
@@ -100,15 +101,33 @@ class VoiceNavigationController extends ChangeNotifier
 
   @override
   Future<void> enableVoiceNavigation() async {
+    debugPrint('VoiceNavigationController: Enabling voice navigation...');
     try {
+      // Android/iOS: Check and request microphone permission first
+      final status = await Permission.microphone.status;
+      debugPrint('VoiceNavigationController: Microphone status: $status');
+      if (!status.isGranted) {
+        debugPrint('VoiceNavigationController: Requesting microphone permission...');
+        final result = await Permission.microphone.request();
+        debugPrint('VoiceNavigationController: Permission request result: $result');
+        if (!result.isGranted) {
+          throw Exception('Microphone permission is required for voice navigation');
+        }
+      }
+
       if (!_isInitialized) {
+        debugPrint('VoiceNavigationController: Initializing speech to text engine...');
         final available = await _speechToText.initialize(
-          onError: _handleSpeechError,
+          onError: (error) {
+            debugPrint('VoiceNavigationController: Speech recognition error during init: $error');
+            _handleSpeechError(error);
+          },
           onStatus: _handleSpeechStatus,
         );
 
+        debugPrint('VoiceNavigationController: Speech engine availability: $available');
         if (!available) {
-          throw Exception('Speech recognition not available on this device');
+          throw Exception('Speech recognition not available or denied on this device. Ensure Google Search app is installed and enabled.');
         }
 
         _isInitialized = true;
@@ -116,11 +135,12 @@ class VoiceNavigationController extends ChangeNotifier
 
       _isEnabled = true;
       _consecutiveErrors = 0;
+      debugPrint('VoiceNavigationController: Voice navigation successfully enabled.');
       await provideCommandFeedback(
           'Voice navigation enabled. Say "help" to hear available commands.');
       notifyListeners();
     } catch (e) {
-      debugPrint('Error enabling voice navigation: $e');
+      debugPrint('VoiceNavigationController: Error enabling voice navigation: $e');
       await provideCommandFeedback(
           'Failed to enable voice navigation. Please check your microphone permissions.');
       rethrow;
@@ -139,8 +159,14 @@ class VoiceNavigationController extends ChangeNotifier
 
   @override
   Future<void> startListening() async {
-    if (!_isEnabled || !_isInitialized) {
-      throw Exception('Voice navigation not enabled or initialized');
+    // Force re-initialization check if not initialized
+    if (!_isEnabled) {
+      throw Exception('Voice navigation is not enabled in settings');
+    }
+
+    if (!_isInitialized) {
+      debugPrint('Attempting lazy initialization of voice navigation...');
+      await enableVoiceNavigation();
     }
 
     if (_isListening) {
@@ -150,12 +176,14 @@ class VoiceNavigationController extends ChangeNotifier
     try {
       await _speechToText.listen(
         onResult: _handleSpeechResult,
+        onDevice: true, // Forces on-device recognition for offline mode
         listenFor: Duration(seconds: _timeoutDuration.toInt()),
-        pauseFor: Duration(seconds: (_timeoutDuration / 2).toInt()),
+        pauseFor: const Duration(seconds: 4), // Wait up to 4s of silence
         listenOptions: SpeechListenOptions(
-            partialResults: false,
-            cancelOnError: true,
-            listenMode: ListenMode.confirmation),
+          partialResults: true, // Responsiveness: Process as you speak
+          cancelOnError: true,
+          listenMode: ListenMode.dictation, // More sensitive than confirmation
+        ),
         localeId: _currentLanguage,
       );
 
@@ -369,6 +397,14 @@ class VoiceNavigationController extends ChangeNotifier
     _isListening = false;
     _cancelTimeoutTimer();
     notifyListeners();
+
+    // Check for transient errors to avoid annoying the user
+    final errorStr = error.toString();
+    if (errorStr.contains('error_speech_timeout') || 
+        errorStr.contains('error_no_match')) {
+      debugPrint('Transient speech error suppressed: $errorStr');
+      return;
+    }
 
     _handleError('Speech recognition error. Please try again.').catchError((e) {
       debugPrint('Error in _handleError: $e');

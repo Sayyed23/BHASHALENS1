@@ -445,7 +445,7 @@ class _OfflineModelsPageState extends State<OfflineModelsPage> {
                         _wifiOnly = val;
                       });
                     },
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: primaryBlue,
                     inactiveThumbColor: textGrey,
                     inactiveTrackColor: dividerColor,

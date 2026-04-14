@@ -390,6 +390,43 @@ class _SettingsPageState extends State<SettingsPage> {
                         }
                       },
                     ),
+                    const Divider(height: 1, color: dividerColor),
+                    ListTile(
+                      leading: const Icon(Icons.build_circle_outlined, color: primaryBlue),
+                      title: const Text(
+                        "Troubleshoot Voice Systems",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      subtitle: const Text(
+                        "Click here if voice commands stop working",
+                        style: TextStyle(color: textGrey, fontSize: 12),
+                      ),
+                      trailing: const Icon(Icons.refresh, color: textGrey),
+                      onTap: () async {
+                        try {
+                          await accessibilityController.reinitializeServices();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Accessibility services re-initialized'),
+                                backgroundColor: Color(0xFF4CAF50),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Re-initialization failed: $e'),
+                                backgroundColor: const Color(0xFFEF5350),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),

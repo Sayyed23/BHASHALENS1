@@ -246,7 +246,22 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
         voiceNav.setNavigationCallback(
           (NavigationAction action, Map<String, dynamic> params) {
             final navigator = _navigatorKey.currentState;
-            if (navigator == null) return;
+            if (navigator == null) {
+              debugPrint('Navigator state is null, cannot navigate');
+              return;
+            }
+
+            // Diagnostic feedback
+            final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+            if (scaffoldMessenger != null) {
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text('Voice Command: ${action.toString().split('.').last}'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
 
             switch (action) {
               case NavigationAction.home:
@@ -266,6 +281,13 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                 break;
               case NavigationAction.back:
                 navigator.maybePop();
+                break;
+              case NavigationAction.startTranslation:
+                // Handle page-specific actions like "capture" or "record"
+                final subAction = params['action'] ?? 'generic';
+                debugPrint('Triggering page action: $subAction');
+                // These are usually handled at the page level, 
+                // but we log them here for debugging.
                 break;
               default:
                 debugPrint('Unhandled navigation action: $action');
