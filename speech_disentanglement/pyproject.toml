@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech_disentanglement"
+version = "0.1.0"
+description = "PVT-Lite — speaker-specific custom word detection for Samsung ennovateX 2026"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "BHASHALENS1 / Speech-Disentanglement contributors" }]
+keywords = ["speech", "keyword spotting", "speaker verification", "on-device", "samsung"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.3,<2.5",
+    "torchaudio>=2.3,<2.5",
+    "numpy>=1.26,<3",
+    "pyyaml>=6.0",
+    "einops>=0.7",
+    "soundfile>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+onnx = [
+    "onnx>=1.16",
+    "onnxruntime>=1.18",
+]
+tflite = [
+    "onnx2tf>=1.22",
+    "tensorflow>=2.16; platform_machine != 'aarch64'",
+    "tflite-runtime>=2.14; platform_machine == 'aarch64'",
+]
+mic = [
+    "sounddevice>=0.4",
+]
+
+[project.scripts]
+pvt-enroll = "speech_disentanglement.inference.enroll:main"
+pvt-stream = "speech_disentanglement.inference.streaming:main"
+pvt-smoke  = "speech_disentanglement.scripts.smoke:main"
+pvt-eval   = "speech_disentanglement.evaluation.eval_kpis:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["speech_disentanglement*"]
+
+[tool.setuptools.package-data]
+speech_disentanglement = ["training/configs/*.yaml"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle / pyflakes
+    "I",                # isort
+    "UP",               # pyupgrade
+    "B",                # bugbear
+    "SIM",              # simplifications
+]
+ignore = [
+    "E501",  # let the formatter wrap long lines
+    "B008",  # default-arg call (we use this for dataclass defaults)
+]
+
+[tool.pytest.ini_options]
+testpaths = ["speech_disentanglement/tests"]
+addopts = "-q"

@@ -1,0 +1,43 @@
+# Stage-3 joint multi-task fine-tune config.
+# Consumed by `training/joint_finetune.py`.
+
+seed: 0
+
+init_from:
+  speaker_ckpt: runs/speaker/latest.ckpt
+  kws_ckpt:     runs/kws/latest.ckpt
+
+data:
+  libriphrase: speech_disentanglement/data/manifests/libriphrase/train.jsonl
+  voxceleb:    speech_disentanglement/data/manifests/voxceleb/train.jsonl
+  speech_commands: speech_disentanglement/data/manifests/speech_commands/train.jsonl
+  noise_manifest:  speech_disentanglement/data/manifests/noise/noise_pool.jsonl
+  rir_index:       speech_disentanglement/data/manifests/rirs/rirs_index.json
+  hard_negative_mining:
+    same_word_other_speaker: true
+    phonetic_neighbor:       true
+    in_batch_distractors:    4
+
+loss_weights:
+  alpha_kws:      1.0
+  beta_spk:       1.0
+  gamma_contrast: 0.3
+
+train:
+  batch_size: 192
+  num_workers: 8
+  steps: 80_000
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  scheduler: { kind: cosine, warmup_steps: 2_000 }
+
+quantization:
+  scheme: int8_dynamic
+  per_channel: true
+  calibration_clips: 1024
+
+eval:
+  every_steps: 2_500
+  full_kpi_grid: true
+  fa_target_per_hour: 1.0

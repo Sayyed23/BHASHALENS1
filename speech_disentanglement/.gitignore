@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# Local data + runs (never committed)
+data/manifests/*/*.jsonl
+data/manifests/*/veri_trials.jsonl
+data/manifests/rirs/rirs_index.json
+runs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.tflite
+
+# Generated reports
+evaluation/reports/*.md
+evaluation/reports/*.png
+evaluation/reports/*.json
+!evaluation/reports/.gitkeep
