@@ -1,0 +1,32 @@
+BHASHALENS1 — Speech Disentanglement
+Copyright 2026 BHASHALENS1 / Speech-Disentanglement contributors
+
+This product includes software developed under the Apache License, Version 2.0.
+See LICENSE for the full license text.
+
+------------------------------------------------------------
+Third-party data and models referenced (NOT redistributed in
+this repo — only download scripts are provided; users must
+accept each upstream license separately):
+
+  * Google Speech Commands v2 — CC BY 4.0
+      https://www.tensorflow.org/datasets/catalog/speech_commands
+  * LibriPhrase — derived from LibriSpeech (CC BY 4.0)
+      https://github.com/gusrb3164/LibriPhrase
+  * VoxCeleb 1 & 2 — research-use license (Visual Geometry Group, Oxford)
+      https://www.robots.ox.ac.uk/~vgg/data/voxceleb/
+  * MUSAN — Attribution 4.0 International (CC BY 4.0)
+      https://www.openslr.org/17/
+  * DEMAND — CC BY 4.0
+      https://zenodo.org/record/1227121
+  * WHAM! — research-use license
+      http://wham.whisper.ai/
+  * OpenSLR Room Impulse Response Database (SLR28) — Apache-2.0
+      https://www.openslr.org/28/
+  * Coqui XTTS-v2 — Mozilla Public License 2.0 (model card)
+      https://huggingface.co/coqui/XTTS-v2
+
+The BhashaLens Flutter application sub-tree (`bhashalens_app/`,
+`amplify/`, `infrastructure/`, `functions/`) predates the
+speech-disentanglement work and is retained here for historical
+reference; it is licensed under the same Apache-2.0 terms.

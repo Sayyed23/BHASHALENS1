@@ -1,0 +1,42 @@
+# Stage-2 KWS pretraining config (LibriPhrase + Speech Commands).
+# Consumed by `training/pretrain_kws.py`.
+
+seed: 0
+
+data:
+  libriphrase:
+    train: speech_disentanglement/data/manifests/libriphrase/train.jsonl
+    dev:   speech_disentanglement/data/manifests/libriphrase/dev.jsonl
+    test:  speech_disentanglement/data/manifests/libriphrase/test.jsonl
+  speech_commands:
+    train: speech_disentanglement/data/manifests/speech_commands/train.jsonl
+    dev:   speech_disentanglement/data/manifests/speech_commands/dev.jsonl
+    test:  speech_disentanglement/data/manifests/speech_commands/test.jsonl
+  noise_manifest: speech_disentanglement/data/manifests/noise/noise_pool.jsonl
+  rir_index: speech_disentanglement/data/manifests/rirs/rirs_index.json
+  clip_seconds: 1.0
+  augment:
+    noise_p: 0.7
+    snr_min_db: -5
+    snr_max_db: 30
+    rir_p: 0.4
+
+model:
+  encoder: { hidden: 128, depth: 6, kernel_size: 9, output_dim: 192 }
+  kws:     { phoneme_vocab: 80, phoneme_dim: 64, proj_dim: 128, num_heads: 2 }
+
+train:
+  batch_size: 256
+  num_workers: 8
+  steps: 150_000
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  scheduler: { kind: cosine, warmup_steps: 4_000 }
+  loss:
+    contrast_temperature: 0.07
+    bce_pos_weight: 5.0
+
+eval:
+  every_steps: 5_000
+  target_metric: eer_libriphrase_hard

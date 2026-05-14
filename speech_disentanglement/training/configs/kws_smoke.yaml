@@ -1,0 +1,9 @@
+# Tiny smoke-test config so we can dry-run training on the Devin VM.
+# Consumed by:  python -m speech_disentanglement.training.pretrain_kws --smoke
+seed: 0
+data:
+  clip_seconds: 1.0
+train:
+  batch_size: 4
+  steps: 1
+  lr: 1.0e-3

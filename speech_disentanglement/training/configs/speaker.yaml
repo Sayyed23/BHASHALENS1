@@ -1,0 +1,37 @@
+# Stage-1 speaker-embedding pretraining config (VoxCeleb 1 + 2).
+# Consumed by `training/pretrain_speaker.py`.
+
+seed: 0
+
+data:
+  manifest: speech_disentanglement/data/manifests/voxceleb/train.jsonl
+  dev_manifest: speech_disentanglement/data/manifests/voxceleb/dev.jsonl
+  veri_trials: speech_disentanglement/data/manifests/voxceleb/veri_trials.jsonl
+  clip_seconds: 3.0
+  noise_manifest: speech_disentanglement/data/manifests/noise/noise_pool.jsonl
+  rir_index: speech_disentanglement/data/manifests/rirs/rirs_index.json
+  augment:
+    noise_p: 0.6
+    snr_min_db: -5
+    snr_max_db: 30
+    rir_p: 0.5
+
+model:
+  encoder: { hidden: 128, depth: 6, kernel_size: 9, output_dim: 192 }
+  speaker: { hidden: 128, emb_dim: 192 }
+
+train:
+  batch_size: 256
+  num_workers: 8
+  steps: 300_000
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  scheduler: { kind: cosine, warmup_steps: 5_000 }
+  loss:
+    aam_margin: 0.2
+    aam_scale: 30.0
+
+eval:
+  every_steps: 5_000
+  target_metric: eer_vox1_o

@@ -1,0 +1,47 @@
+name: speech-disentanglement-ci
+
+on:
+  push:
+    branches: [main, "devin/**"]
+    paths:
+      - "speech_disentanglement/**"
+      - ".github/workflows/speech-disentanglement-ci.yml"
+  pull_request:
+    paths:
+      - "speech_disentanglement/**"
+      - ".github/workflows/speech-disentanglement-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('speech_disentanglement/requirements.txt') }}
+
+      - name: Install CPU-only PyTorch + project (editable)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu \
+              "torch>=2.3,<2.5" "torchaudio>=2.3,<2.5"
+          pip install -e "./speech_disentanglement[dev]"
+
+      - name: Ruff lint
+        run: ruff check speech_disentanglement
+
+      - name: Pytest
+        run: pytest speech_disentanglement/tests -v
+
+      - name: Smoke run (forward + backward)
+        run: python -m speech_disentanglement.scripts.smoke

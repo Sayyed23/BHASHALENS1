@@ -1,0 +1,20 @@
+# Runtime + training deps for PVT-Lite.
+# Versions pinned to the latest known-good releases as of May 2026.
+
+# Core DL
+torch>=2.3,<2.5
+torchaudio>=2.3,<2.5
+numpy>=1.26,<3
+pyyaml>=6.0
+einops>=0.7
+
+# Audio I/O
+soundfile>=0.12
+
+# Optional inference dependencies (kept lightweight; imported lazily in code)
+onnx>=1.16
+onnxruntime>=1.18
+
+# Dev / test
+pytest>=8.0
+ruff>=0.5
