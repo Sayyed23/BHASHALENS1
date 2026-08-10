@@ -1,8 +1,1 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // User-specific history\n    match /history/{docId} {\n      allow read, write: if request.auth != null \n        && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);\n    }\n    \n    // Saved translations (assuming similar structure)\n    match /saved_translations/{docId} {\n      allow read, write: if request.auth != null \n        && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);\n    }\n    \n    // User preferences\n    match /preferences/{userId} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n    \n    // Default deny for other paths\n    match /{document=**} {\n      allow read, write: if false;\n    }\n  }\n}\n
