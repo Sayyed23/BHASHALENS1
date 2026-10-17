@@ -191,6 +191,11 @@ class LocalStorageService {
     return await db.delete('translations', where: 'id = ?', whereArgs: [intId]);
   }
 
+  Future<int> clearTranslations() async {
+    final db = await database;
+    return await db.delete('translations');
+  }
+
   // SQLite methods for language packs
   Future<int> insertLanguagePack(Map<String, dynamic> languagePack) async {
     final db = await database;

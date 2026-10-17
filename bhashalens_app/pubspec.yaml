@@ -39,8 +39,6 @@ dependencies:
   web_socket_channel: ^3.0.1
   google_fonts: ^6.2.1
   
-  # AWS Integration (using http for API Gateway calls)
-  # Note: Flutter doesn't have official AWS SDK, using http client for REST API calls
   url_launcher: ^6.2.5
   
   # ML & AI
@@ -64,10 +62,6 @@ dependencies:
   sqflite_common_ffi: ^2.4.0+2
   sqflite_common_ffi_web: ^1.1.1
   path_provider: ^2.1.5
-  amplify_flutter: ^2.4.0
-  amplify_auth_cognito: ^2.4.0
-  amplify_api: ^2.4.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -77,7 +71,6 @@ dev_dependencies:
   mockito: ^5.6.3
 
 dependency_overrides:
-    amplify_db_common_dart: ^0.4.15
     sqlite3: ^3.1.2
 
 flutter:
@@ -89,7 +82,6 @@ flutter:
     - assets/logo2.webp
     - assets/google_logo.png
     - .env
-    - lib/amplify_outputs.json
 
 flutter_launcher_icons:
   android: "launcher_icon"

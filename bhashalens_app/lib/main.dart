@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'dart:async';
 import 'package:bhashalens_app/models/voice_command.dart';
 
@@ -37,7 +36,6 @@ import 'package:bhashalens_app/services/audio_feedback/audio_feedback_service.da
 import 'package:bhashalens_app/services/local_storage_service.dart';
 import 'package:bhashalens_app/services/voice_translation_service.dart';
 import 'package:bhashalens_app/services/db_initializer.dart';
-import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
 import 'package:bhashalens_app/services/hybrid_translation_service.dart';
 import 'package:bhashalens_app/services/history_service.dart';
 import 'package:bhashalens_app/services/saved_translations_service.dart';
@@ -50,7 +48,6 @@ import 'package:bhashalens_app/services/gemini_service.dart';
 // Other
 import 'package:bhashalens_app/theme/app_theme.dart';
 import 'package:bhashalens_app/firebase_options.dart';
-// Removed unused import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,14 +57,6 @@ void main() async {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     debugPrint("Warning: Failed to load .env file: $e");
-  }
-
-  // Load Amplify Config
-  String amplifyConfig = '';
-  try {
-    amplifyConfig = await rootBundle.loadString('lib/amplify_outputs.json');
-  } catch (e) {
-    debugPrint('Warning: Failed to load amplify_outputs.json: $e');
   }
 
   bool firebaseInitialized = false;
@@ -108,50 +97,28 @@ void main() async {
     ChangeNotifierProvider<AccessibilityController>.value(value: accessibilityController),
     Provider<LocalStorageService>.value(value: localStorageService),
     Provider<GeminiService>.value(value: geminiService),
-    ChangeNotifierProvider<AwsApiGatewayClient>(create: (_) {
-      final client = AwsApiGatewayClient();
-      if (amplifyConfig.isNotEmpty) {
-        client.configure(amplifyConfig);
-      }
-      return client;
-    }),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
-        HistoryService>(
+    ChangeNotifierProvider<HistoryService>(
       create: (context) => HistoryService(
-        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService:
-            Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService: localStorageService,
       )..fetchHistory(),
-      update: (_, apiClient, localStorage, history) => history!,
     ),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
-        SavedTranslationsService>(
+    ChangeNotifierProvider<SavedTranslationsService>(
       create: (context) => SavedTranslationsService(
-        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService:
-            Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService: localStorageService,
       )..fetchSavedTranslations(),
-      update: (_, apiClient, localStorage, saved) => saved!,
     ),
-    ChangeNotifierProxyProvider2<AwsApiGatewayClient, LocalStorageService,
-        PreferencesService>(
+    ChangeNotifierProvider<PreferencesService>(
       create: (context) => PreferencesService(
-        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-        localStorageService:
-            Provider.of<LocalStorageService>(context, listen: false),
+        localStorageService: localStorageService,
       )..fetchPreferences(),
-      update: (_, apiClient, localStorage, prefs) => prefs!,
     ),
-    ChangeNotifierProxyProvider<AwsApiGatewayClient, ExportService>(
+    ChangeNotifierProvider<ExportService>(
       create: (context) => ExportService(
-        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
+        localStorageService: localStorageService,
       ),
-      update: (_, apiClient, export) => export!,
     ),
     Provider<MonitoringService>(
-      create: (context) => MonitoringService(
-        apiClient: Provider.of<AwsApiGatewayClient>(context, listen: false),
-      ),
+      create: (context) => MonitoringService(),
     ),
     ProxyProvider<LocalStorageService, HybridTranslationService>(
       update: (_, localStorage, __) {
@@ -211,7 +178,6 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _showSplash = true;
   bool _isOnboardingCompleted = false;
-// Removed unused _isInitialized field
 
   @override
   void initState() {
@@ -283,11 +249,8 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
                 navigator.maybePop();
                 break;
               case NavigationAction.startTranslation:
-                // Handle page-specific actions like "capture" or "record"
                 final subAction = params['action'] ?? 'generic';
                 debugPrint('Triggering page action: $subAction');
-                // These are usually handled at the page level, 
-                // but we log them here for debugging.
                 break;
               default:
                 debugPrint('Unhandled navigation action: $action');
@@ -314,7 +277,6 @@ class _BhashaLensAppState extends State<BhashaLensApp> {
     Widget builder;
     switch (routeName) {
       case '/':
-        // The root route is now handled by the 'home' property for better reactivity
         builder =
             _isOnboardingCompleted ? const HomePage() : const OnboardingPage();
         break;

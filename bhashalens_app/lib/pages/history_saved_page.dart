@@ -288,58 +288,13 @@ class _HistorySavedPageState extends State<HistorySavedPage>
                       return RefreshIndicator(
                         onRefresh: () async {
                           await service.fetchHistory();
-                          await service.syncLocalHistoryWithCloud();
                         },
-                        child: Stack(
-                          children: [
-                            ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, index) =>
-                                  _buildItemCard(filtered[index], cardColor),
-                            ),
-                            if (service.isSyncing)
-                              Positioned(
-                                top: 10,
-                                left: 0,
-                                right: 0,
-                                child: Center(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF136DEC),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(
-                                          width: 12,
-                                          height: 12,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          "Syncing with cloud...",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
+                        child: ListView.builder(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) =>
+                              _buildItemCard(filtered[index], cardColor),
                         ),
                       );
                     },
@@ -462,29 +417,25 @@ class _HistorySavedPageState extends State<HistorySavedPage>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: item.isSynced
-                      ? const Color(0xFFFF9900).withValues(alpha: 0.1) // AWS Orange tint
-                      : Colors.grey.withValues(alpha: 0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
-                    color: item.isSynced
-                        ? const Color(0xFFFF9900).withValues(alpha: 0.3)
-                        : Colors.grey.withValues(alpha: 0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      item.isSynced ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+                      Icons.phone_android,
                       size: 12,
-                      color: item.isSynced ? const Color(0xFFFF9900) : Colors.grey,
+                      color: Colors.grey,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
-                      item.isSynced ? "AWS Cloud" : "In-App",
+                      "In-App",
                       style: TextStyle(
-                        color: item.isSynced ? const Color(0xFFFF9900) : Colors.grey,
+                        color: Colors.grey,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),

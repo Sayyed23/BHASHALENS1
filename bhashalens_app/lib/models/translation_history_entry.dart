@@ -62,7 +62,6 @@ class TranslationHistoryEntry {
   static ProcessingBackend _parseBackend(dynamic value) {
     if (value is String) {
       if (value == 'onDevice' || value == 'ml_kit') return ProcessingBackend.mlKit;
-      if (value == 'awsCloud' || value == 'aws_bedrock') return ProcessingBackend.gemini;
       if (value == 'gemini') return ProcessingBackend.gemini;
       
       return ProcessingBackend.values.firstWhere(

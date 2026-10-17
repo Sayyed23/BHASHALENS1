@@ -4,7 +4,6 @@ import 'package:bhashalens_app/services/enhanced_accessibility_service.dart';
 import 'package:bhashalens_app/services/firebase_auth_service.dart';
 import 'package:bhashalens_app/services/preferences_service.dart';
 import 'package:bhashalens_app/services/history_service.dart';
-import 'package:bhashalens_app/services/aws_api_gateway_client.dart';
 import 'package:bhashalens_app/widgets/export_data_dialog.dart';
 import 'package:bhashalens_app/widgets/web_constrained_body.dart';
 
@@ -229,61 +228,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 24),
 
-              // Cloud sync status
-              Consumer<AwsApiGatewayClient>(
-                builder: (context, apiClient, _) {
-                  final enabled = apiClient.isEnabled;
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cardDark,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF2D3748)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: enabled
-                                ? const Color(0xFF22C55E)
-                                : const Color(0xFF94A3B8),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                enabled ? 'Cloud sync: On' : 'Cloud sync: Off',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                enabled
-                                    ? 'History and preferences sync when online.'
-                                    : 'Cloud sync is currently disabled.',
-                                style: const TextStyle(
-                                  color: textGrey,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
 
               // ACCESSIBILITY CONTROLS
               const Text(
