@@ -1,14 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'aws_api_gateway_client.dart';
-import 'package:bhashalens_app/debug_session_log.dart';
+import 'local_storage_service.dart';
 
 class ExportService extends ChangeNotifier {
-  final AwsApiGatewayClient _apiClient;
+  final LocalStorageService _localStorageService;
   bool _isExporting = false;
   String? _error;
 
-  ExportService({required AwsApiGatewayClient apiClient})
-      : _apiClient = apiClient;
+  ExportService({required LocalStorageService localStorageService})
+      : _localStorageService = localStorageService;
 
   bool get isExporting => _isExporting;
   String? get error => _error;
@@ -19,59 +19,62 @@ class ExportService extends ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    if (!_apiClient.isEnabled) return null;
-
     _isExporting = true;
     _error = null;
     notifyListeners();
 
     try {
-      // #region agent log
-      DebugSessionLog.log(
-        'export_service.dart:exportData',
-        'export_attempt',
-        data: {'exportType': exportType, 'format': format},
-        hypothesisId: 'H4',
-      );
-      // #endregion
-      final result = await _apiClient.exportData(
-        exportType: exportType,
-        format: format,
-        startDate: startDate?.toIso8601String(),
-        endDate: endDate?.toIso8601String(),
-      );
-      // #region agent log
-      DebugSessionLog.log(
-        'export_service.dart:exportData',
-        'export_ok',
-        data: {'hasUrl': result['url'] != null || result['downloadUrl'] != null},
-        hypothesisId: 'H4',
-      );
-      // #endregion
-      return result;
-    } on AwsApiException catch (e) {
-      _error = 'Failed to export data: ${e.message}';
-      debugPrint(_error);
-      // #region agent log
-      DebugSessionLog.log(
-        'export_service.dart:exportData',
-        'export_failed',
-        data: {'error': e.message},
-        hypothesisId: 'H4',
-      );
-      // #endregion
-      return null;
+      List<Map<String, dynamic>> items = [];
+      if (exportType == 'saved' || exportType == 'all') {
+        final saved = await _localStorageService.getSavedTranslations();
+        items.addAll(saved);
+      }
+      if (exportType == 'history' || exportType == 'all') {
+        final history = await _localStorageService.getTranslations();
+        items.addAll(history);
+      }
+
+      if (startDate != null) {
+        items = items.where((item) {
+          final ts = item['timestamp'] as num?;
+          return ts != null && ts >= startDate.millisecondsSinceEpoch;
+        }).toList();
+      }
+
+      if (endDate != null) {
+        items = items.where((item) {
+          final ts = item['timestamp'] as num?;
+          return ts != null && ts <= endDate.millisecondsSinceEpoch;
+        }).toList();
+      }
+
+      String exportContent = '';
+      if (format.toLowerCase() == 'json') {
+        exportContent = jsonEncode(items);
+      } else {
+        // CSV format
+        final StringBuffer sb = StringBuffer();
+        sb.writeln('ID,OriginalText,TranslatedText,SourceLanguage,TargetLanguage,Timestamp');
+        for (final item in items) {
+          final id = item['id'] ?? '';
+          final orig = (item['originalText'] ?? '').toString().replaceAll('"', '""');
+          final trans = (item['translatedText'] ?? '').toString().replaceAll('"', '""');
+          final src = item['sourceLanguage'] ?? '';
+          final tgt = item['targetLanguage'] ?? '';
+          final ts = item['timestamp'] ?? '';
+          sb.writeln('"$id","$orig","$trans","$src","$tgt","$ts"');
+        }
+        exportContent = sb.toString();
+      }
+
+      return {
+        'format': format,
+        'content': exportContent,
+        'count': items.length,
+      };
     } catch (e) {
       _error = 'Error during export: $e';
       debugPrint(_error);
-      // #region agent log
-      DebugSessionLog.log(
-        'export_service.dart:exportData',
-        'export_failed',
-        data: {'error': e.toString()},
-        hypothesisId: 'H4',
-      );
-      // #endregion
       return null;
     } finally {
       _isExporting = false;

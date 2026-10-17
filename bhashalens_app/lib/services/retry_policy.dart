@@ -67,7 +67,6 @@ class RetryPolicy {
     // Retry on network errors and server errors (5xx)
     if (error is TimeoutException) return true;
     
-    // Check if it's an AWS API exception with retryable status
     if (error.toString().contains('Network error')) return true;
     if (error.toString().contains('status: 5')) return true; // 5xx errors
     if (error.toString().contains('status: 429')) return true; // Rate limit

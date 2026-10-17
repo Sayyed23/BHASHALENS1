@@ -18,12 +18,6 @@ class BackendIndicator extends StatelessWidget {
     String label;
 
     switch (backend.toLowerCase()) {
-      case 'bedrock':
-      case 'awsbedrock':
-        color = Colors.blue;
-        icon = Icons.auto_awesome;
-        label = 'Gemini (Strict Mode)';
-        break;
       case 'gemini':
         color = Colors.blue;
         icon = Icons.auto_awesome;
